@@ -1,0 +1,11 @@
+RewriteEngine On
+Options -Indexes
+
+# Si existe el archivo/carpeta real, sírvelo
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# CRÍTICO: Reescribe internamente SIN cambiar la URI visible
+RewriteCond %{REQUEST_URI} !^/public/
+RewriteRule ^(.*)$ public/$1 [L]
