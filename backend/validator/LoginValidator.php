@@ -1,7 +1,7 @@
 <?php
 // backend/validators/LoginValidator.php
 
-require_once 'ValidatorBase.php';
+require_once ROOT . '/backend/commons/ValidatorBase.php';
 
 class LoginValidator extends ValidatorBase {
   

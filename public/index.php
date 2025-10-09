@@ -15,7 +15,7 @@ switch ($uri) {
 
     case 'login':
       if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-          require_once ROOT . '/backend/validators/LoginValidator.php';
+          require_once ROOT . '/backend/validator/LoginValidator.php';
           $validation = LoginValidator::validate($_POST);
           if (!$validation['success']) {
               $_SESSION['validation_errors'] = $validation['errors'];
@@ -35,7 +35,7 @@ switch ($uri) {
       break;
     case 'registro':
       if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        require_once ROOT . '/backend/validators/RegisterValidator.php';
+        require_once ROOT . '/backend/validator/RegisterValidator.php';
         $validation = RegisterValidator::validate($_POST);
         if (!$validation['success']) {
             $_SESSION['validation_errors'] = $validation['errors'];
