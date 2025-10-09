@@ -2,7 +2,7 @@
 // backend/models/FamiliaModel.php
 require_once ROOT . '/backend/commons/BaseModel.php';
 
-class FamiliaModel extends BaseModel {
+class FamilyModel extends BaseModel {
   
   public function crearFamilia($correo, $telefono, $passwordPlain) {
     $hashedPassword = password_hash($passwordPlain, PASSWORD_DEFAULT);

@@ -2,7 +2,7 @@
 // backend/controllers/AuthController.php
 require_once ROOT . '/backend/commons/BaseController.php';
 require_once ROOT . '/backend/models/UserModel.php';
-require_once ROOT . '/backend/models/FamiliaModel.php';
+require_once ROOT . '/backend/models/FamilyModel.php';
 
 class AuthController extends BaseController {
     private $userModel;
@@ -11,7 +11,7 @@ class AuthController extends BaseController {
     public function __construct() {
         parent::__construct();
         $this->userModel = new UserModel();
-        $this->familiaModel = new FamiliaModel();
+        $this->familiaModel = new FamilyModel();
     }
     
     public function showLogin() {
