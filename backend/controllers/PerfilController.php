@@ -1,5 +1,5 @@
 <?php
-// backend/controllers/AuthController.php
+// backend/controllers/PerfilController.php
 require_once ROOT . '/backend/commons/BaseController.php';
 require_once ROOT . '/backend/models/UserModel.php';
 require_once ROOT . '/backend/models/MiembroModel.php';
@@ -12,6 +12,7 @@ class PerfilController extends BaseController
   public function __construct()
   {
     parent::__construct();
+    $this->requireAuth();
     $this->userModel = new UserModel();
     $this->miembroModel = new MiembroModel();
   }
@@ -21,11 +22,17 @@ class PerfilController extends BaseController
     $verificacion = $this->miembroModel->verificarMiembro($contra, $idPerfil);
 
     if ($verificacion) {
-      $data['title'] = 'Conceptos Perfil - Arka App';
-      $this->view('concepto/listar', $data);
+      $_SESSION['miembro_id'] = $verificacion->getId();  // ← Getter para ID
+      $_SESSION['miembro_idFamilia'] = $verificacion->getIdFamilia();
+      $_SESSION['miembro_rol'] = $verificacion->getRol();
+      $_SESSION['miembro_nombre'] = $verificacion->getNombre();
+      header('Location: ' . URLROOT . '/concepto/listar');
+      exit;
     } else {
-      $data['validation_errors'] = "Contraseña inválida";
-      $this->view('auth/seleccionarperfil', $data);
+
+      $_SESSION['error_message'] = 'Contraseña incorrecta';
+      header('Location: ' . URLROOT . '/seleccionar-perfil');
+      exit;
     }
   }
 }

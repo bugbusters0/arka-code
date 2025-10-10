@@ -1,50 +1,11 @@
-const selectsFrecuencia = document.querySelectorAll(".frecuencia");
-const modal = document.getElementById("modalCalendario");
-const closeBtn = document.querySelector(".modal .close");
-const guardarFecha = document.getElementById("guardarFecha");
-const calendarInput = document.getElementById("calendarInput");
 
-let currentSelect = null;
 
-selectsFrecuencia.forEach(select => {
-  select.addEventListener("change", () => {
-    if (select.value !== "diario") {
-      modal.style.display = "flex";
-      currentSelect = select;
-    }
-  });
-});
-
-if (closeBtn) {
-  closeBtn.addEventListener("click", () => {
-    modal.style.display = "none";
-  });
-}
-
-if (guardarFecha) {
-  guardarFecha.addEventListener("click", () => {
-    if (currentSelect) {
-      currentSelect.dataset.fecha = calendarInput.value;
-    }
-    modal.style.display = "none";
-  });
-}
-
-window.addEventListener("click", (e) => {
-  if (e.target === modal) {
-    modal.style.display = "none";
-  }
-});
 
 // === Mostrar panel lateral al hacer click en un concepto ===
-const conceptos = document.querySelectorAll('.concepto');
+//const conceptos = document.querySelectorAll('.concepto');
 const sidebarRight = document.querySelector('.sidebar-right');
 
-conceptos.forEach(c => {
-  c.addEventListener('click', () => {
-    sidebarRight.classList.add('active');
-  });
-});
+
 
 // === Notificaciones ===
 const userRole = "admin";

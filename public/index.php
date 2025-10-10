@@ -36,17 +36,19 @@ switch ($uri) {
     }
     break;
   case 'seleccionar-perfil':
+    require_once ROOT . '/backend/controllers/AuthController.php';
+    require_once ROOT . '/backend/controllers/PerfilController.php';
+
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-      require_once ROOT . '/backend/controllers/PerfilController.php';
       $controller = new PerfilController();
       $controller->consultarVerificacion($_POST["password"], $_POST["id"]);
-    }
-
-    require_once ROOT . '/backend/controllers/AuthController.php';
-    $controller = new AuthController();
-    if (isset($_GET['profile'])) {
+    } elseif (isset($_GET['profile'])) {
+      // ✅ Selección directa de perfil
+      $controller = new AuthController();
       $controller->processSeleccionarPerfil();
     } else {
+      // ✅ Mostrar listado de perfiles
+      $controller = new AuthController();
       $controller->solicitarPerfiles();
     }
     break;
@@ -76,24 +78,6 @@ switch ($uri) {
     $controller->listar();
     break;
 
-  case 'concepto/crear':
-    require_once ROOT . '/backend/controllers/ConceptoController.php';
-    $controller = new ConceptoController();
-    $controller->crear();
-    break;
-  case 'home':
-    $controllerPath = ROOT . '/backend/controllers/HomeController.php';
-    if (file_exists($controllerPath)) {
-      require_once $controllerPath;
-      $controller = new HomeController();
-      $controller->index();
-    } else {
-      header('Location: ' . URLROOT . '/login');
-      exit;
-    }
-    break;
-
-
 
   case 'logout':
     $controllerPath = ROOT . '/backend/controllers/AuthController.php';
@@ -101,18 +85,6 @@ switch ($uri) {
       require_once $controllerPath;
       $controller = new AuthController();
       $controller->logout();
-    } else {
-      header('Location: ' . URLROOT . '/login');
-      exit;
-    }
-    break;
-
-  case 'dashboard':
-    $controllerPath = ROOT . '/backend/controllers/FinanzasController.php';
-    if (file_exists($controllerPath)) {
-      require_once $controllerPath;
-      $controller = new FinanzasController();
-      $controller->dashboard();
     } else {
       header('Location: ' . URLROOT . '/login');
       exit;

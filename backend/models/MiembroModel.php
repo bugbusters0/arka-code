@@ -1,6 +1,7 @@
 <?php
 // backend/models/FamiliaModel.php
 require_once ROOT . '/backend/commons/BaseModel.php';
+require_once ROOT . '/backend/entities/EntityMiembro.php';
 
 class MiembroModel extends BaseModel
 {
@@ -73,7 +74,7 @@ class MiembroModel extends BaseModel
   }
   public function verificarMiembro($pass, $id)
   {
-    $sql = "SELECT id, contra_personal FROM usuario WHERE id = ? AND delete_at IS NULL";
+    $sql = "SELECT id, id_familia, nombre, fecha_nac, rol, contra_personal FROM usuario WHERE id = ? AND delete_at IS NULL";
     $miembro = $this->executeQuery($sql, [$id]);
 
     if (empty($miembro)) {
@@ -87,6 +88,14 @@ class MiembroModel extends BaseModel
       return false;
     }
 
-    return true;
+    $row = $miembro;
+    return new EntityMiembro(
+      $row['id'],
+      $row['id_familia'],
+      $row['nombre'],
+      $row['fecha_nac'],
+      $row['rol'],
+      "",
+    );
   }
 }
