@@ -96,14 +96,14 @@ class ConceptoModel extends BaseModel
         return $this->executeNonQuery($sql, [$nombre, $tipo, $color, $idIcono]);
     }
 
-    public function actualizarConcepto($id, $nombre, $color)
-    {
-        $sql = "UPDATE concepto 
-                SET nombre = ?, color = ?, update_at = CURRENT_TIMESTAMP 
-                WHERE id = ? AND delete_at IS NULL";
+    // public function actualizarConcepto($id, $nombre, $color)
+    // {
+    //     $sql = "UPDATE concepto 
+    //             SET nombre = ?, color = ?, update_at = CURRENT_TIMESTAMP 
+    //             WHERE id = ? AND delete_at IS NULL";
 
-        return $this->executeNonQuery($sql, [$nombre, $color, $id]);
-    }
+    //     return $this->executeNonQuery($sql, [$nombre, $color, $id]);
+    // }
 
     public function eliminarConcepto($id)
     {
@@ -134,4 +134,50 @@ public function crearRelacionUsuarioConcepto($idUsuario, $idConcepto, $desembols
   {
       return $this->db->lastInsertId();
   }
+
+  // En ConceptoModel.php - Agregar estos métodos
+public function actualizarConcepto($id, $nombre, $color, $idIcono)
+{
+    $sql = "UPDATE concepto 
+            SET nombre = ?, color = ?, id_icono = ?, update_at = CURRENT_TIMESTAMP 
+            WHERE id = ? AND delete_at IS NULL";
+
+    return $this->executeNonQuery($sql, [$nombre, $color, $idIcono, $id]);
+}
+
+public function actualizarRelacionUsuarioConcepto($idUsuario, $idConcepto, $desembolsoMonto, $desembolsoFrecuencia, $limiteMonto, $limiteFrecuencia)
+{
+    $sql = "UPDATE concepto_usuarios 
+            SET desembolso_planejado = ?, periodo_tipo = ?, limite_monto = ?, limite_tipo = ?, update_at = CURRENT_TIMESTAMP 
+            WHERE id_usuario = ? AND id_concepto = ? AND delete_at IS NULL";
+
+    $params = [$desembolsoMonto, $desembolsoFrecuencia, $limiteMonto, $limiteFrecuencia, $idUsuario, $idConcepto];
+    
+    return $this->executeNonQuery($sql, $params);
+}
+
+public function getConceptoPorIdYUsuario($idConcepto, $idUsuario)
+{
+    $sql = "SELECT 
+                c.id, 
+                c.nombre, 
+                c.tipo, 
+                c.color,
+                c.id_icono,
+                cu.desembolso_planejado, 
+                cu.periodo_tipo AS desembolso_frecuencia, 
+                cu.limite_monto, 
+                cu.limite_tipo AS limite_frecuencia,
+                i.nombre AS icono_nombre
+            FROM concepto c
+            INNER JOIN concepto_usuarios cu ON c.id = cu.id_concepto
+            LEFT JOIN iconos i ON c.id_icono = i.id
+            WHERE c.id = ? 
+                AND cu.id_usuario = ?
+                AND c.delete_at IS NULL 
+                AND cu.delete_at IS NULL";
+
+    $result = $this->executeQuery($sql, [$idConcepto, $idUsuario]);
+    return !empty($result) ? $result[0] : null;
+}
 }

@@ -99,4 +99,76 @@ public function guardarConcepto()
         }
         exit;
     }
+
+    // En ConceptoController.php - Agregar método editar
+public function editar($idConcepto)
+{
+    header('Content-Type: application/json');
+    
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $idUsuario = $_SESSION['user_id'] ?? 1;
+        $nombre = $_POST['name'] ?? '';
+        $color = $_POST['color'] ?? '#FF6B6B';
+        $idIcono = intval($_POST['idIcono'] ?? 3);
+
+        // Validaciones
+        if (empty($nombre)) {
+            echo json_encode(['success' => false, 'message' => 'El nombre es requerido']);
+            exit;
+        }
+
+        try {
+            // 1. Actualizar concepto en tabla 'concepto'
+            $conceptoResult = $this->conceptoModel->actualizarConcepto($idConcepto, $nombre, $color, $idIcono);
+            
+            if ($conceptoResult) {
+                $desembolsoMonto = floatval($_POST['desembolsoMonto'] ?? 0);
+                $desembolsoFrecuencia = $_POST['desembolsoFrecuencia'] ?? 'diario';
+                $limiteMonto = floatval($_POST['limiteMonto'] ?? 0);
+                $limiteFrecuencia = $_POST['limiteFrecuencia'] ?? 'diario';
+
+                // 2. Actualizar relación en 'concepto_usuarios'
+                $updateResult = $this->conceptoModel->actualizarRelacionUsuarioConcepto(
+                    $idUsuario, 
+                    $idConcepto, 
+                    $desembolsoMonto, 
+                    $desembolsoFrecuencia, 
+                    $limiteMonto, 
+                    $limiteFrecuencia
+                );
+                
+                if ($updateResult) {
+                    echo json_encode([
+                        'success' => true, 
+                        'message' => 'Concepto actualizado correctamente',
+                        'concepto_id' => $idConcepto
+                    ]);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Error al actualizar la configuración del concepto']);
+                }
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Error al actualizar el concepto']);
+            }
+        } catch (Exception $e) {
+            error_log("❌ Error en editar concepto: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Error interno del servidor']);
+        }
+    } else {
+        // GET request - Obtener datos del concepto para editar
+        $concepto = $this->conceptoModel->getConceptoPorIdYUsuario($idConcepto, $_SESSION['user_id'] ?? 1);
+        
+        if ($concepto) {
+            echo json_encode([
+                'success' => true,
+                'concepto' => $concepto
+            ]);
+        } else {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Concepto no encontrado'
+            ]);
+        }
+    }
+    exit;
+}
 }
