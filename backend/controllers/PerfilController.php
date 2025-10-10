@@ -28,7 +28,6 @@ class PerfilController extends BaseController
       header('Location: ' . URLROOT . '/concepto/listar');
       exit;
     } else {
-
       $_SESSION['error_message'] = 'Contraseña incorrecta';
       header('Location: ' . URLROOT . '/seleccionar-perfil');
       exit;
