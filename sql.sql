@@ -131,7 +131,9 @@ CREATE INDEX idx_concepto_tipo ON concepto(tipo);
 CREATE INDEX idx_movimiento_concepto ON movimiento(id_concepto);
 CREATE INDEX idx_movimiento_fecha ON movimiento(fecha);
 
-
+ALTER TABLE concepto_usuarios 
+MODIFY COLUMN desembolso_planejado DECIMAL(10, 2) NULL,
+MODIFY COLUMN limite_monto DECIMAL(10, 2) NULL;
 
 INSERT INTO `iconos` (`id`, `path`, `nombre`, `size`, `type`, `create_at`, `update_at`, `delete_at`) VALUES
 (3, 'fa-solid fa-burger', 'Hamburguesa', NULL, 'font-awesome', '2025-10-10 03:31:09', '2025-10-10 03:31:09', NULL),

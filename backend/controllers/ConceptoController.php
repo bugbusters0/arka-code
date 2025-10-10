@@ -10,236 +10,250 @@ class ConceptoController extends BaseController
 	public function __construct()
 	{
 		parent::__construct();
-		$this->requireAuth(); // Protege todas las rutas
+		$this->requireAuth();
 		$this->conceptoModel = new ConceptoModel();
 	}
 
 	public function mostrarConceptos($tipo = "gasto")
 	{
-		if (!isset($_SESSION['user_id'])) {
-			header('Location: ' . URLROOT . '/login');
+		if (!isset($_SESSION['miembro_id']) || !isset($_SESSION['user_id'])) {
+			header('Location: ' . URLROOT . '/seleccionar-perfil');
 			exit;
 		}
 
-		$userId = $_SESSION['user_id'];
+		$userId = $_SESSION['miembro_id'];
 		$conceptos = $this->conceptoModel->getConceptosPorUsuario($userId, $tipo);
 		$icons = $this->conceptoModel->getIconos();
+
 		$data = [
 			'title' => ($tipo === 'gasto') ? 'Gestión de Gastos - Arka' : 'Gestión de Ingresos - Arka',
 			'conceptos' => $conceptos,
 			'icons' => $icons,
-			'tipo_actual' => $tipo,
-			'validation_errors' => $_SESSION['validation_errors'] ?? [],
-			'success' => $_SESSION['success_message'] ?? '',
-			'error' => ''
+			'tipo_actual' => $tipo
 		];
-
-		unset($_SESSION['validation_errors'], $_SESSION['success_message']);
 
 		$this->viewWithLayout('concepto/gasto', 'main', $data);
 	}
 
 	public function guardarConcepto()
 	{
-		if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-			header('Content-Type: application/json');
+		// if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+		// 	header('Location: ' . URLROOT . '/concepto/gasto');
+		// 	exit;
+		// }
 
-			$idUsuario = $_SESSION['miembro_id'] ?? 1;
-			$idFamilia = $_SESSION['user_id'] ?? 1;
-			$nombre = $_POST['name'] ?? '';
-			$tipo = $_POST['tipo'] ?? 'gasto';
-			$color = $_POST['color'] ?? '#FF6B6B';
-			$idIcono = intval($_POST['id_icono'] ?? 3);
+		// if (!isset($_SESSION['miembro_id']) || !isset($_SESSION['user_id'])) {
+		// 	$_SESSION['error_message'] = 'Sesión inválida';
+		// 	header('Location: ' . URLROOT . '/seleccionar-perfil');
+		// 	exit;
+		// }
 
-			// Validaciones básicas
-			if (empty($nombre)) {
-				echo json_encode(['success' => false, 'message' => 'El nombre es requerido']);
-				exit;
-			}
+		$idUsuarioCreador = $_SESSION['miembro_id'];
+		$idFamilia = $_SESSION['user_id'];
+		$nombre = trim($_POST['nombre'] ?? '');
+		$tipo = $_POST['tipo'] ?? 'gasto';
+		$color = $_POST['color'] ?? '#FF6B6B';
+		$idIcono = intval($_POST['id_icono'] ?? 3);
 
-			try {
-				// 1. Crear concepto en tabla 'concepto'
-				$conceptoResult = $this->conceptoModel->crearConcepto($nombre, $tipo, $color, $idIcono);
-
-				if ($conceptoResult) {
-					$idConcepto = $this->conceptoModel->getLastInsertId();
-					error_log("✅ Concepto creado con ID: " . $idConcepto);
-
-					$desembolsoMonto = floatval($_POST['desembolsoMonto'] ?? 0);
-					$desembolsoFrecuencia = $_POST['desembolsoFrecuencia'] ?? 'diario';
-					$limiteMonto = floatval($_POST['limiteMonto'] ?? 0);
-					$limiteFrecuencia = $_POST['limiteFrecuencia'] ?? 'diario';
-
-					// 2. Obtener todos los usuarios de la familia
-					$usuariosFamilia = $this->conceptoModel->getUsuariosPorFamilia($idFamilia);
-					error_log("👨‍👩‍👧‍👦 Usuarios en familia: " . count($usuariosFamilia));
-
-					$relacionesCreadas = 0;
-					$totalUsuarios = count($usuariosFamilia);
-
-					// 3. Crear relaciones para todos los usuarios de la familia
-					foreach ($usuariosFamilia as $usuario) {
-						$idUsuarioActual = $usuario['id'];
-
-						if ($idUsuarioActual == $idUsuario) {
-							// Para el usuario que crea el concepto - con valores configurados
-							$result = $this->conceptoModel->crearRelacionUsuarioConcepto(
-								$idUsuarioActual,
-								$idConcepto,
-								$desembolsoMonto,
-								$desembolsoFrecuencia,
-								$limiteMonto,
-								$limiteFrecuencia
-							);
-						} else {
-							// Para los demás usuarios - con valores NULL
-							$result = $this->conceptoModel->crearRelacionUsuarioConceptoBasica(
-								$idUsuarioActual,
-								$idConcepto
-							);
-						}
-
-						if ($result) {
-							$relacionesCreadas++;
-							error_log("✅ Relación creada para usuario: " . $idUsuarioActual);
-						} else {
-							error_log("❌ Error creando relación para usuario: " . $idUsuarioActual);
-						}
-					}
-
-					if ($relacionesCreadas > 0) {
-						echo json_encode([
-							'success' => true,
-							'message' => "Concepto guardado correctamente y compartido con " . $relacionesCreadas . " usuarios",
-							'concepto_id' => $idConcepto,
-							'usuarios_compartidos' => $relacionesCreadas
-						]);
-					} else {
-						// Si fallan todas las relaciones, eliminar el concepto creado
-						$this->conceptoModel->eliminarConcepto($idConcepto);
-						echo json_encode(['success' => false, 'message' => 'Error al crear las relaciones con los usuarios']);
-					}
-				} else {
-					echo json_encode(['success' => false, 'message' => 'Error al guardar el concepto']);
-				}
-			} catch (Exception $e) {
-				error_log("❌ Error en guardarConcepto: " . $e->getMessage());
-				echo json_encode(['success' => false, 'message' => 'Error interno del servidor: ' . $e->getMessage()]);
-			}
+		// Validaciones básicas
+		if (empty($nombre)) {
+			$_SESSION['error_message'] = 'El nombre del concepto es obligatorio';
+			header('Location: ' . URLROOT . '/concepto/gasto');
+			exit;
 		}
-		exit;
-	}
 
-	public function editar($idConcepto)
-	{
-		header('Content-Type: application/json');
+		try {
+			// 1. Crear concepto en tabla 'concepto'
+			$conceptoCreado = $this->conceptoModel->crearConcepto($nombre, $tipo, $color, $idIcono);
 
-		if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-			$idUsuario = $_SESSION['user_id'] ?? 1;
-			$nombre = $_POST['name'] ?? '';
-			$color = $_POST['color'] ?? '#FF6B6B';
-			$idIcono = intval($_POST['idIcono'] ?? 3);
-
-			// Validaciones
-			if (empty($nombre)) {
-				echo json_encode(['success' => false, 'message' => 'El nombre es requerido']);
-				exit;
+			if (!$conceptoCreado) {
+				throw new Exception('Error al crear el concepto');
 			}
 
-			try {
-				// 1. Verificar que el usuario tiene acceso a este concepto
-				$conceptoUsuario = $this->conceptoModel->getConceptoPorIdYUsuario($idConcepto, $idUsuario);
-				if (!$conceptoUsuario) {
-					echo json_encode(['success' => false, 'message' => 'No tienes permisos para editar este concepto']);
-					exit;
-				}
+			$idConcepto = $this->conceptoModel->getLastInsertId();
 
-				// 2. Actualizar concepto en tabla 'concepto' (esto afecta a todos los usuarios)
-				$conceptoResult = $this->conceptoModel->actualizarConcepto($idConcepto, $nombre, $color, $idIcono);
+			// 2. Obtener configuración del usuario creador
+			$desembolsoMonto = floatval($_POST['desembolsoMonto'] ?? 0);
+			$desembolsoFrecuencia = $_POST['desembolsoFrecuencia'] ?? null;
+			$limiteMonto = floatval($_POST['limiteMonto'] ?? 0);
+			$limiteFrecuencia = $_POST['limiteFrecuencia'] ?? null;
 
-				if ($conceptoResult) {
-					$desembolsoMonto = floatval($_POST['desembolsoMonto'] ?? 0);
-					$desembolsoFrecuencia = $_POST['desembolsoFrecuencia'] ?? 'diario';
-					$limiteMonto = floatval($_POST['limiteMonto'] ?? 0);
-					$limiteFrecuencia = $_POST['limiteFrecuencia'] ?? 'diario';
+			// 3. Obtener TODOS los usuarios de la familia
+			$usuariosFamilia = $this->conceptoModel->getUsuariosPorFamilia($idFamilia);
 
-					// 3. Actualizar SOLO la relación del usuario actual en 'concepto_usuarios'
-					$updateResult = $this->conceptoModel->actualizarRelacionUsuarioConcepto(
-						$idUsuario,
+			if (empty($usuariosFamilia)) {
+				throw new Exception('No se encontraron usuarios en la familia');
+			}
+
+			$relacionesCreadas = 0;
+
+			// 4. Crear relaciones para TODOS los usuarios de la familia
+			foreach ($usuariosFamilia as $usuario) {
+				$idUsuarioActual = $usuario['id'];
+
+				if ($idUsuarioActual == $idUsuarioCreador) {
+					$result = $this->conceptoModel->crearRelacionUsuarioConcepto(
+						$idUsuarioActual,
 						$idConcepto,
 						$desembolsoMonto,
 						$desembolsoFrecuencia,
 						$limiteMonto,
 						$limiteFrecuencia
 					);
-
-					if ($updateResult) {
-						echo json_encode([
-							'success' => true,
-							'message' => 'Concepto actualizado correctamente (solo para tu usuario)',
-							'concepto_id' => $idConcepto
-						]);
-					} else {
-						echo json_encode(['success' => false, 'message' => 'Error al actualizar tu configuración personal del concepto']);
-					}
 				} else {
-					echo json_encode(['success' => false, 'message' => 'Error al actualizar el concepto']);
+					$result = $this->conceptoModel->crearRelacionUsuarioConceptoBasica(
+						$idUsuarioActual,
+						$idConcepto
+					);
 				}
+
+				if ($result) {
+					$relacionesCreadas++;
+				}
+			}
+
+			if ($relacionesCreadas > 0) {
+				$_SESSION['success_message'] = "Concepto '{$nombre}' creado y compartido con {$relacionesCreadas} usuarios de la familia";
+				header('Location: ' . URLROOT . '/concepto/gasto?tipo=' . $tipo);
+				exit;
+			} else {
+				$this->conceptoModel->eliminarConcepto($idConcepto);
+				throw new Exception('Error al crear las relaciones con los usuarios');
+			}
+		} catch (Exception $e) {
+			error_log("❌ Error en guardarConcepto: " . $e->getMessage());
+			$_SESSION['error_message'] = 'Error al guardar el concepto: ' . $e->getMessage();
+			header('Location: ' . URLROOT . '/concepto/gasto');
+			exit;
+		}
+	}
+
+	public function editar($idConcepto)
+	{
+		if (!isset($_SESSION['miembro_id'])) {
+			$_SESSION['error_message'] = 'Sesión inválida';
+			header('Location: ' . URLROOT . '/seleccionar-perfil');
+			exit;
+		}
+
+		$idUsuario = $_SESSION['miembro_id'];
+
+		if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+			$nombre = trim($_POST['name'] ?? '');
+			$color = $_POST['color'] ?? '#FF6B6B';
+			$idIcono = intval($_POST['id_icono'] ?? 3);
+
+			if (empty($nombre)) {
+				$_SESSION['error_message'] = 'El nombre es requerido';
+				header('Location: ' . URLROOT . '/concepto/gasto');
+				exit;
+			}
+
+			try {
+				// Verificar acceso
+				$conceptoUsuario = $this->conceptoModel->getConceptoPorIdYUsuario($idConcepto, $idUsuario);
+				if (!$conceptoUsuario) {
+					$_SESSION['error_message'] = 'No tienes permisos para editar este concepto';
+					header('Location: ' . URLROOT . '/concepto/gasto');
+					exit;
+				}
+
+				// Actualizar concepto (afecta a todos)
+				$conceptoResult = $this->conceptoModel->actualizarConcepto($idConcepto, $nombre, $color, $idIcono);
+
+				if (!$conceptoResult) {
+					throw new Exception('Error al actualizar el concepto');
+				}
+
+				// Actualizar configuración personal del usuario
+				$desembolsoMonto = floatval($_POST['desembolsoMonto'] ?? 0);
+				$desembolsoFrecuencia = $_POST['desembolsoFrecuencia'] ?? null;
+				$limiteMonto = floatval($_POST['limiteMonto'] ?? 0);
+				$limiteFrecuencia = $_POST['limiteFrecuencia'] ?? null;
+
+				$updateResult = $this->conceptoModel->actualizarRelacionUsuarioConcepto(
+					$idUsuario,
+					$idConcepto,
+					$desembolsoMonto,
+					$desembolsoFrecuencia,
+					$limiteMonto,
+					$limiteFrecuencia
+				);
+
+				if ($updateResult) {
+					$_SESSION['success_message'] = "Concepto '{$nombre}' actualizado correctamente";
+				} else {
+					$_SESSION['error_message'] = 'Error al actualizar tu configuración personal';
+				}
+
+				header('Location: ' . URLROOT . '/concepto/gasto');
+				exit;
 			} catch (Exception $e) {
-				error_log("❌ Error en editar concepto: " . $e->getMessage());
-				echo json_encode(['success' => false, 'message' => 'Error interno del servidor']);
+				error_log("❌ Error en editar: " . $e->getMessage());
+				$_SESSION['error_message'] = 'Error al actualizar el concepto';
+				header('Location: ' . URLROOT . '/concepto/gasto');
+				exit;
 			}
 		} else {
-			// GET request - Obtener datos del concepto para editar
-			$idUsuario = $_SESSION['user_id'] ?? 1;
+			// GET: Mostrar formulario de edición
 			$concepto = $this->conceptoModel->getConceptoPorIdYUsuario($idConcepto, $idUsuario);
 
-			if ($concepto) {
-				echo json_encode([
-					'success' => true,
-					'concepto' => $concepto
-				]);
-			} else {
-				echo json_encode([
-					'success' => false,
-					'message' => 'Concepto no encontrado o no tienes permisos'
-				]);
+			if (!$concepto) {
+				$_SESSION['error_message'] = 'Concepto no encontrado';
+				header('Location: ' . URLROOT . '/concepto/gasto');
+				exit;
 			}
+
+			$icons = $this->conceptoModel->getIconos();
+
+			$data = [
+				'title' => 'Editar Concepto - Arka',
+				'concepto' => $concepto,
+				'icons' => $icons
+			];
+
+			$this->viewWithLayout('concepto/editar', 'main', $data);
 		}
-		exit;
 	}
 
 	public function deshabilitar($idConcepto)
 	{
-		header('Content-Type: application/json');
-
-		if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-			$idUsuario = $_SESSION['user_id'] ?? 1;
-
-			try {
-				// Verificar que el usuario tiene acceso a este concepto
-				$conceptoUsuario = $this->conceptoModel->getConceptoPorIdYUsuario($idConcepto, $idUsuario);
-				if (!$conceptoUsuario) {
-					echo json_encode(['success' => false, 'message' => 'No tienes permisos para deshabilitar este concepto']);
-					exit;
-				}
-
-				// Deshabilitar solo para el usuario actual
-				$result = $this->conceptoModel->deshabilitarConceptoUsuario($idUsuario, $idConcepto);
-
-				if ($result) {
-					echo json_encode([
-						'success' => true,
-						'message' => 'Concepto deshabilitado correctamente (solo para tu usuario)'
-					]);
-				} else {
-					echo json_encode(['success' => false, 'message' => 'Error al deshabilitar el concepto']);
-				}
-			} catch (Exception $e) {
-				error_log("❌ Error en deshabilitar concepto: " . $e->getMessage());
-				echo json_encode(['success' => false, 'message' => 'Error interno del servidor']);
-			}
+		if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+			header('Location: ' . URLROOT . '/concepto/gasto');
+			exit;
 		}
+
+		if (!isset($_SESSION['miembro_id'])) {
+			$_SESSION['error_message'] = 'Sesión inválida';
+			header('Location: ' . URLROOT . '/seleccionar-perfil');
+			exit;
+		}
+
+		$idUsuario = $_SESSION['miembro_id'];
+
+		try {
+			// Verificar acceso
+			$conceptoUsuario = $this->conceptoModel->getConceptoPorIdYUsuario($idConcepto, $idUsuario);
+			if (!$conceptoUsuario) {
+				$_SESSION['error_message'] = 'No tienes permisos para deshabilitar este concepto';
+				header('Location: ' . URLROOT . '/concepto/gasto');
+				exit;
+			}
+
+			// Deshabilitar solo para este usuario
+			$result = $this->conceptoModel->deshabilitarConceptoUsuario($idUsuario, $idConcepto);
+
+			if ($result) {
+				$_SESSION['success_message'] = 'Concepto deshabilitado correctamente';
+			} else {
+				$_SESSION['error_message'] = 'Error al deshabilitar el concepto';
+			}
+		} catch (Exception $e) {
+			error_log("❌ Error en deshabilitar: " . $e->getMessage());
+			$_SESSION['error_message'] = 'Error al deshabilitar el concepto';
+		}
+
+		header('Location: ' . URLROOT . '/concepto/gasto');
 		exit;
 	}
 }

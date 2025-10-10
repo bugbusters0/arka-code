@@ -1,3 +1,15 @@
+document.addEventListener('DOMContentLoaded', function() {
+  renderConceptos();
+  
+  // Auto-seleccionar primer ícono y primer color
+  const primerIcono = document.querySelector('.icono-radio');
+  const primerColor = document.querySelector('input[name="color"]');
+  
+  if (primerIcono) primerIcono.checked = true;
+  if (primerColor) primerColor.checked = true;
+});
+
+
 // ======= DATOS INICIALES =======
 const conceptos = [
     //{ nombre: "Mercado", icono: "fa-basket-shopping", color: "#FF6B6B", desembolso: { monto: 150, frecuencia: "mensual",fecha:"2025-09-04" }, limite: { monto: 200, frecuencia: "mensual" } },
@@ -18,7 +30,6 @@ const conceptos = [
   
   // ======= FUNCIONES =======
   function renderConceptos() {
-    lista.innerHTML = "";
   
     conceptos.forEach((c, i) => {
       const div = document.createElement("div");
@@ -180,7 +191,7 @@ const conceptos = [
   }
   
   function limpiarFormulario() {
-    document.getElementById("nombreConcepto").value = "";
+    document.getElementById("nombre").value = "";
     document.querySelectorAll(".iconos-grid i").forEach(icon => icon.classList.remove("selected"));
     document.querySelectorAll("input[name='color']").forEach(r => r.checked = false);
     document.getElementById("desembolsoMonto").value = "";
@@ -197,32 +208,32 @@ const conceptos = [
   }
   
   // ======= EVENTOS =======
-  btnGuardar.addEventListener("click", () => {
-    const nombre = document.getElementById("nombreConcepto").value.trim();
-    const icono = document.querySelector(".iconos-grid i.selected")?.classList[1];
-    const color = document.querySelector("input[name='color']:checked")?.value;
-    const desembolso = {
-      monto: parseFloat(document.getElementById("desembolsoMonto").value || 0),
-      frecuencia: document.getElementById("desembolsoFrecuencia").value
-    };
-    const limite = {
-      monto: parseFloat(document.getElementById("limiteMonto").value || 0),
-      frecuencia: document.getElementById("limiteFrecuencia").value
-    };
+//   btnGuardar.addEventListener("click", () => {
+//     const nombre = document.getElementById("nombreConcepto").value.trim();
+//     const icono = document.querySelector(".iconos-grid i.selected")?.classList[1];
+//     const color = document.querySelector("input[name='color']:checked")?.value;
+//     const desembolso = {
+//       monto: parseFloat(document.getElementById("desembolsoMonto").value || 0),
+//       frecuencia: document.getElementById("desembolsoFrecuencia").value
+//     };
+//     const limite = {
+//       monto: parseFloat(document.getElementById("limiteMonto").value || 0),
+//       frecuencia: document.getElementById("limiteFrecuencia").value
+//     };
   
-    if (!nombre || !icono || !color) return;
+//     if (!nombre || !icono || !color) return;
   
-    if (modo === "crear") {
-      conceptos.unshift({ nombre, icono, color, desembolso, limite });
-      mostrarPopup("✅ Concepto guardado", "success");
-    } else {
-      conceptos[conceptoSeleccionado] = { nombre, icono, color, desembolso, limite };
-      mostrarPopup("✏️ Concepto actualizado", "info");
-    }
+//     if (modo === "crear") {
+//       conceptos.unshift({ nombre, icono, color, desembolso, limite });
+//       mostrarPopup("✅ Concepto guardado", "success");
+//     } else {
+//       conceptos[conceptoSeleccionado] = { nombre, icono, color, desembolso, limite };
+//       mostrarPopup("✏️ Concepto actualizado", "info");
+//     }
   
-    nuevoConcepto();
-    renderConceptos();
-  });
+//     nuevoConcepto();
+//     renderConceptos();
+//   });
   
   btnCancelar.addEventListener("click", nuevoConcepto);
   

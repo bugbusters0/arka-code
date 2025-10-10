@@ -59,12 +59,12 @@ class ConceptoValidator extends ValidatorBase
       $cleanData['color'] = $conceptoFields['color'] ?: null;
     }
 
-    // Validar icono
-    if (!$validator->isValidIcono($conceptoFields['id_icono'])) {
-      $errors['id_icono'] = $validator->getErrorMessage('icono');
-    } else {
-      $cleanData['id_icono'] = (int) $conceptoFields['id_icono'];
-    }
+    // // Validar icono
+    // if (!$validator->isValidIcono($conceptoFields['id_icono'])) {
+    //   $errors['id_icono'] = $validator->getErrorMessage('icono');
+    // } else {
+    //   $cleanData['id_icono'] = (int) $conceptoFields['id_icono'];
+    // }
 
     if (isset($postData['configuracion_usuario']) && $postData['configuracion_usuario'] === 'true') {
       $configFields = [

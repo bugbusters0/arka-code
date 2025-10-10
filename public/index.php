@@ -91,23 +91,24 @@ switch ($uri) {
 
   case 'concepto/crear':
     AuthMiddleware::auth();
-
+    echo "Concept";
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-      require_once ROOT . '/backend/validator/ConceptoValidator.php';
-      $validation = ConceptoValidator::validate($_POST);
+      // require_once ROOT . '/backend/validator/ConceptoValidator.php';
+      // $validation = ConceptoValidator::validate($_POST);
 
-      if (!$validation['success']) {
-        $_SESSION['validation_errors'] = $validation['errors'];
-        header('Location: ' . URLROOT . '/concepto/crear');
-        exit;
-      }
+      // if (!$validation['success']) {
+      //   $_SESSION['validation_errors'] = $validation['errors'];
+      //   header('Location: ' . URLROOT . '/concepto/crear');
+      //   exit;
+      // }
 
       // Combinar datos limpios con POST
-      $_POST = array_merge($_POST, $validation['cleanData']);
+      // $_POST = array_merge($_POST, $validation['cleanData']);
 
       // Llamar al controlador para crear el concepto
       require_once ROOT . '/backend/controllers/ConceptoController.php';
       $controller = new ConceptoController();
+
       $controller->guardarConcepto();
     } else {
       // Mostrar formulario de creación
@@ -135,7 +136,29 @@ switch ($uri) {
     $controller = new ConceptoController();
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
-      $controller->mostrarConceptos();
+      $controller->mostrarConceptos("gasto");
+    }
+    break;
+
+  case 'concepto/ingresos':
+    AuthMiddleware::auth();
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+      require_once ROOT . '/backend/validator/RegisterValidator.php';
+      $validation = RegisterValidator::validate($_POST);
+      if (!$validation['success']) {
+        $_SESSION['validation_errors'] = $validation['errors'];
+        header('Location: ' . URLROOT . '/registro');
+        exit;
+      }
+      $_POST = array_merge($_POST, $validation['cleanData']);
+    }
+
+    require_once ROOT . '/backend/controllers/ConceptoController.php';
+    $controller = new ConceptoController();
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    } else {
+      $controller->mostrarConceptos("ingresos");
     }
     break;
 
@@ -158,7 +181,7 @@ switch ($uri) {
     break;
 
   default:
-    // ✅ PROTECCIÓN: Para rutas dinámicas también
+
     if (preg_match('#^concepto/editar/(\d+)$#', $uri, $matches)) {
       AuthMiddleware::auth();
       require_once ROOT . '/backend/controllers/ConceptoController.php';
