@@ -18,7 +18,7 @@ class AuthMiddleware
     // Si tiene ambos (completamente autenticado)
     if (isset($_SESSION['user_id']) && isset($_SESSION['miembro_id'])) {
       // Ya está completamente autenticado, redirigir al dashboard
-      header('Location: ' . URLROOT . '/concepto/listar');
+      header('Location: ' . URLROOT . '/concepto/gasto');
       exit;
     }
   }
@@ -49,7 +49,7 @@ class AuthMiddleware
 
     // Si ya tiene miembro_id, redirigir al dashboard (ya seleccionó perfil)
     if (isset($_SESSION['miembro_id'])) {
-      header('Location: ' . URLROOT . '/concepto/listar');
+      header('Location: ' . URLROOT . '/concepto/gasto');
       exit;
     }
   }

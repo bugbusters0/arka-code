@@ -32,12 +32,12 @@ class BaseController
    * Automáticamente busca CSS/JS con el mismo nombre de la vista
    * 
    * Ejemplo: 
-   * viewWithLayout('concepto/listar', 'main', $data)
+   * viewWithLayout('concepto/gasto', 'main', $data)
    * Buscará: concepto-listar.css y concepto-listar.js
    */
   protected function viewWithLayout($vista, $layout = 'main', $data = [])
   {
-    // Convertir ruta de vista a nombre de archivo: concepto/listar -> concepto-listar
+    // Convertir ruta de vista a nombre de archivo: concepto/gasto -> concepto-listar
     $assetName = str_replace('/', '-', $vista);
 
     // Agregar rutas de assets automáticamente si no están definidas

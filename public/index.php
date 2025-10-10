@@ -47,7 +47,7 @@ switch ($uri) {
   case 'seleccionar-perfil':
     AuthMiddleware::familyOnly();
     if (isset($_SESSION['miembro_id'])) {
-      header('Location: ' . URLROOT . '/concepto/listar');
+      header('Location: ' . URLROOT . '/concepto/gasto');
       exit;
     }
 
@@ -89,13 +89,54 @@ switch ($uri) {
     }
     break;
 
-
-  case 'concepto/listar':
+  case 'concepto/crear':
     AuthMiddleware::auth();
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+      require_once ROOT . '/backend/validator/ConceptoValidator.php';
+      $validation = ConceptoValidator::validate($_POST);
+
+      if (!$validation['success']) {
+        $_SESSION['validation_errors'] = $validation['errors'];
+        header('Location: ' . URLROOT . '/concepto/crear');
+        exit;
+      }
+
+      // Combinar datos limpios con POST
+      $_POST = array_merge($_POST, $validation['cleanData']);
+
+      // Llamar al controlador para crear el concepto
+      require_once ROOT . '/backend/controllers/ConceptoController.php';
+      $controller = new ConceptoController();
+      $controller->guardarConcepto();
+    } else {
+      // Mostrar formulario de creación
+      require_once ROOT . '/backend/controllers/ConceptoController.php';
+      $controller = new ConceptoController();
+      $controller->mostrarConceptos();
+    }
+    break;
+
+  case 'concepto/gasto':
+    AuthMiddleware::auth();
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+      require_once ROOT . '/backend/validator/RegisterValidator.php';
+      $validation = RegisterValidator::validate($_POST);
+      if (!$validation['success']) {
+        $_SESSION['validation_errors'] = $validation['errors'];
+        header('Location: ' . URLROOT . '/registro');
+        exit;
+      }
+      $_POST = array_merge($_POST, $validation['cleanData']);
+    }
 
     require_once ROOT . '/backend/controllers/ConceptoController.php';
     $controller = new ConceptoController();
-    $controller->listar();
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    } else {
+      $controller->mostrarConceptos();
+    }
     break;
 
   case 'concepto/guardarConcepto':
@@ -125,11 +166,11 @@ switch ($uri) {
       $controller->editar($matches[1]);
       break;
     }
-   if (preg_match('#^concepto/deshabilitar/(\d+)$#', $uri, $matches)) {
-        require_once ROOT . '/backend/controllers/ConceptoController.php';
-        $controller = new ConceptoController();
-        $controller->deshabilitar($matches[1]);
-        break;
+    if (preg_match('#^concepto/deshabilitar/(\d+)$#', $uri, $matches)) {
+      require_once ROOT . '/backend/controllers/ConceptoController.php';
+      $controller = new ConceptoController();
+      $controller->deshabilitar($matches[1]);
+      break;
     }
     if (preg_match('#^concepto/eliminar/(\d+)$#', $uri, $matches)) {
       AuthMiddleware::auth();

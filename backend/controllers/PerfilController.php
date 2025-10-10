@@ -25,7 +25,7 @@ class PerfilController extends BaseController
       $_SESSION['miembro_idFamilia'] = $verificacion->getIdFamilia();
       $_SESSION['miembro_rol'] = $verificacion->getRol();
       $_SESSION['miembro_nombre'] = $verificacion->getNombre();
-      header('Location: ' . URLROOT . '/concepto/listar');
+      header('Location: ' . URLROOT . '/concepto/gasto');
       exit;
     } else {
       $_SESSION['error_message'] = 'Contraseña incorrecta';

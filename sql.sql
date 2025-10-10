@@ -132,6 +132,18 @@ CREATE INDEX idx_movimiento_concepto ON movimiento(id_concepto);
 CREATE INDEX idx_movimiento_fecha ON movimiento(fecha);
 
 
+
+INSERT INTO `iconos` (`id`, `path`, `nombre`, `size`, `type`, `create_at`, `update_at`, `delete_at`) VALUES
+(3, 'fa-solid fa-burger', 'Hamburguesa', NULL, 'font-awesome', '2025-10-10 03:31:09', '2025-10-10 03:31:09', NULL),
+(4, 'fa-solid fa-spa', 'Spa', NULL, 'font-awesome', '2025-10-10 03:31:09', '2025-10-10 03:31:09', NULL),
+(5, 'fa-solid fa-car', 'Auto', NULL, 'font-awesome', '2025-10-10 03:31:09', '2025-10-10 03:31:09', NULL),
+(6, 'fa-solid fa-heart-pulse', 'Salud', NULL, 'font-awesome', '2025-10-10 03:31:09', '2025-10-10 03:31:09', NULL),
+(7, 'fa-solid fa-graduation-cap', 'Educación', NULL, 'font-awesome', '2025-10-10 03:31:09', '2025-10-10 03:31:09', NULL),
+(8, 'fa-solid fa-basket-shopping', 'Canasta de Compras', NULL, 'font-awesome', '2025-10-10 03:31:09', '2025-10-10 03:31:09', NULL),
+(9, 'fa-solid fa-utensils', 'Utensilios', NULL, 'font-awesome', '2025-10-10 03:31:09', '2025-10-10 03:31:09', NULL),
+(10, 'fa-solid fa-lightbulb', 'Bombilla', NULL, 'font-awesome', '2025-10-10 03:31:09', '2025-10-10 03:31:09', NULL),
+(11, 'fa-solid fa-shirt', 'Camisa', NULL, 'font-awesome', '2025-10-10 03:31:09', '2025-10-10 03:31:09', NULL);
+
 -- ===============================================
 -- Ejemplo de inserción de datos de prueba (opcional)
 -- ===============================================
