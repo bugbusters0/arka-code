@@ -93,7 +93,25 @@ class UserModel extends BaseModel
 
     return null;
   }
+  public function consultarExisteciaCredenciales($email, $tel)
+  {
+    $sql = "SELECT id From familia WHERE correo = ?";
+    $user = $this->executeQuery($sql, [$email]);
 
+    if (!empty($user)) {
+      return $email;
+    }
+
+    $sql = "SELECT id From familia WHERE telefono = ?";
+    $user = $this->executeQuery($sql, [$tel]);
+
+    if (!empty($user)) {
+      return $tel;
+    }
+
+
+    return false;
+  }
   public function crearUsuario($correo, $telefono, $passwordPlain)
   {
     $hashedPassword = password_hash($passwordPlain, PASSWORD_DEFAULT);

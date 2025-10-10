@@ -28,7 +28,6 @@ class AuthController extends BaseController
     $this->view('auth/login', $data);
   }
 
-  // ← Actualizado: Consulta DB y pasa profiles a vista
   public function solicitarPerfiles($error = '')
   {
     if (!isset($_SESSION['user_id'])) {
@@ -49,7 +48,7 @@ class AuthController extends BaseController
     unset($profile);
 
     $data['title'] = 'Seleccionar Perfil - Arka App';
-    $data['profiles'] = $profiles;  // ← Array de usuarios miembros para loop en vista
+    $data['profiles'] = $profiles;
     $data['validation_errors'] = $_SESSION['validation_errors'] ?? [];
     $data['success'] = $_SESSION['success_message'] ?? '';
     unset($_SESSION['validation_errors'], $_SESSION['success_message']);
@@ -72,9 +71,15 @@ class AuthController extends BaseController
     $email = $_POST['email'] ?? '';
     $contrasena = $_POST['contrasena'] ?? '';
 
+    // Si ya está autenticado, redirigir al dashboard
+    if (isset($_SESSION['user_id']) && isset($_SESSION['miembro_id'])) {
+      header('Location: ' . URLROOT . '/dashboard');
+      exit;
+    }
+
     $userEntity = $this->userModel->verificarUsuario($email, $contrasena);
     if ($userEntity) {
-      $_SESSION['user_id'] = $userEntity->getId();
+      $_SESSION['user_id'] = $userEntity->getIdFamilia();
       $_SESSION['user_email'] = $userEntity->getEmail();
       header('Location: ' . URLROOT . '/seleccionar-perfil');
       exit;
@@ -93,7 +98,7 @@ class AuthController extends BaseController
     }
 
     $profileId = (int) $_GET['profile'];
-    $_SESSION['member_id'] = $profileId;  // ← Guarda ID seleccionado en sesión
+    $_SESSION['miembro_id'] = $profileId;  // ← Guarda ID seleccionado en sesión
     $userId = $_SESSION['user_id'];
     // Opcional: Verifica que el perfil pertenezca a la familia (seguridad)
     $user = $this->userModel->getUsuarioPorId($profileId, $userId);
@@ -109,9 +114,17 @@ class AuthController extends BaseController
 
   public function processRegister()
   {
-    // Los datos ya vienen validados y limpios desde index.php
+
     try {
       // 1. Crear familia
+      $existsUser = $this->userModel->consultarExisteciaCredenciales($_POST["email"], $_POST["telefono"]);
+
+      if ($existsUser) {
+        $data['error'] = $existsUser . " ya existe";
+        $data['title'] = 'Login - Arka App';
+        $this->view('auth/registrar', $data);
+        return;
+      }
       $userId = $this->userModel->crearUsuario(
         $_POST['email'],
         $_POST['telefono'],
@@ -122,7 +135,6 @@ class AuthController extends BaseController
         throw new Exception('Error al crear la familia');
       }
 
-      // 2. Crear usuario administrador
       $adminId = $this->userModel->crearUsuarioAdmin(
         $userId,
         $_POST['adminNombre'],
@@ -134,20 +146,23 @@ class AuthController extends BaseController
         throw new Exception('Error al crear el administrador');
       }
 
-      // 3. Crear miembros adicionales (si existen)
-      if (!empty($_POST['miembros'])) {
-        foreach ($_POST['miembros'] as $miembro) {
-          $this->userModel->crearUsuarioMiembro(
-            $userId,
-            $miembro['nombre'],
-            $miembro['nacimiento'],
-            $miembro['contra'],
-            $miembro['rol']
-          );
+      if (!empty($_POST['miembroNombre'])) {
+        $miembrosCount = count($_POST['miembroNombre']);
+
+        for ($i = 0; $i < $miembrosCount; $i++) {
+          // Solo procesar si tiene nombre (campo requerido)
+          if (!empty(trim($_POST['miembroNombre'][$i]))) {
+            $this->userModel->crearUsuarioMiembro(
+              $userId,
+              $_POST['miembroNombre'][$i],
+              $_POST['miembroNacimiento'][$i] ?? null,
+              $_POST['miembroContra'][$i] ?? '',
+              $_POST['miembroRol'][$i] ?? 'miembro'
+            );
+          }
         }
       }
 
-      // 4. Éxito: redirigir a login
       $_SESSION['success_message'] = 'Cuenta creada exitosamente. ¡Inicia sesión!';
       header('Location: ' . URLROOT . '/login');
       exit;
@@ -162,6 +177,23 @@ class AuthController extends BaseController
 
   public function logout()
   {
+    // Limpiar todas las variables de sesión
+    $_SESSION = array();
+
+    // Destruir la sesión
+    if (ini_get("session.use_cookies")) {
+      $params = session_get_cookie_params();
+      setcookie(
+        session_name(),
+        '',
+        time() - 42000,
+        $params["path"],
+        $params["domain"],
+        $params["secure"],
+        $params["httponly"]
+      );
+    }
+
     session_destroy();
     header('Location: ' . URLROOT . '/login');
     exit;

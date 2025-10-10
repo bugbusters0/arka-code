@@ -1,34 +1,36 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
   <title><?php echo htmlspecialchars($title ?? 'Registro - Arka'); ?></title>
   <link rel="stylesheet" href="<?php echo URLROOT; ?>/frontend/assets/css/auth.css">
 </head>
+
 <body class="registro-page">
   <div class="registro-container">
     <div class="registro-logo-column">
       <img src="<?php echo URLROOT; ?>/frontend/assets/img/arka_logo.png" alt="Logo superior Arka" class="registro-logo1">
       <img src="<?php echo URLROOT; ?>/frontend/assets/img/bugbusters.png" alt="Logo inferior Arka" class="registro-logo2">
     </div>
-    
+
     <!-- ✅ CAMBIA: id="registroForm" → method="POST" action -->
     <form method="POST" action="<?php echo URLROOT; ?>/registro" class="registro-form">
       <h2>Crear una nueva cuenta</h2>
 
       <!-- ✅ Muestra errores de validación -->
       <?php if (!empty($validation_errors)): ?>
-          <div class="error-box">
-              <ul>
-                  <?php foreach ($validation_errors as $field => $msg): ?>
-                      <li style="color: red;"><?php echo htmlspecialchars($msg); ?></li>
-                  <?php endforeach; ?>
-              </ul>
-          </div>
+        <div class="error-box">
+          <ul>
+            <?php foreach ($validation_errors as $field => $msg): ?>
+              <li style="color: red;"><?php echo htmlspecialchars($msg); ?></li>
+            <?php endforeach; ?>
+          </ul>
+        </div>
       <?php endif; ?>
 
       <?php if (!empty($error)): ?>
-          <p style="color:red"><?php echo htmlspecialchars($error); ?></p>
+        <p style="color:red"><?php echo htmlspecialchars($error); ?></p>
       <?php endif; ?>
 
       <!-- DATOS GENERALES -->
@@ -76,7 +78,6 @@
         </div>
       </div>
 
-      <!-- ✅ CONTRASEÑA PERSONAL DEL ADMIN (requerida por BD) -->
       <div class="registro-group">
         <label for="contraPersonal">Contraseña personal del administrador</label>
         <div class="registro-password">
@@ -95,7 +96,7 @@
       <div class="registro-submit">
         <button type="submit" class="registro-btn">Crear Cuenta</button>
       </div>
-      
+
       <p>¿Ya tienes cuenta? <a href="<?php echo URLROOT; ?>/login">Inicia sesión aquí</a></p>
     </form>
   </div>
@@ -141,4 +142,5 @@
     });
   </script>
 </body>
+
 </html>

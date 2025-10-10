@@ -46,8 +46,8 @@ class MiembroModel extends BaseModel
   {
     $sql = "SELECT id, nombre, fecha_nac, rol, contra_personal FROM usuario 
               WHERE id_familia = ? AND delete_at IS NULL";
-
-    return $this->executeQuery($sql, [$idFamilia]);
+    $result = $this->executeQuery($sql, [$idFamilia]);
+    return $result;
   }
 
   public function getMiembroPorId($id)
@@ -76,7 +76,6 @@ class MiembroModel extends BaseModel
   {
     $sql = "SELECT id, id_familia, nombre, fecha_nac, rol, contra_personal FROM usuario WHERE id = ? AND delete_at IS NULL";
     $miembro = $this->executeQuery($sql, [$id]);
-
     if (empty($miembro)) {
       return false;
     }
@@ -88,13 +87,13 @@ class MiembroModel extends BaseModel
       return false;
     }
 
-    $row = $miembro;
+
     return new EntityMiembro(
-      $row['id'],
-      $row['id_familia'],
-      $row['nombre'],
-      $row['fecha_nac'],
-      $row['rol'],
+      $data['id'],
+      $data['id_familia'],
+      $data['nombre'],
+      $data['fecha_nac'],
+      $data['rol'],
       "",
     );
   }
