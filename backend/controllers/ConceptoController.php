@@ -32,7 +32,11 @@ class ConceptoController extends BaseController
 			'tipo_actual' => $tipo
 		];
 
-		$this->viewWithLayout('concepto/gasto', 'main', $data);
+		if ($tipo == "gasto") {
+			$this->viewWithLayout('concepto/gasto', 'main', $data);
+		} else {
+			$this->viewWithLayout('concepto/ingresos', 'main', $data);
+		}
 	}
 
 	public function guardarConcepto()

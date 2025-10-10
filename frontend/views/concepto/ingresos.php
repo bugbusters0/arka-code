@@ -74,7 +74,7 @@
         </div>
       <?php endif; ?>
 
-      <input type="hidden" name="tipo" value="gasto">
+      <input type="hidden" name="tipo" value="ingreso">
       <input type="hidden" name="configuracion_usuario" value="true">
 
       <div class="form-group">

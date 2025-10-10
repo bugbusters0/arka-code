@@ -106,6 +106,7 @@ switch ($uri) {
       // $_POST = array_merge($_POST, $validation['cleanData']);
 
       // Llamar al controlador para crear el concepto
+
       require_once ROOT . '/backend/controllers/ConceptoController.php';
       $controller = new ConceptoController();
 
@@ -158,7 +159,7 @@ switch ($uri) {
     $controller = new ConceptoController();
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
-      $controller->mostrarConceptos("ingresos");
+      $controller->mostrarConceptos("ingreso");
     }
     break;
 
