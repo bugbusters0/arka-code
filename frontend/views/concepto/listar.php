@@ -1,3 +1,12 @@
+<?php
+// views/concepto/listar.php
+if (isset($_GET['format']) && $_GET['format'] === 'json') {
+  header('Content-Type: application/json');
+  echo json_encode($data);
+  exit;
+}
+?>
+
 <div class="tabs">
   <div class="tab active">Gastos</div>
   <div class="tab">Ingresos</div>

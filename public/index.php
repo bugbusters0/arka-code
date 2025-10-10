@@ -78,6 +78,11 @@ switch ($uri) {
     $controller->listar();
     break;
 
+  case 'concepto/guardarConcepto':
+    require_once ROOT . '/backend/controllers/ConceptoController.php';
+    $controller = new ConceptoController();
+    $controller->guardarConcepto();
+    break;
 
   case 'logout':
     $controllerPath = ROOT . '/backend/controllers/AuthController.php';

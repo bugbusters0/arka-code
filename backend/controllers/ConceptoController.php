@@ -5,31 +5,98 @@ require_once ROOT . '/backend/models/ConceptoModel.php';
 
 class ConceptoController extends BaseController
 {
-  private $conceptoModel;
+    private $conceptoModel;
 
-  public function __construct()
-  {
-    parent::__construct();
-    $this->requireAuth(); // Protege todas las rutas
-    $this->conceptoModel = new ConceptoModel();
-  }
+    public function __construct()
+    {
+        parent::__construct();
+        $this->requireAuth(); // Protege todas las rutas
+        $this->conceptoModel = new ConceptoModel();
+    }
 
-  public function listar()
-  {
-    // Obtener conceptos con filtros opcionales
-    $search = $_GET['search'] ?? '';
-    $tipo = $_GET['tipo'] ?? '';
+    public function listar()
+    {
+        $idUsuario = $_SESSION['user_id'] ?? 1; // Ejemplo, reemplaza con tu lógica de sesión
+        $search = $_GET['search'] ?? '';
+        $tipo = $_GET['tipo'] ?? '';
 
-    $conceptos = $this->conceptoModel->getConceptos($search, $tipo);
+        $conceptos = $this->conceptoModel->getConceptosPorUsuario($idUsuario, $search, $tipo);
 
-    $data = [
-      'title' => 'Gestión de Conceptos - Arka',
-      'conceptos' => $conceptos
-    ];
+        $data = [
+            'title' => 'Gestión de Conceptos - Arka',
+            'conceptos' => $conceptos
+        ];
 
-    // ✅ Automáticamente cargará:
-    // - concepto-listar.css
-    // - concepto-listar.js
-    $this->viewWithLayout('concepto/listar', 'main', $data);
-  }
+        if (isset($_GET['format']) && $_GET['format'] === 'json') {
+            header('Content-Type: application/json');
+            echo json_encode($data);
+            exit;
+        }
+
+        $this->viewWithLayout('concepto/listar', 'main', $data);
+    }
+
+public function guardarConcepto()
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            header('Content-Type: application/json');
+            
+            $idUsuario = $_SESSION['user_id'] ?? 1;
+            $nombre = $_POST['name'] ?? '';
+            $tipo = $_POST['tipo'] ?? 'gasto';
+            $color = $_POST['color'] ?? '#FF6B6B';
+            $idIcono = intval($_POST['idIcono'] ?? 3);
+
+            // Validaciones básicas
+            if (empty($nombre)) {
+                echo json_encode(['success' => false, 'message' => 'El nombre es requerido']);
+                exit;
+            }
+
+            try {
+                // 1. Crear concepto en tabla 'concepto'
+                $conceptoResult = $this->conceptoModel->crearConcepto($nombre, $tipo, $color, $idIcono);
+                
+                if ($conceptoResult) {
+                    $idConcepto = $this->conceptoModel->getLastInsertId();
+                    error_log("✅ Concepto creado con ID: " . $idConcepto);
+                    
+                    $desembolsoMonto = floatval($_POST['desembolsoMonto'] ?? 0);
+                    $desembolsoFrecuencia = $_POST['desembolsoFrecuencia'] ?? 'diario';
+                    $limiteMonto = floatval($_POST['limiteMonto'] ?? 0);
+                    $limiteFrecuencia = $_POST['limiteFrecuencia'] ?? 'diario';
+
+                    // 2. Crear relación en 'concepto_usuarios' usando el método del modelo
+                    $relacionResult = $this->conceptoModel->crearRelacionUsuarioConcepto(
+                        $idUsuario, 
+                        $idConcepto, 
+                        $desembolsoMonto, 
+                        $desembolsoFrecuencia, 
+                        $limiteMonto, 
+                        $limiteFrecuencia
+                    );
+                    
+                    error_log("✅ Relación creada: " . ($relacionResult ? "SÍ" : "NO"));
+                    
+                    if ($relacionResult) {
+                        echo json_encode([
+                            'success' => true, 
+                            'message' => 'Concepto guardado correctamente',
+                            'concepto_id' => $idConcepto
+                        ]);
+                    } else {
+                        // Si falla la relación, eliminar el concepto creado
+                        $this->conceptoModel->eliminarConcepto($idConcepto);
+                        echo json_encode(['success' => false, 'message' => 'Error al crear la relación con el usuario']);
+                    }
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Error al guardar el concepto']);
+                }
+            } catch (Exception $e) {
+                error_log("❌ Error en guardarConcepto: " . $e->getMessage());
+                echo json_encode(['success' => false, 'message' => 'Error interno del servidor: ' . $e->getMessage()]);
+            }
+        }
+        exit;
+    }
 }
