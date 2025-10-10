@@ -12,6 +12,9 @@
   <?php if (!empty($error)): ?>
     <p style="color: red;"><?php echo htmlspecialchars($error); ?></p>
   <?php endif; ?>
+  <?php if (!empty($_SESSION['error_message'])): ?>
+    <p style="color: red;"><?php echo htmlspecialchars($_SESSION['error_message']); ?></p>
+  <?php endif; ?>
 
   <div class="perfil-container">
     <?php if (!empty($profiles)): ?>
