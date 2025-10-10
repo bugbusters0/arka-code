@@ -140,7 +140,7 @@ class ValidatorBase {
         $messages = [
             'email' => 'El correo electrónico no es válido',
             'nombre' => 'El nombre debe tener entre 2 y 100 caracteres y solo letras',
-            'contrasena' => 'La contraseña debe tener al menos 6 caracteres, una mayúscula, una minúscula y un número',
+            'contrasena' => 'Contraseña inválida',
             'telefono' => 'El teléfono debe tener 9 dígitos',
             'color' => 'El color debe estar en formato hexadecimal (#RRGGBB)',
             'rol' => 'El rol debe ser "admin" o "miembro"',

@@ -9,9 +9,9 @@ class BaseController {
         
         $vistaPath = ROOT . '/frontend/views/' . str_replace('/', DIRECTORY_SEPARATOR, $vista) . '.php';
         if (file_exists($vistaPath)) {
-            require_once $vistaPath;
+          require_once $vistaPath;
         } else {
-            die("Vista no encontrada: $vista");
+          die("Vista no encontrada: $vista");
         }
     }
 
