@@ -4,7 +4,7 @@ require_once ROOT . '/backend/commons/BaseModel.php';
 
 class ConceptoModel extends BaseModel
 {
-    public function getConceptosPorUsuario($idUsuario, $search = '', $tipo = '')
+  public function getConceptosPorUsuario($idUsuario, $search = '', $tipo = '')
 {
     $sql = "SELECT 
                 c.id, 
@@ -26,7 +26,7 @@ class ConceptoModel extends BaseModel
             WHERE cu.id_usuario = ? 
                 AND c.delete_at IS NULL 
                 AND cu.delete_at IS NULL
-                AND cu.visible = 1";
+                AND cu.visible = 1"; // ← Solo conceptos visibles para el usuario
 
     $params = [$idUsuario];
 
@@ -42,11 +42,11 @@ class ConceptoModel extends BaseModel
 
     $sql .= " ORDER BY c.nombre ASC";
 
-    error_log("📋 Consulta conceptos usuario: " . $sql); // Debug
-    error_log("📋 Parámetros: " . implode(', ', $params)); // Debug
+    error_log("📋 Consulta conceptos usuario: " . $sql);
+    error_log("📋 Parámetros: " . implode(', ', $params));
     
     $result = $this->executeQuery($sql, $params);
-    error_log("📋 Conceptos encontrados: " . count($result)); // Debug
+    error_log("📋 Conceptos encontrados: " . count($result));
     
     return $result;
 }
@@ -135,7 +135,7 @@ class ConceptoModel extends BaseModel
       return $this->db->lastInsertId();
   }
 
-  // En ConceptoModel.php - Agregar estos métodos
+  
 public function actualizarConcepto($id, $nombre, $color, $idIcono)
 {
     $sql = "UPDATE concepto 
@@ -207,5 +207,22 @@ public function crearRelacionUsuarioConceptoBasica($idUsuario, $idConcepto)
     $params = [$idUsuario, $idConcepto];
     
     return $this->executeNonQuery($sql, $params);
+}
+public function deshabilitarConceptoUsuario($idUsuario, $idConcepto)
+{
+    $sql = "UPDATE concepto_usuarios 
+            SET visible = 0, update_at = CURRENT_TIMESTAMP 
+            WHERE id_usuario = ? AND id_concepto = ? AND delete_at IS NULL";
+    
+    return $this->executeNonQuery($sql, [$idUsuario, $idConcepto]);
+}
+
+public function reactivarConceptoUsuario($idUsuario, $idConcepto)
+{
+    $sql = "UPDATE concepto_usuarios 
+            SET visible = 1, update_at = CURRENT_TIMESTAMP 
+            WHERE id_usuario = ? AND id_concepto = ? AND delete_at IS NULL";
+    
+    return $this->executeNonQuery($sql, [$idUsuario, $idConcepto]);
 }
 }

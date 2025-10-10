@@ -205,4 +205,38 @@ public function guardarConcepto()
     }
     exit;
 }
+
+public function deshabilitar($idConcepto)
+{
+    header('Content-Type: application/json');
+    
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $idUsuario = $_SESSION['user_id'] ?? 1;
+        
+        try {
+            // Verificar que el usuario tiene acceso a este concepto
+            $conceptoUsuario = $this->conceptoModel->getConceptoPorIdYUsuario($idConcepto, $idUsuario);
+            if (!$conceptoUsuario) {
+                echo json_encode(['success' => false, 'message' => 'No tienes permisos para deshabilitar este concepto']);
+                exit;
+            }
+
+            // Deshabilitar solo para el usuario actual
+            $result = $this->conceptoModel->deshabilitarConceptoUsuario($idUsuario, $idConcepto);
+            
+            if ($result) {
+                echo json_encode([
+                    'success' => true, 
+                    'message' => 'Concepto deshabilitado correctamente (solo para tu usuario)'
+                ]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Error al deshabilitar el concepto']);
+            }
+        } catch (Exception $e) {
+            error_log("❌ Error en deshabilitar concepto: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Error interno del servidor']);
+        }
+    }
+    exit;
+}
 }

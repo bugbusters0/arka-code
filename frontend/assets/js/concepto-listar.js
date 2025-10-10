@@ -324,18 +324,62 @@ btnGuardar.addEventListener("click", guardarConceptoHandler);
 
 btnCancelar.addEventListener("click", nuevoConcepto);
 
+// btnDeshabilitar.addEventListener("click", () => {
+//     if (modo === "editar" && conceptoSeleccionado !== null) {
+//         const conceptoId = conceptos[conceptoSeleccionado].id;
+//         const conceptoNombre = conceptos[conceptoSeleccionado].nombre;
+        
+//         if (confirm(`¿Estás seguro de que quieres deshabilitar el concepto "${conceptoNombre}"?`)) {
+//             // Aquí puedes implementar la lógica para deshabilitar/eliminar
+//             mostrarPopup("Función de deshabilitar en desarrollo", "info");
+//         }
+//     }
+// });
+// ======= EVENTO PARA EL BOTÓN DESHABILITAR =======
 btnDeshabilitar.addEventListener("click", () => {
     if (modo === "editar" && conceptoSeleccionado !== null) {
         const conceptoId = conceptos[conceptoSeleccionado].id;
         const conceptoNombre = conceptos[conceptoSeleccionado].nombre;
         
-        if (confirm(`¿Estás seguro de que quieres deshabilitar el concepto "${conceptoNombre}"?`)) {
-            // Aquí puedes implementar la lógica para deshabilitar/eliminar
-            mostrarPopup("Función de deshabilitar en desarrollo", "info");
+        if (confirm(`¿Estás seguro de que quieres deshabilitar el concepto "${conceptoNombre}"?\n\nEsto solo lo ocultará para ti, otros usuarios seguirán viéndolo.`)) {
+            // Deshabilitar botón
+            btnDeshabilitar.disabled = true;
+            btnDeshabilitar.textContent = 'Deshabilitando...';
+            
+            fetch(`/arka-code/concepto/deshabilitar/${conceptoId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                }
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Network response was not ok');
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    mostrarPopup(data.message || "✅ Concepto deshabilitado correctamente", "success");
+                    // Recargar conceptos y volver al modo crear
+                    setTimeout(() => {
+                        fetchConceptos().then(() => {
+                            nuevoConcepto();
+                        });
+                    }, 1000);
+                } else {
+                    mostrarPopup(data.message || "Error al deshabilitar el concepto", "info");
+                }
+            })
+            .catch(error => {
+                console.error('❌ Error:', error);
+                mostrarPopup("Error al deshabilitar el concepto", "info");
+            })
+            .finally(() => {
+                btnDeshabilitar.disabled = false;
+                btnDeshabilitar.textContent = 'Deshabilitar';
+            });
         }
     }
 });
-
 document.querySelectorAll(".iconos-grid i").forEach(icon => {
     icon.addEventListener("click", () => {
         document.querySelectorAll(".iconos-grid i").forEach(i => i.classList.remove("selected"));

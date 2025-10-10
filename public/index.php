@@ -103,7 +103,12 @@ switch ($uri) {
       $controller->editar($matches[1]);
       break;
     }
-
+   if (preg_match('#^concepto/deshabilitar/(\d+)$#', $uri, $matches)) {
+        require_once ROOT . '/backend/controllers/ConceptoController.php';
+        $controller = new ConceptoController();
+        $controller->deshabilitar($matches[1]);
+        break;
+    }
     if (preg_match('#^concepto/eliminar/(\d+)$#', $uri, $matches)) {
       require_once ROOT . '/backend/controllers/ConceptoController.php';
       $controller = new ConceptoController();
