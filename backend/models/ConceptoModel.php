@@ -119,16 +119,16 @@ class ConceptoModel extends BaseModel
         $sql = "SELECT id, nombre, path FROM iconos WHERE delete_at IS NULL ORDER BY nombre";
         return $this->executeQuery($sql);
     }
-public function crearRelacionUsuarioConcepto($idUsuario, $idConcepto, $desembolsoMonto, $desembolsoFrecuencia, $limiteMonto, $limiteFrecuencia)
-    {
-        $sql = "INSERT INTO concepto_usuarios 
-                (id_usuario, id_concepto, desembolso_planejado, periodo_tipo, limite_monto, limite_tipo, visible) 
-                VALUES (?, ?, ?, ?, ?, ?, 1)";
+// public function crearRelacionUsuarioConcepto($idUsuario, $idConcepto, $desembolsoMonto, $desembolsoFrecuencia, $limiteMonto, $limiteFrecuencia)
+//     {
+//         $sql = "INSERT INTO concepto_usuarios 
+//                 (id_usuario, id_concepto, desembolso_planejado, periodo_tipo, limite_monto, limite_tipo, visible) 
+//                 VALUES (?, ?, ?, ?, ?, ?, 1)";
         
-        $params = [$idUsuario, $idConcepto, $desembolsoMonto, $desembolsoFrecuencia, $limiteMonto, $limiteFrecuencia];
+//         $params = [$idUsuario, $idConcepto, $desembolsoMonto, $desembolsoFrecuencia, $limiteMonto, $limiteFrecuencia];
         
-        return $this->executeNonQuery($sql, $params);
-    }
+//         return $this->executeNonQuery($sql, $params);
+//     }
 
   public function getLastInsertId()
   {
@@ -179,5 +179,33 @@ public function getConceptoPorIdYUsuario($idConcepto, $idUsuario)
 
     $result = $this->executeQuery($sql, [$idConcepto, $idUsuario]);
     return !empty($result) ? $result[0] : null;
+}
+
+public function getUsuariosPorFamilia($idFamilia)
+{
+    $sql = "SELECT id FROM usuario WHERE id_familia = ? AND delete_at IS NULL";
+    return $this->executeQuery($sql, [$idFamilia]);
+}
+
+public function crearRelacionUsuarioConcepto($idUsuario, $idConcepto, $desembolsoMonto, $desembolsoFrecuencia, $limiteMonto, $limiteFrecuencia)
+{
+    $sql = "INSERT INTO concepto_usuarios 
+            (id_usuario, id_concepto, desembolso_planejado, periodo_tipo, limite_monto, limite_tipo, visible) 
+            VALUES (?, ?, ?, ?, ?, ?, 1)";
+    
+    $params = [$idUsuario, $idConcepto, $desembolsoMonto, $desembolsoFrecuencia, $limiteMonto, $limiteFrecuencia];
+    
+    return $this->executeNonQuery($sql, $params);
+}
+
+public function crearRelacionUsuarioConceptoBasica($idUsuario, $idConcepto)
+{
+    $sql = "INSERT INTO concepto_usuarios 
+            (id_usuario, id_concepto, desembolso_planejado, periodo_tipo, limite_monto, limite_tipo, visible) 
+            VALUES (?, ?, 0, NULL, 0, NULL, 1)";
+    
+    $params = [$idUsuario, $idConcepto];
+    
+    return $this->executeNonQuery($sql, $params);
 }
 }

@@ -37,71 +37,97 @@ class ConceptoController extends BaseController
     }
 
 public function guardarConcepto()
-    {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            header('Content-Type: application/json');
-            
-            $idUsuario = $_SESSION['user_id'] ?? 1;
-            $nombre = $_POST['name'] ?? '';
-            $tipo = $_POST['tipo'] ?? 'gasto';
-            $color = $_POST['color'] ?? '#FF6B6B';
-            $idIcono = intval($_POST['idIcono'] ?? 3);
+{
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        header('Content-Type: application/json');
+        
+        $idUsuario = $_SESSION['user_id'] ?? 1;
+        $idFamilia = $_SESSION['family_id'] ?? 1; 
+        $nombre = $_POST['name'] ?? '';
+        $tipo = $_POST['tipo'] ?? 'gasto';
+        $color = $_POST['color'] ?? '#FF6B6B';
+        $idIcono = intval($_POST['idIcono'] ?? 3);
 
-            // Validaciones básicas
-            if (empty($nombre)) {
-                echo json_encode(['success' => false, 'message' => 'El nombre es requerido']);
-                exit;
-            }
-
-            try {
-                // 1. Crear concepto en tabla 'concepto'
-                $conceptoResult = $this->conceptoModel->crearConcepto($nombre, $tipo, $color, $idIcono);
-                
-                if ($conceptoResult) {
-                    $idConcepto = $this->conceptoModel->getLastInsertId();
-                    error_log("✅ Concepto creado con ID: " . $idConcepto);
-                    
-                    $desembolsoMonto = floatval($_POST['desembolsoMonto'] ?? 0);
-                    $desembolsoFrecuencia = $_POST['desembolsoFrecuencia'] ?? 'diario';
-                    $limiteMonto = floatval($_POST['limiteMonto'] ?? 0);
-                    $limiteFrecuencia = $_POST['limiteFrecuencia'] ?? 'diario';
-
-                    // 2. Crear relación en 'concepto_usuarios' usando el método del modelo
-                    $relacionResult = $this->conceptoModel->crearRelacionUsuarioConcepto(
-                        $idUsuario, 
-                        $idConcepto, 
-                        $desembolsoMonto, 
-                        $desembolsoFrecuencia, 
-                        $limiteMonto, 
-                        $limiteFrecuencia
-                    );
-                    
-                    error_log("✅ Relación creada: " . ($relacionResult ? "SÍ" : "NO"));
-                    
-                    if ($relacionResult) {
-                        echo json_encode([
-                            'success' => true, 
-                            'message' => 'Concepto guardado correctamente',
-                            'concepto_id' => $idConcepto
-                        ]);
-                    } else {
-                        // Si falla la relación, eliminar el concepto creado
-                        $this->conceptoModel->eliminarConcepto($idConcepto);
-                        echo json_encode(['success' => false, 'message' => 'Error al crear la relación con el usuario']);
-                    }
-                } else {
-                    echo json_encode(['success' => false, 'message' => 'Error al guardar el concepto']);
-                }
-            } catch (Exception $e) {
-                error_log("❌ Error en guardarConcepto: " . $e->getMessage());
-                echo json_encode(['success' => false, 'message' => 'Error interno del servidor: ' . $e->getMessage()]);
-            }
+        // Validaciones básicas
+        if (empty($nombre)) {
+            echo json_encode(['success' => false, 'message' => 'El nombre es requerido']);
+            exit;
         }
-        exit;
-    }
 
-    // En ConceptoController.php - Agregar método editar
-public function editar($idConcepto)
+        try {
+            // 1. Crear concepto en tabla 'concepto'
+            $conceptoResult = $this->conceptoModel->crearConcepto($nombre, $tipo, $color, $idIcono);
+            
+            if ($conceptoResult) {
+                $idConcepto = $this->conceptoModel->getLastInsertId();
+                error_log("✅ Concepto creado con ID: " . $idConcepto);
+                
+                $desembolsoMonto = floatval($_POST['desembolsoMonto'] ?? 0);
+                $desembolsoFrecuencia = $_POST['desembolsoFrecuencia'] ?? 'diario';
+                $limiteMonto = floatval($_POST['limiteMonto'] ?? 0);
+                $limiteFrecuencia = $_POST['limiteFrecuencia'] ?? 'diario';
+
+                // 2. Obtener todos los usuarios de la familia
+                $usuariosFamilia = $this->conceptoModel->getUsuariosPorFamilia($idFamilia);
+                error_log("👨‍👩‍👧‍👦 Usuarios en familia: " . count($usuariosFamilia));
+                
+                $relacionesCreadas = 0;
+                $totalUsuarios = count($usuariosFamilia);
+                
+                // 3. Crear relaciones para todos los usuarios de la familia
+                foreach ($usuariosFamilia as $usuario) {
+                    $idUsuarioActual = $usuario['id'];
+                    
+                    if ($idUsuarioActual == $idUsuario) {
+                        // Para el usuario que crea el concepto - con valores configurados
+                        $result = $this->conceptoModel->crearRelacionUsuarioConcepto(
+                            $idUsuarioActual, 
+                            $idConcepto, 
+                            $desembolsoMonto, 
+                            $desembolsoFrecuencia, 
+                            $limiteMonto, 
+                            $limiteFrecuencia
+                        );
+                    } else {
+                        // Para los demás usuarios - con valores NULL
+                        $result = $this->conceptoModel->crearRelacionUsuarioConceptoBasica(
+                            $idUsuarioActual, 
+                            $idConcepto
+                        );
+                    }
+                    
+                    if ($result) {
+                        $relacionesCreadas++;
+                        error_log("✅ Relación creada para usuario: " . $idUsuarioActual);
+                    } else {
+                        error_log("❌ Error creando relación para usuario: " . $idUsuarioActual);
+                    }
+                }
+                
+                if ($relacionesCreadas > 0) {
+                    echo json_encode([
+                        'success' => true, 
+                        'message' => "Concepto guardado correctamente y compartido con " . $relacionesCreadas . " usuarios",
+                        'concepto_id' => $idConcepto,
+                        'usuarios_compartidos' => $relacionesCreadas
+                    ]);
+                } else {
+                    // Si fallan todas las relaciones, eliminar el concepto creado
+                    $this->conceptoModel->eliminarConcepto($idConcepto);
+                    echo json_encode(['success' => false, 'message' => 'Error al crear las relaciones con los usuarios']);
+                }
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Error al guardar el concepto']);
+            }
+        } catch (Exception $e) {
+            error_log("❌ Error en guardarConcepto: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Error interno del servidor: ' . $e->getMessage()]);
+        }
+    }
+    exit;
+}
+
+  public function editar($idConcepto)
 {
     header('Content-Type: application/json');
     
@@ -118,7 +144,14 @@ public function editar($idConcepto)
         }
 
         try {
-            // 1. Actualizar concepto en tabla 'concepto'
+            // 1. Verificar que el usuario tiene acceso a este concepto
+            $conceptoUsuario = $this->conceptoModel->getConceptoPorIdYUsuario($idConcepto, $idUsuario);
+            if (!$conceptoUsuario) {
+                echo json_encode(['success' => false, 'message' => 'No tienes permisos para editar este concepto']);
+                exit;
+            }
+
+            // 2. Actualizar concepto en tabla 'concepto' (esto afecta a todos los usuarios)
             $conceptoResult = $this->conceptoModel->actualizarConcepto($idConcepto, $nombre, $color, $idIcono);
             
             if ($conceptoResult) {
@@ -127,7 +160,7 @@ public function editar($idConcepto)
                 $limiteMonto = floatval($_POST['limiteMonto'] ?? 0);
                 $limiteFrecuencia = $_POST['limiteFrecuencia'] ?? 'diario';
 
-                // 2. Actualizar relación en 'concepto_usuarios'
+                // 3. Actualizar SOLO la relación del usuario actual en 'concepto_usuarios'
                 $updateResult = $this->conceptoModel->actualizarRelacionUsuarioConcepto(
                     $idUsuario, 
                     $idConcepto, 
@@ -140,11 +173,11 @@ public function editar($idConcepto)
                 if ($updateResult) {
                     echo json_encode([
                         'success' => true, 
-                        'message' => 'Concepto actualizado correctamente',
+                        'message' => 'Concepto actualizado correctamente (solo para tu usuario)',
                         'concepto_id' => $idConcepto
                     ]);
                 } else {
-                    echo json_encode(['success' => false, 'message' => 'Error al actualizar la configuración del concepto']);
+                    echo json_encode(['success' => false, 'message' => 'Error al actualizar tu configuración personal del concepto']);
                 }
             } else {
                 echo json_encode(['success' => false, 'message' => 'Error al actualizar el concepto']);
@@ -155,7 +188,8 @@ public function editar($idConcepto)
         }
     } else {
         // GET request - Obtener datos del concepto para editar
-        $concepto = $this->conceptoModel->getConceptoPorIdYUsuario($idConcepto, $_SESSION['user_id'] ?? 1);
+        $idUsuario = $_SESSION['user_id'] ?? 1;
+        $concepto = $this->conceptoModel->getConceptoPorIdYUsuario($idConcepto, $idUsuario);
         
         if ($concepto) {
             echo json_encode([
@@ -165,7 +199,7 @@ public function editar($idConcepto)
         } else {
             echo json_encode([
                 'success' => false,
-                'message' => 'Concepto no encontrado'
+                'message' => 'Concepto no encontrado o no tienes permisos'
             ]);
         }
     }
