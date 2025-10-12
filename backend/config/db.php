@@ -1,18 +1,9 @@
 <?php
-// Configuración para Fly.io
-if (getenv('FLY_APP_NAME') !== false) {
-    // En Fly.io, MySQL está en otra app
-    define('DB_HOST', 'fdaa:0:1234:a7b:abc:1234:5678:2'); // ← Usar IP interna
-    define('DB_NAME', getenv('DB_NAME') ?: 'arka_code');
-    define('DB_USER', getenv('DB_USER') ?: 'root');
-    define('DB_PASS', getenv('DB_PASS') ?: 'password');
-} else {
-    // Desarrollo local con Docker
-    define('DB_HOST', getenv('DB_HOST') ?: 'mysql');
-    define('DB_NAME', getenv('DB_NAME') ?: 'arka_code');
-    define('DB_USER', getenv('DB_USER') ?: 'root');
-    define('DB_PASS', getenv('DB_PASS') ?: 'password');
-}
+// Para Fly.io con MySQL en el mismo contenedor
+define('DB_HOST', 'localhost');  // ← Ahora es localhost
+define('DB_NAME', 'arka_code');
+define('DB_USER', 'arka_user');
+define('DB_PASS', 'arka_password');
 
 function conectarBD()
 {
