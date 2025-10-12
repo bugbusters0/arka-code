@@ -8,7 +8,7 @@ if ($isFly) {
   define('URLROOT', 'https://arka-code.fly.dev');
 } else {
   // Desarrollo local
-  define('URLROOT', 'http://localhost:8080');
+  define('URLROOT', 'http://localhost/arka-code');
 }
 
 define('APP_NAME', 'Arka App');

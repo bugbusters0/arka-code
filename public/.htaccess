@@ -1,8 +1,18 @@
 RewriteEngine On
 
-# Solo archivos estáticos reales (CSS, JS, imágenes)
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
+# Redirigir assets estáticos a sus ubicaciones reales
+RewriteCond %{REQUEST_URI} ^/frontend/assets/(.*)$
+RewriteCond %{DOCUMENT_ROOT}/../frontend/assets/%1 -f
+RewriteRule ^frontend/assets/(.*)$ /../frontend/assets/$1 [L]
+
+RewriteCond %{REQUEST_URI} ^/backend/assets/(.*)$
+RewriteCond %{DOCUMENT_ROOT}/../backend/assets/%1 -f
+RewriteRule ^backend/assets/(.*)$ /../backend/assets/$1 [L]
+
+# Si existe el archivo/carpeta real, sírvelo
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
 
 # Todo lo demás va a index.php
 RewriteRule ^(.*)$ index.php [QSA,L]
