@@ -1,11 +1,11 @@
 <?php
-// Detectar si estamos en Railway
-$isRailway = getenv('RAILWAY_STATIC_URL') !== false;
+// Detectar el entorno
+$isFly = getenv('FLY_APP_NAME') !== false;
+$isLocal = !$isFly;
 
-if ($isRailway) {
-  // Railway proporciona una URL dinámica
-  $railwayUrl = getenv('RAILWAY_STATIC_URL') ?: 'https://tu-app.up.railway.app';
-  define('URLROOT', $railwayUrl);
+if ($isFly) {
+  // Fly.io - usar la URL de Fly
+  define('URLROOT', 'https://arka-code.fly.dev');
 } else {
   // Desarrollo local
   define('URLROOT', 'http://localhost:8080');
