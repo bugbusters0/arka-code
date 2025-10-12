@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: arka-code-app
+    env: docker
+    docker:
+      dockerfile: Dockerfile
+    envVars:
+      - key: DB_HOST
+        value: your-mysql-host
+      - key: DB_NAME
+        value: your-database
+      - key: DB_USER
+        value: your-user
+      - key: DB_PASS
+        fromSecret: true

@@ -1,0 +1,37 @@
+services:
+  web:
+    build: .
+    ports:
+      - "80:80"
+    depends_on:
+      - mysql
+    environment:
+      - DB_HOST=mysql
+      - DB_NAME=arka_code
+      - DB_USER=root
+      - DB_PASS=password
+    # Railway necesita esta configuración:
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  mysql:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: arka_code
+      MYSQL_USER: arka_user
+      MYSQL_PASSWORD: arka_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./sql.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+volumes:
+  mysql_data:

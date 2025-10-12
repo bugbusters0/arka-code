@@ -1,0 +1,5 @@
+mysql-data/
+.git/
+.DS_Store
+*.log
+.htaccess
