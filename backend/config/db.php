@@ -6,24 +6,22 @@ if (getenv('FLY_APP_NAME') !== false) {
     define('DB_NAME', 'arka_code');
     define('DB_USER', 'arka_user');
     define('DB_PASS', 'arka_password');
-    define('DB_SOCKET', '/var/run/mysqld/mysqld.sock');
 } else {
-    // Desarrollo local
-    define('DB_HOST', 'mysql');
-    define('DB_NAME', 'arka_code');
+    // Desarrollo local - MySQL local
+    define('DB_HOST', 'localhost');
+    define('DB_NAME', 'arka');
     define('DB_USER', 'root');
-    define('DB_PASS', 'password');
-    define('DB_SOCKET', null);
+    define('DB_PASS', 'root'); // o tu password real
 }
 
 function conectarBD()
 {
     try {
-        if (defined('DB_SOCKET') && DB_SOCKET) {
-            // Usar socket en Fly.io
-            $dsn = "mysql:unix_socket=" . DB_SOCKET . ";dbname=" . DB_NAME . ";charset=utf8mb4";
+        if (getenv('FLY_APP_NAME') !== false) {
+            // Fly.io - usar socket
+            $dsn = "mysql:unix_socket=/var/run/mysqld/mysqld.sock;dbname=" . DB_NAME . ";charset=utf8mb4";
         } else {
-            // Usar TCP en desarrollo local
+            // Desarrollo local - TCP normal
             $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4";
         }
 

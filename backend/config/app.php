@@ -1,13 +1,12 @@
 <?php
 // Detectar el entorno
 $isFly = getenv('FLY_APP_NAME') !== false;
-$isLocal = !$isFly;
 
 if ($isFly) {
-  // Fly.io - usar la URL de Fly
+  // Fly.io
   define('URLROOT', 'https://arka-code.fly.dev');
 } else {
-  // Desarrollo local
+  // Desarrollo local - SIN subcarpeta
   define('URLROOT', 'http://localhost/arka-code');
 }
 
