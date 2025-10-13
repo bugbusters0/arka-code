@@ -610,7 +610,7 @@ Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](https://gith
 
 ## 👥 Autores
 
-- **Ana Concha Castro** - _Desarrolladora backend_ - [usuario](https://github.com/usuario)
+- **Ana Concha Castro** - _Desarrolladora backend_ - [GebUCSP](https://github.com/GebUCSP)
 - **Jose Cornejo Castro** - _Desarrollador backend_ - [usuario](https://github.com/usuario)
 - **Pamela Villar Ticona** - _Desarrolladora frontend_ - [usuario](https://github.com/usuario)
 - **Rodrigo Silva Murillo** - _Desarrollador backend_ - [gbTechh](https://github.com/gbTechh)
