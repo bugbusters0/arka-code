@@ -105,23 +105,7 @@ DocumentRoot "/ruta/a/arka-code/public"
 </Directory>
 ```
 
-4. **Configurar aplicación**
-   Editar la ruta de la aplicacion (nombre de la carpeta) `backend/config/app.php`:
-
-```php
-define('URLROOT', 'http://localhost/arka-code');
-```
-
-Editar `backend/config/db.php`:
-
-```php
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'arka_code');
-define('DB_USER', 'arka_user');
-define('DB_PASS', 'arka_password');
-```
-
-5. **Iniciar servidores**
+4. **Iniciar servidores**
 
 ```bash
 # Reiniciar Apache
@@ -131,7 +115,7 @@ sudo systemctl restart httpd
 php -S localhost:8000 -t public
 ```
 
-6. **Acceder a la aplicación**
+5. **Acceder a la aplicación**
 
 ```
 http://localhost/arka-code
@@ -612,8 +596,8 @@ Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](https://gith
 
 - **Ana Concha Castro** - _Desarrolladora backend_ - [usuario](https://github.com/usuario)
 - **Jose Cornejo Castro** - _Desarrollador backend_ - [GebUCSP](https://github.com/GebUCSP)
-- **Pamela Villar Ticona** - _Desarrolladora frontend_ - [usuario](https://github.com/usuario)
-- **Rodrigo Silva Murillo** - _Desarrollador backend_ - [gbTechh](https://github.com/gbTechh)
+- **Pamela Villar Ticona** - _Desarrolladora frontend_ - [PamelaVillar](https://github.com/pamelavillar)
+- **Rodrigo Silva Murillo** - _Desarrollador backend_ - [GbTechh](https://github.com/gbTechh)
 - **Jose Valdivia Castillo** - _Desarrollador frontend_ - [Pochano](https://github.com/Pochano)
 
 ## 🙏 Agradecimientos
