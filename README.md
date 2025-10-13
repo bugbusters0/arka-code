@@ -72,7 +72,7 @@ arka-code/
 1. **Clonar el repositorio**
 
 ```bash
-git clone <tu-repositorio>
+git clone https://github.com/bugbusters0/arka-code.git
 cd arka-code
 ```
 
@@ -134,7 +134,7 @@ php -S localhost:8000 -t public
 6. **Acceder a la aplicación**
 
 ```
-http://localhost
+http://localhost/arka-code
 ```
 
 ## ☁️ Despliegue en Producción (Fly.io)
@@ -180,7 +180,7 @@ La aplicación detecta automáticamente el entorno:
 **Desarrollo Local:**
 
 ```php
-URLROOT = 'http://localhost'
+URLROOT = 'http://localhost/arka-code'
 DB_HOST = 'localhost'
 ```
 
@@ -213,26 +213,6 @@ define('DB_PASS', 'arka_password');
 ```
 
 ---
-
-## 🏗️ Arquitectura del Sistema
-
-### Estructura del Proyecto
-
-```
-arka-code/
-├── backend/
-│   ├── config/           # Configuración de app y BD
-│   ├── controllers/      # Lógica de negocio (MVC)
-│   ├── models/          # Acceso a datos
-│   ├── entities/        # Objetos de dominio
-│   ├── validators/      # Validación de formularios
-│   └── commons/         # Utilidades compartidas
-├── frontend/
-│   ├── assets/          # CSS, JS, imágenes
-│   └── views/           # Vistas y layouts
-├── public/              # Punto de entrada público
-└── sql.sql             # Estructura de base de datos
-```
 
 ## 🔄 Flujo de la Aplicación
 
@@ -630,7 +610,11 @@ Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) par
 
 ## 👥 Autores
 
-- **Tu Nombre** - _Desarrollo inicial_ - [TuUsuario](https://github.com/tuusuario)
+- **Ana Concha Castro** - _Desarrolladora backend_ - [usuario](https://github.com/usuario)
+- **Jose Cornejo Castro** - _Desarrollador backend_ - [usuario](https://github.com/usuario)
+- **Pamela Villar Ticona** - _Desarrolladora frontend_ - [usuario](https://github.com/usuario)
+- **Rodrigo Silva Murillo** - _Desarrollador backend_ - [gbTechh](https://github.com/gbTechh)
+- **Jose Valdivia Castillo** - _Desarrollador frontend_ - [usuario](https://github.com/usuario)
 
 ## 🙏 Agradecimientos
 
