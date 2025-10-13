@@ -604,7 +604,7 @@ class AuthMiddleware {
 
 ## 📄 Licencia
 
-Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para detalles.
+Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](https://github.com/bugbusters0/arka-code/blob/main/LICENSE.md) para detalles.
 
 ---
 
