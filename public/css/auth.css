@@ -1,0 +1,310 @@
+body {
+  display: flex;
+  justify-content: center;   /* centra horizontalmente */
+  align-items: center;       /* centra verticalmente */
+  height: 100vh;             /* ocupa toda la altura de la ventana */
+  margin: 0;
+  background-color: #f4f4f4; 
+  font-family: Arial, sans-serif;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;                /* espacio entre los inputs */
+  background: white;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.2);
+  width: 300px;
+}
+
+form h2 {
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+input, button {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.btn-oscuro {
+  background-color: rgb(95, 122, 134);
+  border: none;
+  color: rgb(255, 255, 255);
+  cursor: pointer;
+  font-weight: bold;
+  font-size: larger;
+}
+
+.btn-oscuro:hover {
+  background-color: rgb(75, 102, 114);
+}
+
+.logo-bottom-container {
+  text-align: center;
+  justify-content: center;
+  align-items: center;
+  /*margin-top: 20px;*/
+}
+
+.logo-top {
+  width: 250px;      
+  height: auto;   
+  display: block;
+  margin: 0 auto 20px auto;  /* centra la imagen y deja espacio abajo */
+}
+
+.logo-bottom {
+  width: 200px;
+  height: auto;
+  display: block;
+  margin: 20px auto 0 auto;  /* centra abajo */
+}
+.perfil-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background-color: #f4f4f4;
+  font-family: Arial, sans-serif;
+}
+
+.perfil-page h1 {
+  margin-bottom: 40px;
+  color: #333;
+}
+
+.perfil-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 30px;
+  width: 80%;
+  max-width: 700px;
+}
+
+.perfil-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 150px;
+  border-radius: 15px;
+  color: white;
+  font-weight: bold;
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.perfil-card:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+.perfil-icon {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 50%;
+  margin-bottom: 10px;
+  background-color: white;
+}
+
+.perfil-name {
+  font-size: 18px;
+}
+.registro-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  overflow: hidden;
+  background-color: #f6f7f9;
+  font-family: 'Inter', Arial, sans-serif;
+  padding: 50px 20px;
+}
+
+.registro-form {
+  background: #fff;
+  padding: 40px;
+  border-radius: 15px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+  max-width: 800px;
+  width: 100%;
+}
+
+.registro-form h2 {
+  text-align: center;
+  margin-bottom: 30px;
+  color: #333;
+}
+
+.registro-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.registro-group label {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 5px;
+  display: block;
+}
+
+.registro-group input,
+.registro-group select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fafafa;
+}
+
+.registro-tel {
+  display: flex;
+  align-items: center;
+}
+
+.registro-prefijo {
+  background: #eee;
+  border: 1px solid #ccc;
+  border-radius: 8px 0 0 8px;
+  padding: 10px;
+  font-size: 14px;
+  color: #555;
+}
+
+.registro-tel input {
+  border-radius: 0 8px 8px 0;
+}
+
+.registro-password {
+  position: relative;
+}
+
+.registro-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.registro-miembros {
+  margin-top: 30px;
+}
+
+.registro-miembros h3 {
+  color: #444;
+  margin-bottom: 10px;
+}
+
+.registro-miembro {
+  background: #f8f8f8;
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 15px;
+}
+
+.registro-add-member {
+  background: white;
+  border: 2px dashed rgb(95, 122, 134);
+  color: rgb(95, 122, 134);
+  padding: 10px;
+  border-radius: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.3s;
+}
+
+.registro-add-member:hover {
+  background: rgb(245, 247, 247);
+}
+
+.registro-submit {
+  text-align: right;
+  margin-top: 25px;
+}
+
+.registro-btn {
+  background-color: rgb(95, 122, 134);
+  color: white;
+  font-weight: bold;
+  padding: 12px 25px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.registro-btn:hover {
+  background-color: rgb(75, 102, 114);
+}
+.registro-container {
+  display: grid;
+  grid-template-columns: 250px 1fr; 
+  gap: 180px; 
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 1100px;
+}
+
+.registro-logo-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 50px; /* espacio entre los logos */
+  height: 100%;
+}
+
+.registro-logo1 {
+  width: 300px; 
+  height: auto;
+  cursor: pointer;
+}
+.registro-logo2 {
+  width: 350px; 
+  height: auto;
+  cursor: pointer;
+}
+
+
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+  .registro-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .registro-submit {
+    text-align: center;
+  }
+
+  .registro-btn {
+    width: 100%;
+  }
+    .registro-container {
+    grid-template-columns: 1fr;
+  }
+
+  .registro-logo-column {
+    flex-direction: row;
+    justify-content: center;
+    margin-bottom: 30px;
+  }
+
+  .registro-logo {
+    width: 100px;
+  }
+}

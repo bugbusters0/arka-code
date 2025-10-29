@@ -1,0 +1,63 @@
+{{define "content"}}
+<div class="conceptos-container">
+    <div class="conceptos-header">
+        <h2>{{.Titulo}}</h2>
+        <a href="/concepto/crear" class="btn btn-primary">Nuevo Concepto</a>
+    </div>
+
+    <div class="conceptos-actions">
+        <a href="/concepto/gasto" class="btn {{if eq .Tipo "gasto"}}btn-active{{else}}btn-secondary{{end}}">
+            Gastos
+        </a>
+        <a href="/concepto/ingresos" class="btn {{if eq .Tipo "ingreso"}}btn-active{{else}}btn-secondary{{end}}">
+            Ingresos
+        </a>
+    </div>
+
+    <div class="conceptos-list">
+        {{if .Conceptos}}
+        <table class="conceptos-table">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Tipo</th>
+                    <th>Estado</th>
+                    <th>Fecha Creación</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Conceptos}}
+                <tr>
+                    <td>{{.Name}}</td>
+                    <td>
+                        <span class="badge badge-{{.Type}}">
+                            {{.Type}}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge badge-{{.Status}}">
+                            {{.Status}}
+                        </span>
+                    </td>
+                    <td>{{.CreatedAt.Format "02/01/2006"}}</td>
+                    <td class="actions">
+                        <a href="/concepto/editar/{{.ID}}" class="btn btn-sm btn-warning">Editar</a>
+                        <a href="/concepto/deshabilitar/{{.ID}}" class="btn btn-sm btn-secondary" 
+                           onclick="return confirm('¿Deshabilitar concepto?')">Deshab.</a>
+                        <a href="/concepto/eliminar/{{.ID}}" class="btn btn-sm btn-danger"
+                           onclick="return confirm('¿Eliminar concepto permanentemente?')">Eliminar</a>
+                    </td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+        {{else}}
+        <div class="empty-state">
+            <p>No hay conceptos registrados.</p>
+            <a href="/concepto/crear" class="btn btn-primary">Crear primer concepto</a>
+        </div>
+        {{end}}
+    </div>
+</div>
+{{end}}

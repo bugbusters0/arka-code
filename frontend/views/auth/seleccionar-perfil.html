@@ -1,0 +1,34 @@
+{{define "content"}}
+<div class="profile-container">
+    <div class="profile-selection">
+        <h2>Seleccionar Perfil</h2>
+        <p>Elige el miembro con el que deseas ingresar:</p>
+
+        <div class="profiles-grid">
+            {{range .Miembros}}
+            <div class="profile-card">
+                <div class="profile-info">
+                    <h3>{{.Name}}</h3>
+                    <p>Tipo: {{.Type}}</p>
+                </div>
+                
+                <form method="POST" action="/seleccionar-perfil" class="profile-form">
+                    <input type="hidden" name="idMiembro" value="{{.ID}}">
+                    
+                    <div class="form-group">
+                        <label for="password-{{.ID}}">Contraseña familiar:</label>
+                        <input type="password" id="password-{{.ID}}" name="password" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Seleccionar</button>
+                </form>
+
+                <div class="profile-quick">
+                    <a href="/seleccionar-perfil?profile={{.ID}}" class="btn btn-secondary">Acceso rápido</a>
+                </div>
+            </div>
+            {{end}}
+        </div>
+    </div>
+</div>
+{{end}}
