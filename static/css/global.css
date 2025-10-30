@@ -84,9 +84,9 @@ body {
 .tabs {
   display: flex;
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  /*margin-bottom: 1.5rem;*/
   padding-left: 10px;
-  padding-top: 10px;
+  /*padding-top: 10px;*/
 }
 .tab {
   padding: 0.6rem 1.2rem;

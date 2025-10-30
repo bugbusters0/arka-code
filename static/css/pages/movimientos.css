@@ -76,7 +76,7 @@
     }
 
     /* Main layout */
-    .main {
+    .main_mov {
       display: grid;
       grid-template-columns: 420px 1fr;
       gap: 18px;
@@ -290,6 +290,6 @@
 
     /* small screens */
     @media (max-width:900px){
-      .main { grid-template-columns: 1fr; }
+      .main_mov { grid-template-columns: 1fr; }
       .container { padding: 12px; }
     }

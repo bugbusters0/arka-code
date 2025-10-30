@@ -166,11 +166,18 @@ func (c *MovimientoController) Crear(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Crear movimiento
-	descripcion := validation.CleanData["descripcion"].(string)
+	var descripcion *string
+	if descVal, ok := validation.CleanData["descripcion"]; ok && descVal != nil {
+		descStr := descVal.(string)
+		if descStr != "" {
+			descripcion = &descStr
+		}
+	}
+
 	movimiento := &entities.Movimiento{
 		Fecha:          validation.CleanData["fecha"].(time.Time),
 		Monto:          validation.CleanData["monto"].(float64),
-		Descripcion:    &descripcion,
+		Descripcion:    descripcion,
 		NombreUsuario:  sessionData.NombreUsuario,
 		NombreConcepto: validation.CleanData["nombreConcepto"].(string),
 		CorreoFamilia:  sessionData.CorreoFamilia,

@@ -17,7 +17,7 @@
   </div>
 
   <!-- MAIN -->
-  <div class="main">
+  <div class="main_mov">
     {{if ne .Tipo "resumen"}}
     <!-- VISTA GASTOS/INGRESOS -->
     <div class="card">
@@ -51,7 +51,7 @@
           <div class="concepts-strip" id="conceptsStrip" aria-label="Seleccionar concepto">
             {{range .Conceptos}}
             <div class="concept-item" data-nombre="{{.NombreConcepto}}">
-              <div class="concept-circle" style="background-color: '{{.Color}}';" 
+              <div class="concept-circle" style="background-color: {{.Color}};" 
                    title="{{.NombreConcepto}}" onclick="selectConcept('{{.NombreConcepto}}')">
                 <i class="{{.Icono}}"></i>
               </div>
@@ -125,7 +125,7 @@
                 {{end}}
               {{end}}
               
-              <div class="movement-icon" style="background-color: '{{$concepto.Color}}';">
+              <div class="movement-icon" style="background-color: {{$concepto.Color}};">
                 <i class="{{$concepto.Icono}}"></i>
               </div>
               
