@@ -84,6 +84,38 @@ func SetupRoutes() *http.ServeMux {
 	mux.HandleFunc("/movimientos/eliminar", middleware.RequireUsuarioAuth(
 		controllers.MovimientoControllerInstance.Eliminar,
 	))
+
+	mux.HandleFunc("/perfiles", middleware.RequireUsuarioAuth(
+		controllers.PerfilControllerInstance.Index,
+	))
+
+	mux.HandleFunc("/perfiles/crear", middleware.RequireUsuarioAuth(
+		middleware.RequireAdmin(
+			controllers.PerfilControllerInstance.Crear,
+		),
+	))
+
+	mux.HandleFunc("/perfiles/editar", middleware.RequireUsuarioAuth(
+		controllers.PerfilControllerInstance.Editar,
+	))
+
+	mux.HandleFunc("/perfiles/deshabilitar", middleware.RequireUsuarioAuth(
+		middleware.RequireAdmin(
+			controllers.PerfilControllerInstance.Deshabilitar,
+		),
+	))
+
+	mux.HandleFunc("/perfiles/limites/crear", middleware.RequireUsuarioAuth(
+		controllers.PerfilControllerInstance.CrearLimite,
+	))
+
+	mux.HandleFunc("/perfiles/limites/editar", middleware.RequireUsuarioAuth(
+		controllers.PerfilControllerInstance.EditarLimite,
+	))
+
+	mux.HandleFunc("/perfiles/limites/eliminar", middleware.RequireUsuarioAuth(
+		controllers.PerfilControllerInstance.EliminarLimite,
+	))
 	// ========================================
 	// SELECCIÓN Y CREACIÓN DE USUARIOS
 	// ========================================

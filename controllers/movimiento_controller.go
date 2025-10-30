@@ -183,7 +183,7 @@ func (c *MovimientoController) Crear(w http.ResponseWriter, r *http.Request) {
 		CorreoFamilia:  sessionData.CorreoFamilia,
 	}
 
-	if descripcion == "" {
+	if descripcion == nil {
 		movimiento.Descripcion = nil
 	}
 
