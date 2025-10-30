@@ -1,0 +1,283 @@
+{{define "content"}}
+<div class="container">
+  <div class="topbar">
+    <div class="fecha-display" id="fechaDisplay" title="Seleccionar fecha">
+      <i id="fechaTexto">{{.FechaActual}}</i>
+      <input type="date" id="fechaInput" value="{{.FechaActual}}" style="display:none;">
+    </div>
+
+    <div class="tabs" role="tablist" aria-label="Pestañas">
+      <a href="/movimientos?tipo=gasto&fecha={{.FechaActual}}" 
+         class="tab {{if eq .Tipo "gasto"}}active{{end}}">Gastos</a>
+      <a href="/movimientos?tipo=ingreso&fecha={{.FechaActual}}" 
+         class="tab {{if eq .Tipo "ingreso"}}active{{end}}">Ingresos</a>
+      <a href="/movimientos?tipo=resumen&fecha={{.FechaActual}}" 
+         class="tab {{if eq .Tipo "resumen"}}active{{end}}">Resumen</a>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    {{if ne .Tipo "resumen"}}
+    <!-- VISTA GASTOS/INGRESOS -->
+    <div class="card">
+      <div class="form-title" id="tituloForm">
+        {{if eq .Tipo "gasto"}}Crear Gasto{{else}}Crear Ingreso{{end}}
+      </div>
+
+      <div id="messages">
+        {{if .ValidationErrors}}
+          {{if .ValidationErrors.general}}
+          <div class="error-message">{{.ValidationErrors.general}}</div>
+          {{end}}
+        {{end}}
+        
+        {{if eq (index . "success") "created"}}
+        <div class="success-message">Movimiento creado correctamente</div>
+        {{else if eq (index . "success") "updated"}}
+        <div class="success-message">Movimiento actualizado correctamente</div>
+        {{else if eq (index . "success") "deleted"}}
+        <div class="success-message">Movimiento eliminado correctamente</div>
+        {{end}}
+      </div>
+
+      <form id="movimientoForm" method="POST" action="/movimientos/crear">
+        <input type="hidden" name="tipo" value="{{.Tipo}}">
+        <input type="hidden" name="fecha" id="fechaHidden" value="{{.FechaActual}}">
+        <input type="hidden" name="idMovimiento" id="idMovimiento" value="">
+
+        <div class="form-group">
+          <label>Concepto *</label>
+          <div class="concepts-strip" id="conceptsStrip" aria-label="Seleccionar concepto">
+            {{range .Conceptos}}
+            <div class="concept-item" data-nombre="{{.NombreConcepto}}">
+              <div class="concept-circle" style="background-color: '{{.Color}}';" 
+                   title="{{.NombreConcepto}}" onclick="selectConcept('{{.NombreConcepto}}')">
+                <i class="{{.Icono}}"></i>
+              </div>
+              <div class="concept-label">{{.NombreConcepto}}</div>
+            </div>
+            {{end}}
+            
+            <div class="concept-item">
+              <a class="concept-plus" href="/conceptos?tipo={{.Tipo}}" title="Crear nuevo concepto">
+                +
+              </a>
+            </div>
+          </div>
+          <input type="hidden" name="nombreConcepto" id="nombreConcepto" value="">
+          {{if .ValidationErrors.nombreConcepto}}
+          <span class="error-text">{{.ValidationErrors.nombreConcepto}}</span>
+          {{end}}
+          <div style="margin-top:8px;font-size:12px;color:var(--muted)">
+            Desliza para ver más conceptos
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Monto (S/) *</label>
+          <input type="number" step="0.01" min="0" id="monto" name="monto" 
+                 placeholder="Ej: 45.00" required value="{{.FormData.monto}}">
+          {{if .ValidationErrors.monto}}
+          <span class="error-text">{{.ValidationErrors.monto}}</span>
+          {{end}}
+        </div>
+
+        <div class="form-group">
+          <label>Descripción</label>
+          <textarea id="descripcion" name="descripcion" placeholder="Opcional">{{.FormData.descripcion}}</textarea>
+          {{if .ValidationErrors.descripcion}}
+          <span class="error-text">{{.ValidationErrors.descripcion}}</span>
+          {{end}}
+        </div>
+
+        <div class="form-group">
+          <label>Fecha (fija según selector)</label>
+          <div style="padding:8px 12px;background:#fbfdff;border-radius:8px;border:1px solid #eef2fa;">
+            <span id="fechaFormTexto">{{.FechaActual}}</span>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="btn btn-primary" id="btnGuardar">
+            {{if eq .Tipo "gasto"}}Guardar Gasto{{else}}Guardar Ingreso{{end}}
+          </button>
+          <button type="button" class="btn btn-ghost" id="btnCancelar" onclick="resetForm()">
+            Cancelar
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <div class="movements">
+      <div>
+        <div class="section-title">
+          {{if eq .Tipo "gasto"}}Gastos del día{{else}}Ingresos del día{{end}}
+        </div>
+        <div id="dailyList">
+          {{if .Movimientos}}
+            {{range .Movimientos}}
+            <div class="movement-card" data-id="{{.IdMovimiento}}">
+              {{$concepto := index $.Conceptos 0}}
+              {{range $.Conceptos}}
+                {{if eq .NombreConcepto $.NombreConcepto}}
+                  {{$concepto = .}}
+                {{end}}
+              {{end}}
+              
+              <div class="movement-icon" style="background-color: '{{$concepto.Color}}';">
+                <i class="{{$concepto.Icono}}"></i>
+              </div>
+              
+              <div class="movement-body">
+                <div class="movement-title">{{.NombreConcepto}}</div>
+                {{if .Descripcion}}
+                <div class="movement-desc">{{.Descripcion}}</div>
+                {{end}}
+              </div>
+              
+              <div class="movement-amount">S/ {{printf "%.2f" .Monto}}</div>
+              
+              <div class="movement-actions">
+                <button class="icon-btn" title="Editar" 
+                        onclick="editarMovimiento('{{.IdMovimiento}}', '{{.NombreConcepto}}', '{{.Monto}}', '{{if .Descripcion}}{{.Descripcion}}{{end}}')">
+                  ✏️
+                </button>
+                <button class="icon-btn" title="Eliminar" 
+                        onclick="eliminarMovimiento('{{.IdMovimiento}}')">
+                  🗑️
+                </button>
+              </div>
+            </div>
+            {{end}}
+          {{else}}
+          <div class="movement-card" style="justify-content:center;color:var(--muted)">
+            No hay {{if eq .Tipo "gasto"}}gastos{{else}}ingresos{{end}} del día
+          </div>
+          {{end}}
+        </div>
+      </div>
+
+      <div id="totalContainer" class="total-row" style="margin-top:12px;">
+        <div>Total del día</div>
+        <div id="totalDia">S/ {{printf "%.2f" .TotalDia}}</div>
+      </div>
+    </div>
+
+    {{else}}
+    <!-- VISTA RESUMEN -->
+    <div class="resumen-container">
+      <div class="resumen-column">
+        <h3 class="resumen-title">Ingresos</h3>
+        <div class="movements-list">
+          {{if .MovimientosIngresos}}
+            {{range .MovimientosIngresos}}
+            <div class="movement-card" data-id="{{.IdMovimiento}}">
+              {{$concepto := index $.Conceptos 0}}
+              {{range $.Conceptos}}
+                {{if eq .NombreConcepto $.NombreConcepto}}
+                  {{$concepto = .}}
+                {{end}}
+              {{end}}
+              
+             <div class="movement-icon" style="background-color: {{$concepto.Color}};">
+                <i class="{{$concepto.Icono}}"></i>
+              </div>
+              
+              <div class="movement-body">
+                <div class="movement-title">{{.NombreConcepto}}</div>
+                {{if .Descripcion}}
+                <div class="movement-desc">{{.Descripcion}}</div>
+                {{end}}
+              </div>
+              
+              <div class="movement-amount">S/ {{printf "%.2f" .Monto}}</div>
+              
+              <div class="movement-actions">
+                <button class="icon-btn" title="Editar" 
+                        onclick="editarEnResumen('{{.IdMovimiento}}', 'ingreso')">
+                  ✏️
+                </button>
+                <button class="icon-btn" title="Eliminar" 
+                        onclick="eliminarMovimiento('{{.IdMovimiento}}')">
+                  🗑️
+                </button>
+              </div>
+            </div>
+            {{end}}
+          {{else}}
+          <div class="movement-card empty">No hay ingresos</div>
+          {{end}}
+        </div>
+        <div class="resumen-total ingreso">
+          Total Ingresos: S/ {{printf "%.2f" .TotalIngresos}}
+        </div>
+      </div>
+
+      <div class="resumen-column">
+        <h3 class="resumen-title">Gastos</h3>
+        <div class="movements-list">
+          {{if .MovimientosGastos}}
+            {{range .MovimientosGastos}}
+            <div class="movement-card" data-id="{{.IdMovimiento}}">
+              {{$concepto := index $.Conceptos 0}}
+              {{range $.Conceptos}}
+                {{if eq .NombreConcepto $.NombreConcepto}}
+                  {{$concepto = .}}
+                {{end}}
+              {{end}}
+              
+              <div class="movement-icon" style="background-color: '{{$concepto.Color}}';">
+                <i class="{{$concepto.Icono}}"></i>
+              </div>
+              
+              <div class="movement-body">
+                <div class="movement-title">{{.NombreConcepto}}</div>
+                {{if .Descripcion}}
+                <div class="movement-desc">{{.Descripcion}}</div>
+                {{end}}
+              </div>
+              
+              <div class="movement-amount">S/ {{printf "%.2f" .Monto}}</div>
+              
+              <div class="movement-actions">
+                <button class="icon-btn" title="Editar" 
+                        onclick="editarEnResumen('{{.IdMovimiento}}', 'gasto')">
+                  ✏️
+                </button>
+                <button class="icon-btn" title="Eliminar" 
+                        onclick="eliminarMovimiento('{{.IdMovimiento}}')">
+                  🗑️
+                </button>
+              </div>
+            </div>
+            {{end}}
+          {{else}}
+          <div class="movement-card empty">No hay gastos</div>
+          {{end}}
+        </div>
+        <div class="resumen-total gasto">
+          Total Gastos: S/ {{printf "%.2f" .TotalGastos}}
+        </div>
+      </div>
+    </div>
+
+    <div class="balance-final">
+      <div class="balance-label">Balance del Día</div>
+      <div class="balance-amount {{if ge .Balance 0.0}}positivo{{else}}negativo{{end}}">
+        S/ {{printf "%.2f" .Balance}}
+      </div>
+    </div>
+    {{end}}
+  </div>
+</div>
+
+{{end}}
+
+{{define "page-css"}}
+<link rel="stylesheet" href="/static/css/pages/movimientos.css">
+{{end}}
+
+{{define "page-js"}}
+<script src="/static/js/pages/movimientos.js"></script>
+{{end}}

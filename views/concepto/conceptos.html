@@ -1,0 +1,170 @@
+{{define "content"}}
+<div class="tabs">
+  <a href="/conceptos?tipo=gasto" class="tab {{if eq .Tipo "gasto"}}active{{end}}">Gastos</a>
+  <a href="/conceptos?tipo=ingreso" class="tab {{if eq .Tipo "ingreso"}}active{{end}}">Ingresos</a>
+</div>
+{{if .Error}}
+<div class="error-box">
+  <p style="color: red;">{{.Error}}</p>
+</div>
+{{end}}
+
+{{if .Success}}
+<div class="success-box">
+  <p style="color:green">{{.Success}}</p>
+</div>
+{{end}}
+<div class="content-area">
+  <!-- Lista de conceptos -->
+  <div class="conceptos" id="listaConceptos2">
+    {{range .Conceptos}}
+    <div class="concepto" data-id="{{.NombreConcepto}}">
+      <div class="concepto-icono" style="color: '{{.Color}}';">
+        <i class="{{.Icono}}"></i>
+      </div>
+      <div class="concepto-info">
+        <div class="concepto-nombre">{{.NombreConcepto}}</div>
+        <!-- Estos campos se mostrarán cuando tengas la personalización -->
+        <!-- 
+        <div class="concepto-desembolso">
+          Desembolso: S/ 0.00 / Mensual
+        </div>
+        <div class="concepto-limite">
+          Límite: S/ 0.00 / Semanal
+        </div>
+        -->
+      </div>
+      <div class="concepto-acciones">
+        <button class="btn-editar" onclick="editarConcepto('{{.NombreConcepto}}')">✏️</button>
+        <button class="btn-deshabilitar" onclick="deshabilitarConcepto('{{.NombreConcepto}}')">🚫</button>
+      </div>
+    </div>
+    {{else}}
+    <div class="concepto-vacio">
+      <i class="fa-solid fa-inbox"></i>
+      <p>No hay conceptos {{if eq .Tipo "gasto"}}de gastos{{else}}de ingresos{{end}} aún</p>
+    </div>
+    {{end}}
+
+    <!-- Botón "Nuevo" -->
+    <div class="concepto nuevo" onclick="mostrarFormulario()">
+      <i class="fa-solid fa-plus"></i>
+      <span>Nuevo Concepto</span>
+    </div>
+  </div>
+
+  <!-- Formulario lateral -->
+  <form method="POST" action="/conceptos/crear">
+    <div class="sidebar-right" id="formConcepto">
+      <h3 id="tituloForm">Crear Concepto</h3>
+
+      <!-- ✅ Muestra errores de validación -->
+      {{if .ValidationErrors}}
+      <div class="error-box">
+        <ul>
+          {{range .ValidationErrors}}
+          <li style="color: red;">{{.}}</li>
+          {{end}}
+        </ul>
+      </div>
+      {{end}}
+
+      {{if .Success}}
+      <div class="success-box">
+        <p style="color:green">{{.Success}}</p>
+      </div>
+      {{end}}
+
+      <input type="hidden" name="tipo" value="{{.Tipo}}">
+      <input type="hidden" name="configuracion_usuario" value="true">
+
+      <div class="form-group">
+        <label>Nombre del Concepto *</label>
+        <input type="text" id="nombre" name="nombre" placeholder="Ej: Transporte" required
+          value="{{.FormData.Nombre}}">
+      </div>
+
+      <div class="form-group">
+        <label>Ícono *</label>
+        <div id="iconosGrid" class="iconos-grid">
+          {{range .Iconos}}
+          <input type="radio" name="id_icono" id="icono_{{.ID}}"
+            value="{{.ID}}" class="icono-radio" required
+            {{if eq .ID $.FormData.IDIcono}}checked{{end}}>
+          <label for="icono_{{.ID}}" class="icono-label">
+            <i class="{{.Path}}"></i>
+            <span>{{.Nombre}}</span>
+          </label>
+          {{end}}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Color *</label>
+        <div class="color-picker">
+          <input type="radio" name="color" id="color1" value="#FF6B6B"
+            {{if or (not .FormData.Color) (eq .FormData.Color "#FF6B6B")}}checked{{end}}>
+          <label for="color1" style="background-color: #FF6B6B;"></label>
+
+          <input type="radio" name="color" id="color2" value="#FFD84D"
+            {{if eq .FormData.Color "#FFD84D"}}checked{{end}}>
+          <label for="color2" style="background-color: #FFD84D;"></label>
+
+          <input type="radio" name="color" id="color3" value="#8CCB5E"
+            {{if eq .FormData.Color "#8CCB5E"}}checked{{end}}>
+          <label for="color3" style="background-color: #8CCB5E;"></label>
+
+          <input type="radio" name="color" id="color4" value="#4DA3FF"
+            {{if eq .FormData.Color "#4DA3FF"}}checked{{end}}>
+          <label for="color4" style="background-color: #4DA3FF;"></label>
+
+          <input type="radio" name="color" id="color5" value="#A66BFF"
+            {{if eq .FormData.Color "#A66BFF"}}checked{{end}}>
+          <label for="color5" style="background-color: #A66BFF;"></label>
+        </div>
+      </div>
+
+      <div class="section-title">Configuración Personal</div>
+
+      <div class="form-group2">
+        <label>Desembolso planificado</label>
+        <input type="number" id="desembolso_planejado" name="desembolso_planejado"
+          placeholder="S/. 0" step="0.01" min="0"
+          value="{{.FormData.DesembolsoPlanejado}}">
+        <select id="periodo_tipo" name="periodo_tipo" class="frecuencia">
+          <option value="">Sin frecuencia</option>
+          <option value="diario" {{if eq .FormData.PeriodoTipo "diario"}}selected{{end}}>Diario</option>
+          <option value="semanal" {{if eq .FormData.PeriodoTipo "semanal"}}selected{{end}}>Semanal</option>
+          <option value="mensual" {{if eq .FormData.PeriodoTipo "mensual"}}selected{{end}}>Mensual</option>
+        </select>
+      </div>
+
+      <div class="form-group2">
+        <label>Establecer límite</label>
+        <input type="number" id="limite_monto" name="limite_monto"
+          placeholder="S/. 0" step="0.01" min="0"
+          value="{{.FormData.LimiteMonto}}">
+        <select id="limite_tipo" name="limite_tipo" class="frecuencia">
+          <option value="">Sin frecuencia</option>
+          <option value="diario" {{if eq .FormData.LimiteTipo "diario"}}selected{{end}}>Diario</option>
+          <option value="semanal" {{if eq .FormData.LimiteTipo "semanal"}}selected{{end}}>Semanal</option>
+          <option value="mensual" {{if eq .FormData.LimiteTipo "mensual"}}selected{{end}}>Mensual</option>
+        </select>
+      </div>
+
+      <div class="actions">
+        <button id="btnGuardar" class="btn btn-yellow" type="submit">Guardar Concepto</button>
+        <button id="btnCancelar" class="btn btn-gray" type="button" onclick="ocultarFormulario()">Cancelar</button>
+      </div>
+    </div>
+  </form>
+</div>
+{{end}}
+
+{{define "page-css"}}
+<link rel="stylesheet" href="/static/css/pages/conceptos.css">
+{{end}}
+
+{{define "page-js"}}
+<script src="/static/js/pages/conceptos.js"></script>
+{{end}}

@@ -1,0 +1,103 @@
+ .conceptos {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .concepto {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-left: 4px solid transparent;
+  }
+
+  .concepto-icono {
+    font-size: 24px;
+    margin-right: 15px;
+    width: 40px;
+    text-align: center;
+  }
+
+  .concepto-info {
+    flex: 1;
+  }
+
+  .concepto-nombre {
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+
+  .concepto-desembolso,
+  .concepto-limite {
+    font-size: 12px;
+    color: #666;
+  }
+
+  .concepto-acciones {
+    display: flex;
+    gap: 5px;
+  }
+
+  .btn-editar,
+  .btn-deshabilitar {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 4px;
+    transition: background 0.3s;
+  }
+
+  .btn-editar:hover {
+    background: #e3f2fd;
+  }
+
+  .btn-deshabilitar:hover {
+    background: #ffebee;
+  }
+
+  .concepto.nuevo {
+    justify-content: center;
+    text-align: center;
+    cursor: pointer;
+    background: #f8f9fa;
+    border: 2px dashed #dee2e6;
+    color: #6c757d;
+  }
+
+  .concepto.nuevo:hover {
+    background: #e9ecef;
+    border-color: #4DA3FF;
+    color: #4DA3FF;
+  }
+
+  .concepto-vacio {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6c757d;
+  }
+
+  .concepto-vacio i {
+    font-size: 48px;
+    margin-bottom: 15px;
+    opacity: 0.5;
+  }
+
+  .error-box {
+    background: #ffe6e6;
+    border: 1px solid #ffcccc;
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 15px;
+  }
+
+  .success-box {
+    background: #e6ffe6;
+    border: 1px solid #ccffcc;
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 15px;
+  }

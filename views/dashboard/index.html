@@ -1,0 +1,65 @@
+{{define "content"}}
+<div class="page-header">
+    <h1>Bienvenido, {{.SessionData.NombrePersonal}} 👋</h1>
+    <p>Familia: {{.SessionData.CorreoFamilia}}</p>
+</div>
+
+{{if .SuccessMsg}}
+<div class="alert alert-success">{{.SuccessMsg}}</div>
+{{end}}
+
+{{if .ErrorMsg}}
+<div class="alert alert-error">{{.ErrorMsg}}</div>
+{{end}}
+
+<div class="cards-row">
+    <div class="card">
+        <h3>Movimientos Recientes</h3>
+        <a href="/movimientos/create" class="btn btn-primary">➕ Nuevo Movimiento</a>
+    </div>
+    
+    <div class="card">
+        <h3>Conceptos</h3>
+        <a href="/conceptos" class="btn btn-primary">Ver Conceptos</a>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Últimos Movimientos</h2>
+    
+    {{if .Movimientos}}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Concepto</th>
+                <th>Usuario</th>
+                <th>Monto</th>
+                <th>Descripción</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .Movimientos}}
+            <tr>
+                <td>{{.Fecha.Format "02/01/2006"}}</td>
+                <td>{{.NombreConcepto}}</td>
+                <td>{{.NombreUsuario}}</td>
+                <td class="money">S/ {{printf "%.2f" .Monto}}</td>
+                <td>
+                    {{if .Descripcion}}
+                        {{.Descripcion}}
+                    {{else}}
+                        -
+                    {{end}}
+                </td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+    {{else}}
+    <p class="text-center text-muted">No hay movimientos registrados</p>
+    {{end}}
+    
+    <a href="/movimientos" class="btn btn-secondary">Ver todos los movimientos</a>
+</div>
+{{end}}

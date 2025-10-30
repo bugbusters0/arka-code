@@ -1,0 +1,50 @@
+ 
+ {{define "content"}}
+  <form method="POST" action="/login/submit">
+        <img src="/static/img/arka_logo.png" alt="Logo Arka" class="logo-top">
+        <h2>Iniciar sesión</h2>
+        
+        <!-- Mensaje de éxito -->
+        {{if .Success}}
+        <p style="color: green; font-weight: bold;">{{.Success}}</p>
+        {{end}}
+
+        <!-- Error general -->
+        {{if .Error}}
+        <p style="color: red;">{{.Error}}</p>
+        {{end}}
+
+        <!-- Errores de validación -->
+        {{if .ValidationErrors}}
+        <ul class="errors">
+            {{range $field, $msg := .ValidationErrors}}
+            <li style="color: red;">{{$msg}}</li>
+            {{end}}
+        </ul>
+        {{end}}
+
+        <!-- Contenido específico de cada página -->
+        <input type="email" name="email" placeholder="Email" required value="{{.FormData.email}}">
+        <input type="password" name="contrasena" placeholder="Contraseña" required>
+        
+        <a href="/recuperar_cuenta" class="link-reset">¿Olvidaste tu contraseña?</a>
+        <button type="submit" class="btn btn-oscuro">Entrar</button>
+        <p>¿No tienes una cuenta? <a href="/registro" class="btn-create">Crea una nueva aquí!</a></p>
+        <div class="logo-bottom-container">
+            <p>Desarrollado por:</p>
+            <img src="/static/img/bugbusters.png" alt="Logo Empresa" class="logo-bottom">
+        </div>
+    </form>
+   
+{{end}}
+
+
+{{/* CSS específico de login */}}
+{{define "page-css"}}
+<link rel="stylesheet" href="/static/css/pages/login.css">
+{{end}}
+
+{{/* JS específico de login */}}
+{{define "page-js"}}
+<script src="/static/js/pages/login.js"></script>
+{{end}}

@@ -1,0 +1,56 @@
+{{define "content"}}
+  <div class="seleccionar-container">
+    <div class="seleccionar-logo-column">
+      <img src="/static/img/arka_logo.png" alt="Logo Arka" class="seleccionar-logo1">
+      <img src="/static/img/bugbusters.png" alt="Logo BugBusters" class="seleccionar-logo2">
+    </div>
+
+    <div class="seleccionar-form">
+      <h2>Seleccionar Perfil</h2>
+      <p>Elige con qué perfil deseas ingresar:</p>
+
+      {{if .Error}}
+      <div class="error-box">
+        <p style="color: red;">{{.Error}}</p>
+      </div>
+      {{end}}
+
+      <div class="perfiles-grid">
+        {{range .Usuarios}}
+        <div class="perfil-card">
+          <div class="perfil-avatar">
+            {{if eq .Rol 1}}
+              <span class="avatar-admin">👑</span>
+            {{else}}
+              <span class="avatar-miembro">👤</span>
+            {{end}}
+          </div>
+          <div class="perfil-info">
+            <h3>{{.NombrePersonal}}</h3>
+            <p class="perfil-rol">
+              {{if eq .Rol 1}}Administrador{{else}}Miembro{{end}}
+            </p>
+            <p class="perfil-usuario">@{{.NombreUsuario}}</p>
+          </div>
+          <form method="POST" action="/seleccionar-perfil/submit" class="perfil-form">
+            <input type="hidden" name="nombreUsuario" value="{{.NombreUsuario}}">
+            <div class="perfil-password">
+              <input type="password" name="contraPersonal" placeholder="Tu contraseña personal" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Seleccionar</button>
+          </form>
+        </div>
+       
+        {{end}}
+      </div>
+
+      <div class="seleccionar-footer">
+        <a href="/logout-familia" class="btn btn-link">Cerrar Sesión</a>
+      </div>
+    </div>
+  </div>
+{{end}}
+
+{{define "page-css"}}
+<link rel="stylesheet" href="/static/css/pages/seleccionar-perfil.css">
+{{end}}

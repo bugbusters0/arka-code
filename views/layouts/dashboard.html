@@ -1,0 +1,75 @@
+{{define "dashboard"}}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} - Arka</title>
+    
+    <!-- CSS Global -->
+    <link rel="stylesheet" href="/static/css/global.css">
+    
+    <!-- CSS del Layout -->
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+    
+    <!-- CSS Específico de la Página -->
+    {{block "page-css" .}}{{end}}
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body class="dashboard-layout">
+    <div class="sidebar">
+        <img src="/static/img/arka_logo.png" class="card-img" alt="arka_logo">
+        <ul>
+            <li>
+                <a href="/movimientos" class="{{if eq .CurrentPage "movimientos"}}active{{end}}">
+                    <i class="fa-regular fa-calendar-plus"></i>Entrada diaria
+                </a>
+            </li>
+            <li>
+                <a href="/conceptos" class="{{if eq .CurrentPage "conceptos"}}active{{end}}">
+                    <i class="fa-solid fa-list"></i>Conceptos
+                </a>
+            </li>
+            <li>
+                <a href="/balance" class="{{if eq .CurrentPage "balance"}}active{{end}}">
+                    <i class="fa-solid fa-chart-simple"></i>Balance
+                </a>
+            </li>
+            <li>
+                <a href="/logout-usuario">
+                    <i class="fa-solid fa-right-from-bracket"></i>Cerrar sesión
+                </a>
+            </li>
+            <li class="bottom">
+                <a href="/perfiles" class="{{if eq .CurrentPage "perfiles"}}active{{end}}">
+                    <i class="fa-regular fa-user"></i>Perfiles
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Contenido Principal -->
+    <main class="main">
+        <!-- User Card -->
+        <div class="user-card">
+            <div class="user-info">
+                <span class="user-name">{{.SessionData.NombrePersonal}}</span>
+                <span class="user-role">
+                    {{if eq .SessionData.Rol 1}}Administrador{{else}}Miembro{{end}}
+                </span>
+            </div>
+        </div>
+        
+        <!-- Contenido de la página -->
+        {{template "content" .}}
+    </main>
+    
+    <!-- JS Global -->
+    <script src="/static/js/global.js"></script>
+    
+    <!-- JS Específico de la Página -->
+    {{block "page-js" .}}{{end}}
+</body>
+</html>
+{{end}}
