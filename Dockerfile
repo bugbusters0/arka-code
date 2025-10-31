@@ -1,4 +1,4 @@
-FROM golang:1.21-alpine
+FROM golang:1.25-alpine
 
 # Instalar MySQL en el mismo contenedor
 RUN apk add --no-cache \
