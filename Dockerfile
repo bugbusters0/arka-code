@@ -1,6 +1,6 @@
 FROM golang:1.25-alpine
 
-# Instalar MySQL en el mismo contenedor
+# Instalar MySQL y configurar inicialización
 RUN apk add --no-cache \
     mariadb \
     mariadb-client \
@@ -19,12 +19,12 @@ COPY . .
 # Compilar la aplicación Go
 RUN go build -o main .
 
-# Script de inicio que inicia MySQL y luego la app Go
+# Script de inicio mejorado
 COPY start.sh /start.sh
 RUN chmod +x /start.sh
 
-# Exponer puerto
-EXPOSE 8080
+# Inicializar base de datos MySQL
+RUN mysql_install_db --user=mysql --datadir=/var/lib/mysql
 
-# Usar el mismo script de inicio que tenías
+EXPOSE 8080
 CMD ["/start.sh"]
