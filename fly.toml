@@ -1,22 +1,23 @@
-# fly.toml app configuration file generated for arka-code on 2025-10-12T18:21:19-05:00
-#
-# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
-#
-
-app = 'arka-code'
-primary_region = 'bog'
+app = "arka-code"
+primary_region = "gru"
 
 [build]
+  dockerfile = "Dockerfile"
 
 [http_service]
-  internal_port = 80
+  internal_port = 8080
   force_https = true
-  auto_stop_machines = 'stop'
+  auto_stop_machines = true
   auto_start_machines = true
-  min_machines_running = 0
-  processes = ['app']
+
+[[http_service.ports]]
+  port = 80
+
+[[http_service.ports]]
+  port = 443
+  handlers = ["tls"]
 
 [[vm]]
-  memory = '1gb'
-  cpu_kind = 'shared'
+  cpu_kind = "shared"
   cpus = 1
+  memory = "1gb"  # MySQL necesita más memoria

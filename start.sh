@@ -20,10 +20,11 @@ mysql -e "GRANT ALL PRIVILEGES ON arka_code.* TO 'arka_user'@'localhost';" || ec
 mysql -e "FLUSH PRIVILEGES;"
 
 # Importar SQL si existe
-if [ -f /var/www/html/sql.sql ]; then
+if [ -f /app/sql.sql ]; then
     echo "Importando base de datos..."
-    mysql arka_code < /var/www/html/sql.sql && echo "✅ SQL importado" || echo "❌ Error importando SQL"
+    mysql arka_code < /app/sql.sql && echo "✅ SQL importado" || echo "❌ Error importando SQL"
 fi
 
-echo "✅ MySQL configurado, iniciando Apache..."
-exec apache2-foreground
+echo "✅ MySQL configurado, iniciando aplicación Go..."
+# Ejecutar la aplicación Go
+exec ./main
