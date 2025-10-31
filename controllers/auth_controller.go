@@ -427,5 +427,5 @@ func (c *AuthController) LogoutFamilia(w http.ResponseWriter, r *http.Request) {
 }
 func (c *AuthController) LogoutUsuario(w http.ResponseWriter, r *http.Request) {
 	utils.ClearSessionUsuario(w, r)
-	http.Redirect(w, r, "/login", http.StatusSeeOther)
+	http.Redirect(w, r, "/seleccionar-perfil", http.StatusSeeOther)
 }
