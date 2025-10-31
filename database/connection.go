@@ -13,8 +13,13 @@ var DB *sql.DB
 
 func Connect() {
 	cfg := config.AppConfig
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true",
-		cfg.DBUser, cfg.DBPassword, cfg.DBHost, cfg.DBPort, cfg.DBName)
+
+	// Usar socket Unix en lugar de TCP
+	dsn := fmt.Sprintf("%s:%s@unix(%s)/%s?parseTime=true",
+		cfg.DBUser,
+		cfg.DBPassword,
+		"/var/run/mysqld/mysqld.sock", // Socket path
+		cfg.DBName)
 
 	var err error
 	DB, err = sql.Open("mysql", dsn)
@@ -26,7 +31,7 @@ func Connect() {
 		log.Fatal("Error al hacer ping a la base de datos:", err)
 	}
 
-	log.Println("✓ Conexión exitosa a MySQL")
+	log.Println("✓ Conexión exitosa a MySQL via socket")
 }
 
 func Close() {

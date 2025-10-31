@@ -3,8 +3,6 @@ package config
 import (
 	"log"
 	"os"
-
-	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -15,16 +13,12 @@ type Config struct {
 	DBPassword string
 	DBName     string
 	SessionKey string
+	DBSocket   string // Agregar esto
 }
 
 var AppConfig *Config
 
 func LoadConfig() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("No se encontró archivo .env, usando variables de entorno")
-	}
-
 	AppConfig = &Config{
 		Port:       getEnv("PORT", "8080"),
 		DBHost:     getEnv("DB_HOST", "localhost"),
@@ -32,8 +26,11 @@ func LoadConfig() {
 		DBUser:     getEnv("DB_USER", "root"),
 		DBPassword: getEnv("DB_PASSWORD", "root"),
 		DBName:     getEnv("DB_NAME", "arka_go"),
-		SessionKey: getEnv("SESSION_KEY", "my-secret-key-change-in-production"),
+		SessionKey: getEnv("SESSION_KEY", "mi-clave-secreta"),
+		DBSocket:   getEnv("DB_SOCKET", "/var/run/mysqld/mysqld.sock"), // Socket por defecto
 	}
+
+	log.Printf("✅ Configuración cargada - DB: %s@%s", AppConfig.DBUser, AppConfig.DBSocket)
 }
 
 func getEnv(key, defaultValue string) string {
