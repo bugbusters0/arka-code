@@ -1,7 +1,7 @@
 {{define "content"}}
 <div class="container">
   <div class="topbar">
-    <div class="periodo-display" id="periodoDisplay" title="Seleccionar período">
+    <div class="fecha-display" id="periodoDisplay" title="Seleccionar período">
       <i id="periodoTexto">Este mes</i>
       <select id="periodoSelect" style="display:none;">
         <option value="semana">Esta semana</option>
@@ -11,13 +11,15 @@
       </select>
     </div>
 
-    <div class="tabs" role="tablist" aria-label="Pestañas de balance">
-      <a href="/balance?vista=balance" class="tab {{if eq .Vista "balance"}}active{{end}}">Balance</a>
-      <a href="/balance?vista=graficos" class="tab {{if eq .Vista "graficos"}}active{{end}}">Gráficos</a>
+    <div class="tabs" role="tablist" aria-label="Pestañas">
+      <a href="/balance?tipo=balance&periodo={{.PeriodoActual}}" 
+         class="tab {{if eq .Tipo "balance"}}active{{end}}">Balance</a>
+      <a href="/balance?tipo=graficos&periodo={{.PeriodoActual}}" 
+         class="tab {{if eq .Tipo "graficos"}}active{{end}}">Gráficos</a>
     </div>
 
     {{if .SessionData.IsAdmin}}
-    <div class="usuarios-filter" id="usuariosFilter">
+    <div class="usuarios-filter">
       {{range .UsuariosFamilia}}
       <button class="user-filter-btn {{if eq .NombreUsuario $.UsuarioFiltro}}active{{end}}" 
               data-usuario="{{.NombreUsuario}}" 
@@ -35,9 +37,9 @@
     {{end}}
   </div>
 
-  <!-- MAIN BALANCE -->
+  <!-- MAIN -->
   <div class="main_balance">
-    {{if eq .Vista "balance"}}
+    {{if eq .Tipo "balance"}}
     <!-- VISTA BALANCE PRINCIPAL -->
     <div class="resumen-container">
       <div class="resumen-column">
@@ -45,7 +47,7 @@
         <div class="movements-list">
           {{if .MovimientosIngresos}}
             {{range .MovimientosIngresos}}
-            <div class="movement-card balance-card" data-id="{{.IdMovimiento}}" 
+            <div class="movement-card" data-id="{{.IdMovimiento}}" 
                  style="border-left-color: {{.ColorUsuario}};">
               <div class="movement-icon" style="background-color: {{.ColorConcepto}};">
                 <i class="{{.IconoConcepto}}"></i>
@@ -55,7 +57,7 @@
                 <div class="movement-title">{{.NombreConcepto}}</div>
                 <div class="movement-meta">
                   <span class="movement-date">{{.Fecha}}</span>
-                  {{if .SessionData.IsAdmin}}
+                  {{if $.SessionData.IsAdmin}}
                   <span class="movement-user" style="color: {{.ColorUsuario}};">
                     {{.NombreUsuario}}
                   </span>
@@ -63,11 +65,13 @@
                 </div>
               </div>
               
-              <div class="movement-amount positivo">S/ {{printf "%.2f" .Monto}}</div>
+              <div class="movement-amount">S/ {{printf "%.2f" .Monto}}</div>
             </div>
             {{end}}
           {{else}}
-          <div class="movement-card empty">Sin Ingresos</div>
+          <div class="movement-card" style="justify-content:center;color:var(--muted)">
+            Sin Ingresos
+          </div>
           {{end}}
         </div>
         <div class="resumen-total ingreso">
@@ -80,7 +84,7 @@
         <div class="movements-list">
           {{if .MovimientosGastos}}
             {{range .MovimientosGastos}}
-            <div class="movement-card balance-card" data-id="{{.IdMovimiento}}"
+            <div class="movement-card" data-id="{{.IdMovimiento}}"
                  style="border-left-color: {{.ColorUsuario}};">
               <div class="movement-icon" style="background-color: {{.ColorConcepto}};">
                 <i class="{{.IconoConcepto}}"></i>
@@ -90,7 +94,7 @@
                 <div class="movement-title">{{.NombreConcepto}}</div>
                 <div class="movement-meta">
                   <span class="movement-date">{{.Fecha}}</span>
-                  {{if .SessionData.IsAdmin}}
+                  {{if $.SessionData.IsAdmin}}
                   <span class="movement-user" style="color: {{.ColorUsuario}};">
                     {{.NombreUsuario}}
                   </span>
@@ -98,11 +102,13 @@
                 </div>
               </div>
               
-              <div class="movement-amount negativo">S/ {{printf "%.2f" .Monto}}</div>
+              <div class="movement-amount">S/ {{printf "%.2f" .Monto}}</div>
             </div>
             {{end}}
           {{else}}
-          <div class="movement-card empty">Sin Gastos</div>
+          <div class="movement-card" style="justify-content:center;color:var(--muted)">
+            Sin Gastos
+          </div>
           {{end}}
         </div>
         <div class="resumen-total gasto">
@@ -178,10 +184,8 @@
         <div class="grafico-card">
           <h3>Ingresos</h3>
           <div class="grafico-placeholder" id="graficoIngresos">
-            <!-- Aquí iría el gráfico generado -->
             <div class="grafico-simulado">
               {{if eq .TipoGrafico "circular"}}
-              <!-- Gráfico circular simulado -->
               <div class="circular-chart">
                 {{range .IngresosData}}
                 <div class="chart-slice" style="--porcentaje: {{.Porcentaje}}%; background-color: {{.Color}};">
@@ -190,7 +194,6 @@
                 {{end}}
               </div>
               {{else if eq .TipoGrafico "barras"}}
-              <!-- Gráfico de barras simulado -->
               <div class="bar-chart">
                 {{range .IngresosData}}
                 <div class="bar-container">
@@ -330,7 +333,7 @@
   });
 
   // Click en movimiento para editar
-  document.querySelectorAll('.balance-card[data-id]').forEach(card => {
+  document.querySelectorAll('.movement-card[data-id]').forEach(card => {
     card.addEventListener('click', function() {
       const movimientoId = this.dataset.id;
       window.location.href = `/movimientos/editar/${movimientoId}`;
