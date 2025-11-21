@@ -45,7 +45,8 @@ func (m *ConceptoModel) FindByFamilia(correoFamilia string, tipo string) ([]enti
 	}
 
 	// ✅ CORREGIDO: JOIN con personalizacionconcepto para obtener el estado activo
-	query := `SELECT c.nombreConcepto, c.correoFamilia, c.tipo, c.icono, c.color, c.nombreUsuario, c.delete_at
+	query := `SELECT c.nombreConcepto, c.correoFamilia, c.tipo, c.icono, c.color, c.nombreUsuario,
+                     COALESCE(pc.activo, 1) as activo, c.delete_at
               FROM concepto c
               LEFT JOIN personalizacionconcepto pc ON c.nombreConcepto = pc.nombreConcepto 
                                                    AND c.correoFamilia = pc.correoFamilia 
@@ -70,6 +71,7 @@ func (m *ConceptoModel) FindByFamilia(correoFamilia string, tipo string) ([]enti
 			&concepto.Icono,
 			&concepto.Color,
 			&concepto.NombreUsuario,
+			&concepto.Activo,
 			&concepto.DeleteAt,
 		)
 		if err != nil {
@@ -366,7 +368,8 @@ func (m *ConceptoModel) FindByFamiliaActivos(correoFamilia, nombreUsuario, tipo 
 		tipoInt = 0
 	}
 
-	query := `SELECT c.nombreConcepto, c.correoFamilia, c.tipo, c.icono, c.color, c.nombreUsuario, c.delete_at
+	query := `SELECT c.nombreConcepto, c.correoFamilia, c.tipo, c.icono, c.color, c.nombreUsuario, 
+	                 COALESCE(pc.activo, true) as activo, c.delete_at
               FROM concepto c
               LEFT JOIN personalizacionconcepto pc ON c.nombreConcepto = pc.nombreConcepto 
                                                    AND c.correoFamilia = pc.correoFamilia 
@@ -390,6 +393,7 @@ func (m *ConceptoModel) FindByFamiliaActivos(correoFamilia, nombreUsuario, tipo 
 			&concepto.Icono,
 			&concepto.Color,
 			&concepto.NombreUsuario,
+			&concepto.Activo,
 			&concepto.DeleteAt,
 		)
 		if err != nil {
@@ -501,6 +505,96 @@ func (m *ConceptoModel) ActualizarNombreEnPersonalizaciones(nombreViejo, nombreN
 	return nil
 }
 
+func (m *ConceptoModel) Deshabilitar(nombreConcepto, correoFamilia string) error {
+	// Iniciar transacción para asegurar consistencia
+	tx, err := database.DB.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+
+	// 1. Desactivar el concepto en la tabla concepto (soft delete)
+	queryConcepto := `UPDATE concepto SET activo = 0 WHERE nombreConcepto = ? AND correoFamilia = ?`
+	_, err = tx.Exec(queryConcepto, nombreConcepto, correoFamilia)
+	if err != nil {
+		log.Printf("❌ Error desactivando concepto: %v", err)
+		return err
+	}
+
+	// 2. Desactivar todas las personalizaciones del concepto
+	queryPersonalizaciones := `UPDATE personalizacionconcepto SET activo = 0 
+                              WHERE nombreConcepto = ? AND correoFamilia = ?`
+	_, err = tx.Exec(queryPersonalizaciones, nombreConcepto, correoFamilia)
+	if err != nil {
+		log.Printf("❌ Error desactivando personalizaciones: %v", err)
+		return err
+	}
+
+	// Confirmar transacción
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	log.Printf("✅ Concepto deshabilitado: %s para familia %s", nombreConcepto, correoFamilia)
+	return nil
+}
+
 // Habilitar reactiva un concepto para todos los usuarios de la familia
+func (m *ConceptoModel) Habilitar(nombreConcepto, correoFamilia string) error {
+	tx, err := database.DB.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+
+	// 1. Reactivar el concepto
+	queryConcepto := `UPDATE concepto SET activo = 1 WHERE nombreConcepto = ? AND correoFamilia = ?`
+	_, err = tx.Exec(queryConcepto, nombreConcepto, correoFamilia)
+	if err != nil {
+		return err
+	}
+
+	// 2. Reactivar todas las personalizaciones
+	queryPersonalizaciones := `UPDATE personalizacionconcepto SET activo = 1 
+                              WHERE nombreConcepto = ? AND correoFamilia = ?`
+	_, err = tx.Exec(queryPersonalizaciones, nombreConcepto, correoFamilia)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	log.Printf("✅ Concepto habilitado: %s para familia %s", nombreConcepto, correoFamilia)
+	return nil
+}
 
 // ToggleActivoGlobal cambia el estado activo del concepto para toda la familia
+func (m *ConceptoModel) ToggleActivoGlobal(nombreConcepto, correoFamilia string) error {
+	// Primero obtener el estado actual
+	queryEstado := `SELECT activo FROM concepto WHERE nombreConcepto = ? AND correoFamilia = ?`
+	var activoActual bool
+	err := database.DB.QueryRow(queryEstado, nombreConcepto, correoFamilia).Scan(&activoActual)
+	if err != nil {
+		return err
+	}
+
+	if activoActual {
+		return m.Deshabilitar(nombreConcepto, correoFamilia)
+	} else {
+		return m.Habilitar(nombreConcepto, correoFamilia)
+	}
+}

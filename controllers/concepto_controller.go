@@ -34,6 +34,7 @@ func (c *ConceptoController) Index(w http.ResponseWriter, r *http.Request) {
 
 	// Obtener conceptos básicos
 	conceptos, err := models.ConceptoModelInstance.FindByFamilia(sessionData.CorreoFamilia, tipo)
+	log.Printf("Conceptosssssssssssssssssssssss: %+v", conceptos)
 	if err != nil {
 		log.Printf("❌ Error buscando conceptos: %v", err)
 	}

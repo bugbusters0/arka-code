@@ -9,6 +9,7 @@ type Concepto struct {
 	Icono          *string    `json:"icono"`
 	Color          *string    `json:"color"`
 	NombreUsuario  string     `json:"nombre_usuario"`
+	Activo         bool       `json:"activo"`
 	DeleteAt       *time.Time `json:"delete_at"`
 }
 
