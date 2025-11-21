@@ -78,13 +78,14 @@ CREATE TABLE `movimiento` (
 
 CREATE TABLE `personalizacionconcepto` (
   `idPersonalizacion` int(11) NOT NULL,
-  `limiteGasto` decimal(10,2) DEFAULT NULL,
-  `activo` tinyint(1) DEFAULT 1,
   `montoPlanificado` decimal(10,2) DEFAULT NULL,
   `tipoPeriodoPlanificado` varchar(15) DEFAULT NULL,
-  `tipoPeriodoLimite` varchar(15) DEFAULT NULL,
   `diaPeriodoPlanificado` tinyint(3) UNSIGNED DEFAULT NULL CHECK (`diaPeriodoPlanificado` between 1 and 31),
+  `limiteGasto` decimal(10,2) DEFAULT NULL,
+  `tipoPeriodoLimite` varchar(15) DEFAULT NULL,
+  `diaPeriodoLimite` tinyint(3) UNSIGNED DEFAULT NULL CHECK (`diaPeriodoLimite` between 1 and 31),
   `notificacion` tinyint(1) DEFAULT 0,
+  `activo` tinyint(1) DEFAULT 1,
   `nombreUsuario` varchar(30) NOT NULL,
   `nombreConcepto` varchar(40) NOT NULL,
   `correoFamilia` varchar(50) NOT NULL,

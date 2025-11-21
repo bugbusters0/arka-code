@@ -17,12 +17,60 @@ function editarConcepto(id) {
     alert('Editar concepto: ' + id);
 }
 
-function deshabilitarConcepto(id) {
-    console.log("🚫 Deshabilitando concepto:", id);
-    if (confirm('¿Estás seguro de que quieres deshabilitar este concepto?')) {
-        // Aquí implementarás la deshabilitación
-        window.location.href = '/conceptos/deshabilitar/' + id;
+// function deshabilitarConcepto(id) {
+//     console.log("🚫 Deshabilitando concepto:", id);
+//     if (confirm('¿Estás seguro de que quieres deshabilitar este concepto?')) {
+//         // Aquí implementarás la deshabilitación
+//         window.location.href = '/conceptos/deshabilitar/' + id;
+//     }
+// }
+
+// Deshabilitar concepto
+function deshabilitarConcepto(nombreConcepto, tipo) {
+    if (confirm('¿Estás seguro de que quieres deshabilitar este concepto?\n\nLos usuarios ya no podrán seleccionarlo para nuevos movimientos.')) {
+        const formData = new FormData();
+        formData.append('nombreConcepto', nombreConcepto);
+        formData.append('tipo', tipo);
+
+        fetch('/conceptos/deshabilitar', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (response.redirected) {
+                window.location.href = response.url;
+            } else if (!response.ok) {
+                alert('Error al deshabilitar el concepto');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al deshabilitar el concepto');
+        });
     }
+}
+
+// Habilitar concepto
+function habilitarConcepto(nombreConcepto, tipo) {
+    const formData = new FormData();
+    formData.append('nombreConcepto', nombreConcepto);
+    formData.append('tipo', tipo);
+
+    fetch('/conceptos/habilitar', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (response.redirected) {
+            window.location.href = response.url;
+        } else if (!response.ok) {
+            alert('Error al habilitar el concepto');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al habilitar el concepto');
+    });
 }
 
 // Debug del formulario cuando se carga la página
@@ -104,4 +152,47 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
         console.log("❌ NO se encontró el sidebar del formulario");
     }
+
+    function configurarCampoDependiente(selectId, targetId, valorActivador) {
+        const selectElement = document.getElementById(selectId);
+        const targetElement = document.getElementById(targetId);
+
+        if (!selectElement || !targetElement) {
+            console.error(`Error: Elementos no encontrados para el ID: ${selectId} o ${targetId}`);
+            return;
+        }
+
+        const handlePeriodChange = (e) => {
+            const esMensual = e.target.value.toLowerCase() === valorActivador.toLowerCase();
+
+            targetElement.disabled = !esMensual;
+            
+            if (esMensual) {
+                targetElement.placeholder = "1 - 31";
+                // Opcional: limpiar valor si no es mensual, pero lo dejamos a juicio del backend
+            } else {
+                targetElement.placeholder = "N/A";
+            }
+        };
+
+        // Escucha el evento 'change' (el correcto)
+        selectElement.addEventListener('change', handlePeriodChange);
+        
+        // Ejecutar al cargar la página para aplicar el estado inicial
+        handlePeriodChange({ target: selectElement });
+    }
+
+    // Configuración para Desembolso
+    configurarCampoDependiente(
+        "periodo_tipo", 
+        "dia_desembolso_planejado", 
+        "mensual" // Corregido de "mesual" a "mensual"
+    );
+
+    // Configuración para Límite
+    configurarCampoDependiente(
+        "limite_tipo", 
+        "dia_limite_tipo", 
+        "mensual"
+    );
 });

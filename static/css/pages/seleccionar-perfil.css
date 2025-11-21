@@ -1,18 +1,15 @@
 /* ===== ESTILOS PARA SELECCIÓN DE PERFILES ===== */
+
 .seleccionar-container {
-    min-height: 100vh;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     display: flex;
     align-items: center;
+    flex-direction: column;
     justify-content: center;
     padding: 2rem;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .seleccionar-logo-column {
-    position: fixed;
-    left: 2rem;
-    top: 2rem;
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -32,6 +29,9 @@
 }
 
 .seleccionar-form {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(20px);
     border-radius: 20px;
@@ -62,10 +62,11 @@
 
 /* ===== GRID DE PERFILES ===== */
 .perfiles-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
     gap: 2rem;
-    margin: 2.5rem 0;
 }
 
 /* ===== TARJETAS DE PERFIL ===== */
@@ -85,16 +86,7 @@
     min-height: 380px; /* ALTURA FIJA PARA CONSISTENCIA */
 }
 
-.perfil-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    border-radius: 16px 16px 0 0;
-}
+
 
 .perfil-card:hover {
     transform: translateY(-8px);
@@ -108,17 +100,15 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 100px;
-    height: 100px;
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
     position: relative;
     overflow: visible; /* IMPORTANTE: para que el emoji se vea completo */
 }
 
 .avatar-admin, .avatar-miembro {
-    font-size: 3.5rem; /* TAMAÑO REDUCIDO PARA QUE QUEPA */
+    font-size: 2.5rem; /* TAMAÑO REDUCIDO PARA QUE QUEPA */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -185,7 +175,8 @@
 /* ===== FORMULARIO DE CONTRASEÑA ===== */
 .perfil-form {
     margin-top: auto; /* EMPUJA EL FORMULARIO HACIA ABAJO */
-    width: 100%;
+    width: 50%;
+    padding: 1rem;
 }
 
 .perfil-password {
@@ -333,19 +324,7 @@
     position: relative;
 }
 
-.perfil-card:hover::after {
-    content: '';
-    position: absolute;
-    top: -2px;
-    left: -2px;
-    right: -2px;
-    bottom: -2px;
-    background: linear-gradient(135deg, #667eea, #764ba2, #667eea);
-    border-radius: 18px;
-    z-index: -1;
-    opacity: 0.6;
-    animation: glow 2s ease-in-out infinite alternate;
-}
+
 
 @keyframes glow {
     from {

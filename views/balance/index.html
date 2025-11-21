@@ -1,0 +1,271 @@
+{{define "content"}}
+<div class="container">
+  <div class="topbar">
+    <h2 class="page-title">Balance Familiar</h2>
+
+    <div class="tabs" role="tablist" aria-label="Pestañas">
+      <a href="/balance?tipo=balance" 
+         class="tab {{if eq .Tipo "balance"}}active{{end}}">Balance</a>
+      <a href="/balance?tipo=graficos" 
+         class="tab {{if eq .Tipo "graficos"}}active{{end}}">Gráficos</a>
+    </div>
+
+    {{if eq .SessionData.Rol 1}}
+    <div class="usuarios-filter">
+      {{range .UsuariosFamilia}}
+      <button class="user-filter-btn {{if eq .NombreUsuario $.UsuarioFiltro}}active{{end}}" 
+              onclick="filtrarUsuario('{{.NombreUsuario}}')"
+              title="{{.NombrePersonal}}">
+        {{substr .NombrePersonal 0 1}}
+      </button>
+      {{end}}
+      <button class="user-filter-btn {{if not .UsuarioFiltro}}active{{end}}" 
+              onclick="filtrarUsuario('')"
+              title="Ver todos">
+        👥
+      </button>
+    </div>
+    {{end}}
+  </div>
+
+  <!-- MAIN -->
+  <div class="main_balance">
+    {{if eq .Tipo "balance"}}
+    <!-- VISTA BALANCE PRINCIPAL -->
+    <div class="balance-grid">
+      <!-- COLUMNA INGRESOS -->
+      <div class="balance-column ingresos">
+        <div class="column-header">
+          <h3 class="column-title">Ingresos</h3>
+          <div class="column-total positivo">S/ {{printf "%.2f" .TotalIngresos}}</div>
+        </div>
+        <div class="movements-list">
+          {{if .MovimientosIngresos}}
+            {{range .MovimientosIngresos}}
+            <div class="movement-card">
+              <div class="movement-icon ingreso">
+                <i class="fas fa-arrow-up"></i>
+              </div>
+              <div class="movement-body">
+                <div class="movement-title">{{.NombreConcepto}}</div>
+                <div class="movement-user">{{.NombreUsuario}}</div>
+              </div>
+              <div class="movement-amount">S/ {{printf "%.2f" .Monto}}</div>
+            </div>
+            {{end}}
+          {{else}}
+          <div class="empty-state">No hay ingresos</div>
+          {{end}}
+        </div>
+      </div>
+
+      <!-- COLUMNA GASTOS -->
+      <div class="balance-column gastos">
+        <div class="column-header">
+          <h3 class="column-title">Gastos</h3>
+          <div class="column-total negativo">S/ {{printf "%.2f" .TotalGastos}}</div>
+        </div>
+        <div class="movements-list">
+          {{if .MovimientosGastos}}
+            {{range .MovimientosGastos}}
+            <div class="movement-card">
+              <div class="movement-icon gasto">
+                <i class="fas fa-arrow-down"></i>
+              </div>
+              <div class="movement-body">
+                <div class="movement-title">{{.NombreConcepto}}</div>
+                <div class="movement-user">{{.NombreUsuario}}</div>
+              </div>
+              <div class="movement-amount">S/ {{printf "%.2f" .Monto}}</div>
+            </div>
+            {{end}}
+          {{else}}
+          <div class="empty-state">No hay gastos</div>
+          {{end}}
+        </div>
+      </div>
+
+      <!-- COLUMNA BALANCE -->
+      <div class="balance-column balance">
+        <div class="column-header">
+          <h3 class="column-title">Balance</h3>
+        </div>
+        
+        <div class="balance-cards">
+          {{range .Balances}}
+          <div class="balance-user-card">
+            <div class="user-header">
+              <div class="user-avatar">{{substr .NombrePersonal 0 1}}</div>
+              <div class="user-info">
+                <div class="user-name">{{.NombrePersonal}}</div>
+                <div class="user-username">@{{.NombreUsuario}}</div>
+              </div>
+            </div>
+            
+            <div class="balance-stats">
+              <div class="balance-stat">
+                <div class="stat-label">Mensual</div>
+                <div class="stat-value {{if ge .BalanceMensual 0.0}}positivo{{else}}negativo{{end}}">
+                  S/ {{printf "%.2f" .BalanceMensual}}
+                </div>
+              </div>
+              
+              <div class="balance-stat">
+                <div class="stat-label">Anual</div>
+                <div class="stat-value {{if ge .BalanceAnual 0.0}}positivo{{else}}negativo{{end}}">
+                  S/ {{printf "%.2f" .BalanceAnual}}
+                </div>
+              </div>
+            </div>
+          </div>
+          {{end}}
+        </div>
+
+        <div class="balance-total-card">
+          <div class="total-label">Balance Mensual Total</div>
+          <div class="total-value {{if ge .BalanceMensual 0.0}}positivo{{else}}negativo{{end}}">
+            S/ {{printf "%.2f" .BalanceMensual}}
+          </div>
+        </div>
+
+        <div class="balance-total-card">
+          <div class="total-label">Balance Anual Total</div>
+          <div class="total-value {{if ge .BalanceAnual 0.0}}positivo{{else}}negativo{{end}}">
+            S/ {{printf "%.2f" .BalanceAnual}}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {{else}}
+    <!-- VISTA GRÁFICOS -->
+    <div class="graficos-controls">
+      <div class="control-group">
+        <label>Tipo de Gráfico:</label>
+        <div class="btn-group">
+          <button class="control-btn {{if eq .TipoGrafico "barras"}}active{{end}}" 
+                  onclick="cambiarTipoGrafico('barras')">
+            <i class="fas fa-chart-bar"></i> Barras
+          </button>
+          <button class="control-btn {{if eq .TipoGrafico "circular"}}active{{end}}" 
+                  onclick="cambiarTipoGrafico('circular')">
+            <i class="fas fa-chart-pie"></i> Circular
+          </button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Ver por:</label>
+        <div class="btn-group">
+          <button class="control-btn {{if eq .VistaGrafico "concepto"}}active{{end}}" 
+                  onclick="cambiarVistaGrafico('concepto')">
+            <i class="fas fa-tag"></i> Concepto
+          </button>
+          {{if eq .SessionData.Rol 1}}
+          <button class="control-btn {{if eq .VistaGrafico "miembro"}}active{{end}}" 
+                  onclick="cambiarVistaGrafico('miembro')">
+            <i class="fas fa-users"></i> Miembro
+          </button>
+          {{end}}
+        </div>
+      </div>
+    </div>
+
+    <div class="graficos-grid">
+      <!-- GRÁFICO INGRESOS -->
+      <div class="grafico-card">
+        <h3 class="grafico-title">
+          <i class="fas fa-arrow-up"></i> Ingresos
+        </h3>
+        
+        <div class="grafico-container">
+          {{if eq .TipoGrafico "barras"}}
+          <div class="bar-chart">
+            {{range .IngresosData}}
+            <div class="bar-container">
+              <div class="bar ingreso" style="height: {{.Porcentaje}}%; background-color: {{.Color}};">
+                <span class="bar-value">{{printf "%.0f" .Porcentaje}}%</span>
+              </div>
+              <span class="bar-label">{{.Etiqueta}}</span>
+            </div>
+            {{end}}
+          </div>
+          {{else}}
+          <div class="pie-chart">
+            {{if .IngresosData}}
+            <canvas id="pieIngresos" width="300" height="300" 
+                    data-chart='[{{range $index, $item := .IngresosData}}{{if $index}},{{end}}{"label":"{{.Etiqueta}}","value":{{.Porcentaje}},"color":"{{.Color}}","amount":{{.Monto}}}{{end}}]'></canvas>
+            {{else}}
+            <div class="empty-state">No hay datos de ingresos</div>
+            {{end}}
+          </div>
+          {{end}}
+        </div>
+
+        <div class="grafico-leyenda">
+          {{range .IngresosData}}
+          <div class="leyenda-item">
+            <span class="leyenda-color" style="background-color: {{.Color}};"></span>
+            <span class="leyenda-texto">{{.Etiqueta}}</span>
+            <span class="leyenda-monto">S/ {{printf "%.2f" .Monto}}</span>
+            <span class="leyenda-porcentaje">{{printf "%.1f" .Porcentaje}}%</span>
+          </div>
+          {{end}}
+        </div>
+      </div>
+
+      <!-- GRÁFICO GASTOS -->
+      <div class="grafico-card">
+        <h3 class="grafico-title">
+          <i class="fas fa-arrow-down"></i> Gastos
+        </h3>
+        
+        <div class="grafico-container">
+          {{if eq .TipoGrafico "barras"}}
+          <div class="bar-chart">
+            {{range .GastosData}}
+            <div class="bar-container">
+              <div class="bar gasto" style="height: {{.Porcentaje}}%; background-color: {{.Color}};">
+                <span class="bar-value">{{printf "%.0f" .Porcentaje}}%</span>
+              </div>
+              <span class="bar-label">{{.Etiqueta}}</span>
+            </div>
+            {{end}}
+          </div>
+          {{else}}
+          <div class="pie-chart">
+            {{if .GastosData}}
+            <canvas id="pieGastos" width="300" height="300" 
+                    data-chart='[{{range $index, $item := .GastosData}}{{if $index}},{{end}}{"label":"{{.Etiqueta}}","value":{{.Porcentaje}},"color":"{{.Color}}","amount":{{.Monto}}}{{end}}]'></canvas>
+            {{else}}
+            <div class="empty-state">No hay datos de gastos</div>
+            {{end}}
+          </div>
+          {{end}}
+        </div>
+
+        <div class="grafico-leyenda">
+          {{range .GastosData}}
+          <div class="leyenda-item">
+            <span class="leyenda-color" style="background-color: {{.Color}};"></span>
+            <span class="leyenda-texto">{{.Etiqueta}}</span>
+            <span class="leyenda-monto">S/ {{printf "%.2f" .Monto}}</span>
+            <span class="leyenda-porcentaje">{{printf "%.1f" .Porcentaje}}%</span>
+          </div>
+          {{end}}
+        </div>
+      </div>
+    </div>
+    {{end}}
+  </div>
+</div>
+{{end}}
+
+{{define "page-css"}}
+<link rel="stylesheet" href="/static/css/pages/balance.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+{{end}}
+
+{{define "page-js"}}
+<script src="/static/js/pages/balance.js"></script>
+{{end}}

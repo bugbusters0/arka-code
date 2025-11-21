@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"time"
 )
 
 func RenderTemplate(w http.ResponseWriter, layout string, page string, data interface{}) {
@@ -22,8 +23,36 @@ func RenderTemplate(w http.ResponseWriter, layout string, page string, data inte
 			}
 			return s[start:end]
 		},
+
+		"subtract": func(a, b float64) float64 {
+			return a - b
+		},
 		"sub": func(a, b float64) float64 {
 			return a - b
+		},
+		"dateMes": func(fechaStr string) string {
+			fecha, err := time.Parse("2006-01-02", fechaStr)
+			if err != nil {
+				return ""
+			}
+			meses := []string{
+				"", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+				"Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+			}
+			return meses[fecha.Month()]
+		},
+		"dateYear": func(fechaStr string) string {
+			fecha, err := time.Parse("2006-01-02", fechaStr)
+			if err != nil {
+				return ""
+			}
+			return fecha.Format("2006")
+		},
+		"add": func(a, b float64) float64 {
+			return a + b
+		},
+		"mul": func(a, b float64) float64 {
+			return a * b
 		},
 	}
 

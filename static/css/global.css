@@ -84,7 +84,6 @@ body {
 .tabs {
   display: flex;
   gap: 1rem;
-  /*margin-bottom: 1.5rem;*/
   padding-left: 10px;
   /*padding-top: 10px;*/
 }
@@ -200,9 +199,10 @@ body {
   display: flex;
   gap: 2rem;
   background-color: white;
-  padding: 1rem;
+  padding: 2rem;
   border-radius: 30px;
   height: fit-content;
+  margin-top: 2rem;
 }
 
 /* Conceptos */
@@ -384,4 +384,8 @@ cursor: pointer;
     border-left: none;
     margin-top: 2rem;
   }
+}
+.user-name{
+  text-transform: capitalize;
+  font-weight: bold;
 }

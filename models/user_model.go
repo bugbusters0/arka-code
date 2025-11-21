@@ -69,6 +69,42 @@ func (m *UserModel) FindByNombreUsuario(nombreUsuario string) (*entities.Usuario
 	return user, err
 }
 
+func (m *UserModel) FindByFamilia(correoFamilia string) ([]entities.Usuario, error) {
+	query := `SELECT nombreUsuario, rol, contraseñaPersonal, nombrePersonal, correoFamilia, delete_at
+	          FROM usuario 
+	          WHERE correoFamilia = ? AND delete_at IS NULL
+	          ORDER BY rol DESC, nombrePersonal ASC`
+
+	rows, err := database.DB.Query(query, correoFamilia)
+	if err != nil {
+		log.Printf("❌ Error en consulta FindByFamilia: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	usuarios := []entities.Usuario{}
+	for rows.Next() {
+		var usuario entities.Usuario
+
+		err := rows.Scan(
+			&usuario.NombreUsuario,
+			&usuario.Rol,
+			&usuario.ContrasenaPersonal,
+			&usuario.NombrePersonal,
+			&usuario.CorreoFamilia,
+			&usuario.DeleteAt,
+		)
+		if err != nil {
+			log.Printf("❌ Error escaneando usuario: %v", err)
+			continue
+		}
+		usuarios = append(usuarios, usuario)
+	}
+
+	log.Printf("👥 Usuarios encontrados: %d para familia %s", len(usuarios), correoFamilia)
+	return usuarios, nil
+}
+
 func (m *UserModel) GetAllByFamilia(correoFamilia string) ([]entities.Usuario, error) {
 	query := `SELECT nombreUsuario, rol, contraseñaPersonal, nombrePersonal, correoFamilia, delete_at
 	          FROM usuario WHERE correoFamilia = ?
@@ -218,4 +254,14 @@ func (m *UserModel) Exists(nombreUsuario string) (bool, error) {
 	}
 
 	return count > 0, nil
+}
+func (m *UserModel) Delete(nombreUsuario string) error {
+	query := `DELETE FROM usuario WHERE nombreUsuario = ?`
+	_, err := database.DB.Exec(query, nombreUsuario)
+	if err != nil {
+		log.Printf("❌ Error eliminando usuario: %v", err)
+	} else {
+		log.Printf("✅ Usuario eliminado: %s", nombreUsuario)
+	}
+	return err
 }

@@ -224,3 +224,267 @@ func (m *PersonalizacionModel) GetUsuarioQueAsigno(idPersonalizacion int) (strin
 
 	return nombrePersonal, nil
 }
+
+// FindByUsuarioAndConcepto obtiene la personalización de un usuario para un concepto
+func (m *PersonalizacionModel) FindByUsuarioAndConcepto(nombreUsuario, nombreConcepto, correoFamilia string) (*entities.PersonalizacionConcepto, error) {
+	query := `SELECT idPersonalizacion, montoPlanificado, tipoPeriodoPlanificado, 
+	                 diaPeriodoPlanificado, limiteGasto, tipoPeriodoLimite, 
+	                 diaPeriodoLimite, notificacion, activo,
+	                 nombreUsuario, nombreConcepto, correoFamilia
+	          FROM personalizacionconcepto
+	          WHERE nombreUsuario = ? 
+	            AND nombreConcepto = ? 
+	            AND correoFamilia = ?
+	            AND delete_at IS NULL`
+
+	p := &entities.PersonalizacionConcepto{}
+	err := database.DB.QueryRow(query, nombreUsuario, nombreConcepto, correoFamilia).Scan(
+		&p.IdPersonalizacion,
+		&p.MontoPlanificado,
+		&p.TipoPeriodoPlanificado,
+		&p.DiaPeriodoPlanificado,
+		&p.LimiteGasto,
+		&p.TipoPeriodoLimite,
+		&p.DiaPeriodoLimite,
+		&p.Notificacion,
+		&p.Activo,
+		&p.NombreUsuario,
+		&p.NombreConcepto,
+		&p.CorreoFamilia,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+
+	if err != nil {
+		log.Printf("❌ Error buscando personalización: %v", err)
+		return nil, err
+	}
+
+	return p, nil
+}
+
+func (m *PersonalizacionModel) FindByPeriodoDiario() ([]entities.PersonalizacionConcepto, error) {
+	query := `SELECT p.idPersonalizacion, p.montoPlanificado, p.tipoPeriodoPlanificado, 
+                     p.diaPeriodoPlanificado, p.limiteGasto, p.tipoPeriodoLimite, 
+                     p.diaPeriodoLimite, p.notificacion, p.activo,
+                     p.nombreUsuario, p.nombreConcepto, p.correoFamilia
+              FROM personalizacionconcepto p
+              WHERE p.activo = 1 
+                AND p.montoPlanificado IS NOT NULL 
+                AND p.montoPlanificado > 0
+                AND p.tipoPeriodoPlanificado = 'diario'
+                AND p.delete_at IS NULL`
+
+	rows, err := database.DB.Query(query)
+	if err != nil {
+		log.Printf("❌ Error en consulta FindByPeriodoDiario: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	personalizaciones := []entities.PersonalizacionConcepto{}
+	for rows.Next() {
+		var p entities.PersonalizacionConcepto
+
+		err := rows.Scan(
+			&p.IdPersonalizacion,
+			&p.MontoPlanificado,
+			&p.TipoPeriodoPlanificado,
+			&p.DiaPeriodoPlanificado,
+			&p.LimiteGasto,
+			&p.TipoPeriodoLimite,
+			&p.DiaPeriodoLimite,
+			&p.Notificacion,
+			&p.Activo,
+			&p.NombreUsuario,
+			&p.NombreConcepto,
+			&p.CorreoFamilia,
+		)
+		if err != nil {
+			log.Printf("❌ Error escaneando personalización diaria: %v", err)
+			continue
+		}
+		personalizaciones = append(personalizaciones, p)
+	}
+
+	log.Printf("📋 Personalizaciones diarias encontradas: %d", len(personalizaciones))
+	return personalizaciones, nil
+}
+
+// FindByDiaPlanificado obtiene personalizaciones para un día específico (modificado)
+func (m *PersonalizacionModel) FindByDiaPlanificado(dia int8) ([]entities.PersonalizacionConcepto, error) {
+	query := `SELECT p.idPersonalizacion, p.montoPlanificado, p.tipoPeriodoPlanificado, 
+                     p.diaPeriodoPlanificado, p.limiteGasto, p.tipoPeriodoLimite, 
+                     p.diaPeriodoLimite, p.notificacion, p.activo,
+                     p.nombreUsuario, p.nombreConcepto, p.correoFamilia
+              FROM personalizacionconcepto p
+              WHERE p.activo = 1 
+                AND p.montoPlanificado IS NOT NULL 
+                AND p.montoPlanificado > 0
+                AND p.diaPeriodoPlanificado = ?
+                AND p.tipoPeriodoPlanificado IN ('mensual', 'quincenal')
+                AND p.delete_at IS NULL`
+
+	rows, err := database.DB.Query(query, dia)
+	if err != nil {
+		log.Printf("❌ Error en consulta FindByDiaPlanificado: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	personalizaciones := []entities.PersonalizacionConcepto{}
+	for rows.Next() {
+		var p entities.PersonalizacionConcepto
+
+		err := rows.Scan(
+			&p.IdPersonalizacion,
+			&p.MontoPlanificado,
+			&p.TipoPeriodoPlanificado,
+			&p.DiaPeriodoPlanificado,
+			&p.LimiteGasto,
+			&p.TipoPeriodoLimite,
+			&p.DiaPeriodoLimite,
+			&p.Notificacion,
+			&p.Activo,
+			&p.NombreUsuario,
+			&p.NombreConcepto,
+			&p.CorreoFamilia,
+		)
+		if err != nil {
+			log.Printf("❌ Error escaneando personalización: %v", err)
+			continue
+		}
+		personalizaciones = append(personalizaciones, p)
+	}
+
+	log.Printf("📋 Personalizaciones encontradas para día %d: %d", dia, len(personalizaciones))
+	return personalizaciones, nil
+}
+
+// DeshabilitarParaUsuario desactiva un concepto para un usuario específico
+func (m *PersonalizacionModel) DeshabilitarParaUsuario(nombreConcepto, correoFamilia, nombreUsuario string) error {
+	// Primero verificar si existe la personalización
+	queryCheck := `SELECT idPersonalizacion FROM personalizacionconcepto 
+                   WHERE nombreConcepto = ? AND correoFamilia = ? AND nombreUsuario = ?`
+
+	var idPersonalizacion int
+	err := database.DB.QueryRow(queryCheck, nombreConcepto, correoFamilia, nombreUsuario).Scan(&idPersonalizacion)
+
+	if err == sql.ErrNoRows {
+		// No existe personalización, crear una con activo = false
+		queryInsert := `INSERT INTO personalizacionconcepto 
+                       (limiteGasto, activo, montoPlanificado, tipoPeriodoPlanificado, 
+                        tipoPeriodoLimite, diaPeriodoPlanificado, notificacion,
+                        nombreUsuario, nombreConcepto, correoFamilia)
+                       VALUES (NULL, false, NULL, NULL, NULL, NULL, false, ?, ?, ?)`
+
+		_, err = database.DB.Exec(queryInsert, nombreUsuario, nombreConcepto, correoFamilia)
+		if err != nil {
+			log.Printf("❌ Error creando personalización inactiva: %v", err)
+			return err
+		}
+		log.Printf("✅ Personalización creada como inactiva para usuario %s", nombreUsuario)
+		return nil
+	} else if err != nil {
+		log.Printf("❌ Error verificando personalización: %v", err)
+		return err
+	}
+
+	// Ya existe personalización, desactivarla
+	queryUpdate := `UPDATE personalizacionconcepto 
+                   SET activo = false 
+                   WHERE nombreConcepto = ? AND correoFamilia = ? AND nombreUsuario = ?`
+
+	result, err := database.DB.Exec(queryUpdate, nombreConcepto, correoFamilia, nombreUsuario)
+	if err != nil {
+		log.Printf("❌ Error deshabilitando concepto: %v", err)
+		return err
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	log.Printf("✅ Concepto deshabilitado para usuario %s - Filas afectadas: %d", nombreUsuario, rowsAffected)
+	return nil
+}
+
+// HabilitarParaUsuario activa un concepto para un usuario específico
+func (m *PersonalizacionModel) HabilitarParaUsuario(nombreConcepto, correoFamilia, nombreUsuario string) error {
+	// Primero verificar si existe la personalización
+	queryCheck := `SELECT idPersonalizacion FROM personalizacionconcepto 
+                   WHERE nombreConcepto = ? AND correoFamilia = ? AND nombreUsuario = ?`
+
+	var idPersonalizacion int
+	err := database.DB.QueryRow(queryCheck, nombreConcepto, correoFamilia, nombreUsuario).Scan(&idPersonalizacion)
+
+	if err == sql.ErrNoRows {
+		// No existe personalización, crear una con activo = true
+		queryInsert := `INSERT INTO personalizacionconcepto 
+                       (limiteGasto, activo, montoPlanificado, tipoPeriodoPlanificado, 
+                        tipoPeriodoLimite, diaPeriodoPlanificado, notificacion,
+                        nombreUsuario, nombreConcepto, correoFamilia)
+                       VALUES (NULL, true, NULL, NULL, NULL, NULL, false, ?, ?, ?)`
+
+		_, err = database.DB.Exec(queryInsert, nombreUsuario, nombreConcepto, correoFamilia)
+		if err != nil {
+			log.Printf("❌ Error creando personalización activa: %v", err)
+			return err
+		}
+		log.Printf("✅ Personalización creada como activa para usuario %s", nombreUsuario)
+		return nil
+	} else if err != nil {
+		log.Printf("❌ Error verificando personalización: %v", err)
+		return err
+	}
+
+	// Ya existe personalización, activarla
+	queryUpdate := `UPDATE personalizacionconcepto 
+                   SET activo = true 
+                   WHERE nombreConcepto = ? AND correoFamilia = ? AND nombreUsuario = ?`
+
+	result, err := database.DB.Exec(queryUpdate, nombreConcepto, correoFamilia, nombreUsuario)
+	if err != nil {
+		log.Printf("❌ Error habilitando concepto: %v", err)
+		return err
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	log.Printf("✅ Concepto habilitado para usuario %s - Filas afectadas: %d", nombreUsuario, rowsAffected)
+	return nil
+}
+
+// ToggleActivoParaUsuario cambia el estado activo de un concepto para un usuario
+func (m *PersonalizacionModel) ToggleActivoParaUsuario(nombreConcepto, correoFamilia, nombreUsuario string) error {
+	// Primero obtener el estado actual
+	queryEstado := `SELECT COALESCE(activo, true) as activo
+                   FROM personalizacionconcepto 
+                   WHERE nombreConcepto = ? AND correoFamilia = ? AND nombreUsuario = ?`
+
+	var activoActual bool
+	err := database.DB.QueryRow(queryEstado, nombreConcepto, correoFamilia, nombreUsuario).Scan(&activoActual)
+
+	if err == sql.ErrNoRows {
+		// No existe personalización, crear una con activo = false (toggle de true a false)
+		queryInsert := `INSERT INTO personalizacionconcepto 
+                       (limiteGasto, activo, montoPlanificado, tipoPeriodoPlanificado, 
+                        tipoPeriodoLimite, diaPeriodoPlanificado, notificacion,
+                        nombreUsuario, nombreConcepto, correoFamilia)
+                       VALUES (NULL, false, NULL, NULL, NULL, NULL, false, ?, ?, ?)`
+
+		_, err = database.DB.Exec(queryInsert, nombreUsuario, nombreConcepto, correoFamilia)
+		if err != nil {
+			return err
+		}
+		log.Printf("✅ Concepto deshabilitado (nueva personalización) para usuario %s", nombreUsuario)
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	// Cambiar el estado
+	if activoActual {
+		return m.DeshabilitarParaUsuario(nombreConcepto, correoFamilia, nombreUsuario)
+	} else {
+		return m.HabilitarParaUsuario(nombreConcepto, correoFamilia, nombreUsuario)
+	}
+}

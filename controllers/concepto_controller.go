@@ -32,19 +32,14 @@ func (c *ConceptoController) Index(w http.ResponseWriter, r *http.Request) {
 		tipo = "gasto" // valor por defecto
 	}
 
-	log.Printf("📊 Tipo de concepto: %s", tipo)
-
 	// Obtener conceptos básicos
 	conceptos, err := models.ConceptoModelInstance.FindByFamilia(sessionData.CorreoFamilia, tipo)
 	if err != nil {
 		log.Printf("❌ Error buscando conceptos: %v", err)
 	}
 
-	log.Printf("📋 Número de conceptos encontrados: %d", len(conceptos))
-
 	// Obtener lista de íconos disponibles
 	iconos := c.getIconosDisponibles()
-	log.Printf("🎯 Número de íconos disponibles: %d", len(iconos))
 
 	// Manejar mensajes de éxito/error
 	successMsg := ""
@@ -53,6 +48,10 @@ func (c *ConceptoController) Index(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Query().Get("success") {
 	case "concepto_creado":
 		successMsg = "Concepto creado exitosamente"
+	case "concepto_deshabilitado":
+		successMsg = "Concepto deshabilitado exitosamente"
+	case "concepto_habilitado":
+		successMsg = "Concepto habilitado exitosamente"
 	}
 
 	switch r.URL.Query().Get("error") {
@@ -197,6 +196,9 @@ func (c *ConceptoController) Crear(w http.ResponseWriter, r *http.Request) {
 	if desembolso, ok := validation.CleanData["desembolso_planejado"].(float64); ok {
 		datosPersonalizacion["desembolso_planejado"] = desembolso
 	}
+	if diaDesembolsoPlanejado, ok := validation.CleanData["dia_desembolso_planejado"].(int8); ok {
+		datosPersonalizacion["dia_desembolso_planejado"] = diaDesembolsoPlanejado
+	}
 	if limite, ok := validation.CleanData["limite_monto"].(float64); ok {
 		datosPersonalizacion["limite_monto"] = limite
 	}
@@ -205,6 +207,9 @@ func (c *ConceptoController) Crear(w http.ResponseWriter, r *http.Request) {
 	}
 	if limiteTipo, ok := validation.CleanData["limite_tipo"].(string); ok {
 		datosPersonalizacion["limite_tipo"] = limiteTipo
+	}
+	if diaLimiteTipo, ok := validation.CleanData["dia_limite_tipo"].(int8); ok {
+		datosPersonalizacion["dia_limite_tipo"] = diaLimiteTipo
 	}
 
 	log.Printf("📊 Datos de personalización: %+v", datosPersonalizacion)
@@ -295,4 +300,112 @@ func (c *ConceptoController) getIconoPorID(id int) string {
 		}
 	}
 	return "fa-solid fa-circle"
+}
+
+// Deshabilitar maneja la deshabilitación de un concepto para el usuario actual
+func (c *ConceptoController) Deshabilitar(w http.ResponseWriter, r *http.Request) {
+	log.Printf("🚫 ConceptoController.Deshabilitar llamado - Método: %s", r.Method)
+
+	if r.Method != http.MethodPost {
+		log.Printf("❌ Método no permitido: %s", r.Method)
+		http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
+		return
+	}
+
+	sessionData, ok := utils.GetSessionData(r)
+	if !ok {
+		log.Printf("❌ No hay sesión en Deshabilitar")
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	// Obtener parámetros
+	if err := r.ParseForm(); err != nil {
+		log.Printf("❌ Error parseando formulario: %v", err)
+		http.Error(w, "Error procesando solicitud", http.StatusBadRequest)
+		return
+	}
+
+	nombreConcepto := r.FormValue("nombreConcepto")
+	tipo := r.FormValue("tipo")
+
+	if nombreConcepto == "" {
+		log.Printf("❌ Nombre de concepto vacío")
+		http.Error(w, "Nombre de concepto requerido", http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("👤 Usuario %s deshabilitando concepto: %s", sessionData.NombreUsuario, nombreConcepto)
+
+	// Verificar que el concepto existe
+	concepto, err := models.ConceptoModelInstance.FindByNombre(nombreConcepto, sessionData.CorreoFamilia)
+	if err != nil || concepto == nil {
+		log.Printf("❌ Concepto no encontrado: %s", nombreConcepto)
+		http.Error(w, "Concepto no encontrado", http.StatusNotFound)
+		return
+	}
+
+	// Deshabilitar el concepto para el usuario actual
+	err = models.PersonalizacionModelInstance.DeshabilitarParaUsuario(
+		nombreConcepto,
+		sessionData.CorreoFamilia,
+		sessionData.NombreUsuario,
+	)
+	if err != nil {
+		log.Printf("❌ Error deshabilitando concepto: %v", err)
+		http.Error(w, "Error al deshabilitar el concepto", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("✅ Concepto deshabilitado exitosamente: %s", nombreConcepto)
+
+	// Redirigir con mensaje de éxito
+	redirectURL := "/conceptos?tipo=" + tipo + "&success=concepto_deshabilitado"
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+}
+
+// Habilitar maneja la habilitación de un concepto para el usuario actual
+func (c *ConceptoController) Habilitar(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
+		return
+	}
+
+	sessionData, ok := utils.GetSessionData(r)
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Error procesando solicitud", http.StatusBadRequest)
+		return
+	}
+
+	nombreConcepto := r.FormValue("nombreConcepto")
+	tipo := r.FormValue("tipo")
+
+	// Verificar que el concepto existe
+	concepto, err := models.ConceptoModelInstance.FindByNombre(nombreConcepto, sessionData.CorreoFamilia)
+	if err != nil || concepto == nil {
+		log.Printf("❌ Concepto no encontrado: %s", nombreConcepto)
+		http.Error(w, "Concepto no encontrado", http.StatusNotFound)
+		return
+	}
+
+	// Habilitar el concepto para el usuario actual
+	err = models.PersonalizacionModelInstance.HabilitarParaUsuario(
+		nombreConcepto,
+		sessionData.CorreoFamilia,
+		sessionData.NombreUsuario,
+	)
+	if err != nil {
+		log.Printf("❌ Error habilitando concepto: %v", err)
+		http.Error(w, "Error al habilitar el concepto", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("✅ Concepto habilitado exitosamente: %s", nombreConcepto)
+	redirectURL := "/conceptos?tipo=" + tipo + "&success=concepto_habilitado"
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }

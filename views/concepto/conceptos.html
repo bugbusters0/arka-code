@@ -17,35 +17,50 @@
 <div class="content-area">
   <!-- Lista de conceptos -->
   <div class="conceptos" id="listaConceptos2">
-    {{range .Conceptos}}
-    <div class="concepto" data-id="{{.NombreConcepto}}">
-      <div class="concepto-icono" style="color: '{{.Color}}';">
-        <i class="{{.Icono}}"></i>
-      </div>
-      <div class="concepto-info">
-        <div class="concepto-nombre">{{.NombreConcepto}}</div>
-        <!-- Estos campos se mostrarán cuando tengas la personalización -->
-        <!-- 
-        <div class="concepto-desembolso">
-          Desembolso: S/ 0.00 / Mensual
+   {{range .Conceptos}}
+    <div class="concepto {{if not .Activo}}concepto-inactivo{{end}}" data-id="{{.NombreConcepto}}">
+        <div class="concepto-icono" style="color: {{.Color}};">
+            <i class="{{.Icono}}"></i>
         </div>
-        <div class="concepto-limite">
-          Límite: S/ 0.00 / Semanal
+        <div class="concepto-info">
+            <div class="concepto-nombre">
+                {{.NombreConcepto}}
+                {{if not .Activo}}
+                <span class="badge-inactivo">Inactivo</span>
+                {{end}}
+            </div>
         </div>
-        -->
-      </div>
-      <div class="concepto-acciones">
-        <button class="btn-editar" onclick="editarConcepto('{{.NombreConcepto}}')">✏️</button>
-        <button class="btn-deshabilitar" onclick="deshabilitarConcepto('{{.NombreConcepto}}')">🚫</button>
-      </div>
+        <div class="concepto-acciones">
+            <button class="btn-editar" onclick="editarConcepto('{{.NombreConcepto}}')">✏️</button>
+            
+            {{if .Activo}}
+            <!-- Formulario para deshabilitar -->
+            <form method="POST" action="/conceptos/deshabilitar" class="form-accion">
+                <input type="hidden" name="nombreConcepto" value="{{.NombreConcepto}}">
+                <input type="hidden" name="tipo" value="{{$.Tipo}}">
+                <button type="submit" class="btn-deshabilitar" 
+                        onclick="return confirm('¿Estás seguro de que quieres deshabilitar este concepto?')">
+                    🚫
+                </button>
+            </form>
+            {{else}}
+            <!-- Formulario para habilitar -->
+            <form method="POST" action="/conceptos/habilitar" class="form-accion">
+                <input type="hidden" name="nombreConcepto" value="{{.NombreConcepto}}">
+                <input type="hidden" name="tipo" value="{{$.Tipo}}">
+                <button type="submit" class="btn-habilitar">
+                    ✅
+                </button>
+            </form>
+            {{end}}
+        </div>
     </div>
     {{else}}
     <div class="concepto-vacio">
-      <i class="fa-solid fa-inbox"></i>
-      <p>No hay conceptos {{if eq .Tipo "gasto"}}de gastos{{else}}de ingresos{{end}} aún</p>
+        <i class="fa-solid fa-inbox"></i>
+        <p>No hay conceptos {{if eq .Tipo "gasto"}}de gastos{{else}}de ingresos{{end}} aún</p>
     </div>
     {{end}}
-
     <!-- Botón "Nuevo" -->
     <div class="concepto nuevo" onclick="mostrarFormulario()">
       <i class="fa-solid fa-plus"></i>
@@ -54,7 +69,7 @@
   </div>
 
   <!-- Formulario lateral -->
-  <form method="POST" action="/conceptos/crear">
+  <form method="POST" action="/conceptos/crear" class="form-crear">
     <div class="sidebar-right" id="formConcepto">
       <h3 id="tituloForm">Crear Concepto</h3>
 
@@ -88,13 +103,14 @@
         <label>Ícono *</label>
         <div id="iconosGrid" class="iconos-grid">
           {{range .Iconos}}
-          <input type="radio" name="id_icono" id="icono_{{.ID}}"
-            value="{{.ID}}" class="icono-radio" required
-            {{if eq .ID $.FormData.IDIcono}}checked{{end}}>
-          <label for="icono_{{.ID}}" class="icono-label">
-            <i class="{{.Path}}"></i>
-            <span>{{.Nombre}}</span>
-          </label>
+          <div class="iconos-group">
+            <input type="radio" name="id_icono" id="icono_{{.ID}}"
+              value="{{.ID}}" class="icono-radio" required
+              {{if eq .ID $.FormData.IDIcono}}checked{{end}}>
+            <label for="icono_{{.ID}}" class="icono-label">
+              <i class="{{.Path}}"></i>
+            </label>
+          </div>
           {{end}}
         </div>
       </div>
@@ -134,9 +150,10 @@
         <select id="periodo_tipo" name="periodo_tipo" class="frecuencia">
           <option value="">Sin frecuencia</option>
           <option value="diario" {{if eq .FormData.PeriodoTipo "diario"}}selected{{end}}>Diario</option>
-          <option value="semanal" {{if eq .FormData.PeriodoTipo "semanal"}}selected{{end}}>Semanal</option>
+          <option value="quincenal" {{if eq .FormData.PeriodoTipo "quincenal"}}selected{{end}}>Quincenal</option>
           <option value="mensual" {{if eq .FormData.PeriodoTipo "mensual"}}selected{{end}}>Mensual</option>
         </select>
+        <input type="number" id="dia_desembolso_planejado" name="dia_desembolso_planejado" disabled placeholder=""/>
       </div>
 
       <div class="form-group2">
@@ -147,9 +164,10 @@
         <select id="limite_tipo" name="limite_tipo" class="frecuencia">
           <option value="">Sin frecuencia</option>
           <option value="diario" {{if eq .FormData.LimiteTipo "diario"}}selected{{end}}>Diario</option>
-          <option value="semanal" {{if eq .FormData.LimiteTipo "semanal"}}selected{{end}}>Semanal</option>
+          <option value="quincenal" {{if eq .FormData.LimiteTipo "quincenal"}}selected{{end}}>Quincenal</option>
           <option value="mensual" {{if eq .FormData.LimiteTipo "mensual"}}selected{{end}}>Mensual</option>
         </select>
+        <input type="number" id="dia_limite_tipo" name="dia_limite_tipo" disabled placeholder=""/>
       </div>
 
       <div class="actions">

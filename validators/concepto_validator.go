@@ -35,6 +35,7 @@ func (v *ConceptoValidator) Validate(r *http.Request) ValidationResult {
 // validateConceptoFields valida campos específicos de concepto
 func (v *ConceptoValidator) validateConceptoFields(r *http.Request, result *ValidationResult) {
 	// Validar tipo (gasto/ingreso)
+
 	tipo := strings.TrimSpace(r.FormValue("tipo"))
 	if tipo == "" {
 		result.Errors["tipo"] = "El tipo de concepto es requerido"
@@ -104,11 +105,40 @@ func (v *ConceptoValidator) validatePersonalizacion(r *http.Request, result *Val
 
 	// Período tipo para desembolso
 	periodoTipo := strings.TrimSpace(r.FormValue("periodo_tipo"))
-	if periodoTipo != "" && periodoTipo != "diario" && periodoTipo != "semanal" && periodoTipo != "mensual" {
-		result.Errors["periodo_tipo"] = "El tipo de período debe ser: diario, semanal o mensual"
+	if periodoTipo != "" && periodoTipo != "diario" && periodoTipo != "quincenal" && periodoTipo != "mensual" {
+		result.Errors["periodo_tipo"] = "El tipo de período debe ser: diario, quincenal o mensual"
 		result.Success = false
 	} else {
 		result.CleanData["periodo_tipo"] = periodoTipo
+	}
+	// Dia Periodo tipo para desembolso
+	diaDesembolsoStr := strings.TrimSpace(r.FormValue("dia_desembolso_planejado"))
+	if diaDesembolsoStr != "" {
+		diaDesembolso, err := strconv.ParseInt(diaDesembolsoStr, 10, 8)
+		if err != nil {
+			result.Errors["dia_desembolso_planejado"] = "El día debe ser un número válido (Desembolso planificado)."
+			result.Success = false
+		} else if diaDesembolso < 1 || diaDesembolso > 31 {
+			result.Errors["dia_desembolso_planejado"] = "El día debe estar en un rango de 1 - 31"
+			result.Success = false
+		} else {
+			// GUARDAR EL VALOR CONVERTIDO como int8
+			result.CleanData["dia_desembolso_planejado"] = int8(diaDesembolso)
+		}
+	} else {
+		// Si no hay valor, establecer nil para que no se guarde en BD
+		result.CleanData["dia_desembolso_planejado"] = nil
+	}
+
+	// Validación adicional: si período es mensual, requiere día
+	if periodoTipo == "mensual" && diaDesembolsoStr == "" {
+		result.Errors["dia_desembolso_planejado"] = "El día es requerido para período mensual"
+		result.Success = false
+	}
+
+	// Si período es quincenal, forzar día 15
+	if periodoTipo == "quincenal" {
+		result.CleanData["dia_desembolso_planejado"] = int8(15)
 	}
 
 	// Límite de monto
@@ -127,23 +157,41 @@ func (v *ConceptoValidator) validatePersonalizacion(r *http.Request, result *Val
 
 	// Límite tipo
 	limiteTipo := strings.TrimSpace(r.FormValue("limite_tipo"))
-	if limiteTipo != "" && limiteTipo != "diario" && limiteTipo != "semanal" && limiteTipo != "mensual" {
-		result.Errors["limite_tipo"] = "El tipo de límite debe ser: diario, semanal o mensual"
+	if limiteTipo != "" && limiteTipo != "diario" && limiteTipo != "quincenal" && limiteTipo != "mensual" {
+		result.Errors["limite_tipo"] = "El tipo de límite debe ser: diario, quincenal o mensual"
 		result.Success = false
 	} else {
 		result.CleanData["limite_tipo"] = limiteTipo
 	}
 
-	// Día del período (opcional, 1-31)
-	diaPeriodoStr := strings.TrimSpace(r.FormValue("dia_periodo_planificado"))
-	if diaPeriodoStr != "" {
-		diaPeriodo, err := strconv.Atoi(diaPeriodoStr)
-		if err != nil || diaPeriodo < 1 || diaPeriodo > 31 {
-			result.Errors["dia_periodo_planificado"] = "El día del período debe estar entre 1 y 31"
+	// Dia Periodo tipo para desembolso
+	diaLimiteStr := strings.TrimSpace(r.FormValue("dia_limite_tipo"))
+	if diaLimiteStr != "" {
+		diaLimite, err := strconv.ParseInt(diaLimiteStr, 10, 8)
+		if err != nil {
+			result.Errors["dia_limite_tipo"] = "El día debe ser un número válido (Establecer límite)."
+			result.Success = false
+		} else if diaLimite < 1 || diaLimite > 31 {
+			result.Errors["dia_limite_tipo"] = "El día debe estar en un rango de 1 - 31"
 			result.Success = false
 		} else {
-			result.CleanData["dia_periodo_planificado"] = diaPeriodo
+			// ✅ GUARDAR EL VALOR CONVERTIDO como int8
+			result.CleanData["dia_limite_tipo"] = int8(diaLimite)
 		}
+	} else {
+		// Si no hay valor, establecer nil para que no se guarde en BD
+		result.CleanData["dia_limite_tipo"] = nil
+	}
+
+	// Validación adicional: si límite tipo es mensual, requiere día
+	if limiteTipo == "mensual" && diaLimiteStr == "" {
+		result.Errors["dia_limite_tipo"] = "El día es requerido para límite mensual"
+		result.Success = false
+	}
+
+	// Si límite tipo es quincenal, forzar día 15
+	if limiteTipo == "quincenal" {
+		result.CleanData["dia_limite_tipo"] = int8(15)
 	}
 
 	// Notificación (booleano)

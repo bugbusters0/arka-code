@@ -58,11 +58,11 @@ func (c *MovimientoController) Index(w http.ResponseWriter, r *http.Request) {
 	var conceptos []entities.Concepto
 	if tipo == "resumen" {
 		// Para resumen, obtener ambos tipos
-		gastosConceptos, _ := models.ConceptoModelInstance.FindByFamilia(sessionData.CorreoFamilia, "gasto")
-		ingresosConceptos, _ := models.ConceptoModelInstance.FindByFamilia(sessionData.CorreoFamilia, "ingreso")
+		gastosConceptos, _ := models.MovimientoModelInstance.FindByFamilia(sessionData.CorreoFamilia, "gasto")
+		ingresosConceptos, _ := models.MovimientoModelInstance.FindByFamilia(sessionData.CorreoFamilia, "ingreso")
 		conceptos = append(gastosConceptos, ingresosConceptos...)
 	} else {
-		conceptos, err = models.ConceptoModelInstance.FindByFamilia(sessionData.CorreoFamilia, tipo)
+		conceptos, err = models.MovimientoModelInstance.FindByFamilia(sessionData.CorreoFamilia, tipo)
 		if err != nil {
 			log.Printf("❌ Error obteniendo conceptos: %v", err)
 			conceptos = []entities.Concepto{}

@@ -5,6 +5,7 @@ import (
 	"arka-code/entities"
 	"arka-code/utils"
 	"database/sql"
+	"log"
 )
 
 type FamiliaModel struct{}
@@ -83,4 +84,14 @@ func (m *FamiliaModel) CheckPasswordFamilia(correo, contrasena string) (bool, er
 
 	// Aquí necesitas una función para verificar la contraseña
 	return utils.CheckPassword(contrasena, hashedPassword), nil
+}
+func (m *FamiliaModel) Delete(correo string) error {
+	query := `DELETE FROM familia WHERE correo = ?`
+	_, err := database.DB.Exec(query, correo)
+	if err != nil {
+		log.Printf("❌ Error eliminando familia: %v", err)
+	} else {
+		log.Printf("✅ Familia eliminada: %s", correo)
+	}
+	return err
 }

@@ -37,20 +37,60 @@ func (m *ConceptoModel) Create(concepto *entities.Concepto) error {
 
 // FindByFamilia busca todos los conceptos de una familia por tipo
 func (m *ConceptoModel) FindByFamilia(correoFamilia string, tipo string) ([]entities.Concepto, error) {
-	// Convertir string a int8 para la base de datos
 	var tipoInt int8
 	if tipo == "ingreso" {
 		tipoInt = 1
 	} else {
-		tipoInt = 0 // gasto por defecto
+		tipoInt = 0
 	}
+
+	// ✅ CORREGIDO: JOIN con personalizacionconcepto para obtener el estado activo
+	query := `SELECT c.nombreConcepto, c.correoFamilia, c.tipo, c.icono, c.color, c.nombreUsuario, c.delete_at
+              FROM concepto c
+              LEFT JOIN personalizacionconcepto pc ON c.nombreConcepto = pc.nombreConcepto 
+                                                   AND c.correoFamilia = pc.correoFamilia 
+                                                   AND pc.nombreUsuario = c.nombreUsuario
+              WHERE c.correoFamilia = ? AND c.tipo = ? AND c.delete_at IS NULL
+              ORDER BY c.nombreConcepto`
+
+	rows, err := database.DB.Query(query, correoFamilia, tipoInt)
+	if err != nil {
+		log.Printf("❌ Error en FindByFamilia: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	conceptos := []entities.Concepto{}
+	for rows.Next() {
+		var concepto entities.Concepto
+		err := rows.Scan(
+			&concepto.NombreConcepto,
+			&concepto.CorreoFamilia,
+			&concepto.Tipo,
+			&concepto.Icono,
+			&concepto.Color,
+			&concepto.NombreUsuario,
+			&concepto.DeleteAt,
+		)
+		if err != nil {
+			log.Printf("❌ Error escaneando concepto: %v", err)
+			return nil, err
+		}
+		conceptos = append(conceptos, concepto)
+	}
+
+	log.Printf("📋 Conceptos encontrados: %d (tipo: %s)", len(conceptos), tipo)
+	return conceptos, nil
+}
+func (m *ConceptoModel) FindAllByFamilia(correoFamilia string) ([]entities.Concepto, error) {
+	// Convertir string a int8 para la base de datos
 
 	query := `SELECT nombreConcepto, correoFamilia, tipo, icono, color, nombreUsuario, delete_at
               FROM concepto 
-              WHERE correoFamilia = ? AND tipo = ? AND delete_at IS NULL
+              WHERE correoFamilia = ? AND delete_at IS NULL
               ORDER BY nombreConcepto`
 
-	rows, err := database.DB.Query(query, correoFamilia, tipoInt)
+	rows, err := database.DB.Query(query, correoFamilia)
 	if err != nil {
 		return nil, err
 	}
@@ -119,9 +159,9 @@ func (m *ConceptoModel) Exists(nombreConcepto, correoFamilia string) (bool, erro
 func (m *ConceptoModel) CreatePersonalizacion(personalizacion map[string]interface{}) error {
 	query := `INSERT INTO personalizacionconcepto 
               (limiteGasto, activo, montoPlanificado, tipoPeriodoPlanificado, 
-               tipoPeriodoLimite, diaPeriodoPlanificado, notificacion,
+               tipoPeriodoLimite, diaPeriodoPlanificado, diaPeriodoLimite, notificacion,
                nombreUsuario, nombreConcepto, correoFamilia)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 	result, err := database.DB.Exec(query,
 		personalizacion["limiteGasto"],
@@ -130,6 +170,7 @@ func (m *ConceptoModel) CreatePersonalizacion(personalizacion map[string]interfa
 		personalizacion["tipoPeriodoPlanificado"],
 		personalizacion["tipoPeriodoLimite"],
 		personalizacion["diaPeriodoPlanificado"],
+		personalizacion["diaPeriodoLimite"],
 		personalizacion["notificacion"],
 		personalizacion["nombreUsuario"],
 		personalizacion["nombreConcepto"],
@@ -207,6 +248,14 @@ func (m *ConceptoModel) CreatePersonalizacionesForAllUsuarios(nombreConcepto, co
 		if desembolso, ok := datosPersonalizacion["desembolso_planejado"].(float64); ok && desembolso > 0 {
 			montoPlanificado = desembolso
 		}
+		var diaDesembolsoPlanejado interface{} = nil
+		if diaDesembolso, ok := datosPersonalizacion["dia_desembolso_planejado"].(int8); ok && diaDesembolso > 0 {
+			diaDesembolsoPlanejado = diaDesembolso
+		}
+		var diaPeriodoLimite interface{} = nil
+		if diaLimiteTipo, ok := datosPersonalizacion["dia_limite_tipo"].(int8); ok && diaLimiteTipo > 0 {
+			diaPeriodoLimite = diaLimiteTipo
+		}
 
 		var tipoPeriodoPlanificado interface{} = nil
 		if periodo, ok := datosPersonalizacion["periodo_tipo"].(string); ok && periodo != "" {
@@ -224,8 +273,9 @@ func (m *ConceptoModel) CreatePersonalizacionesForAllUsuarios(nombreConcepto, co
 			"montoPlanificado":       montoPlanificado,
 			"tipoPeriodoPlanificado": tipoPeriodoPlanificado,
 			"tipoPeriodoLimite":      tipoPeriodoLimite,
-			"diaPeriodoPlanificado":  nil,   // Por ahora siempre nil
-			"notificacion":           false, // Por defecto false
+			"diaPeriodoPlanificado":  diaDesembolsoPlanejado, // Por ahora siempre nil
+			"diaPeriodoLimite":       diaPeriodoLimite,       // Por ahora siempre nil
+			"notificacion":           false,                  // Por defecto false
 			"nombreUsuario":          usuario.NombreUsuario,
 			"nombreConcepto":         nombreConcepto,
 			"correoFamilia":          correoFamilia,
@@ -306,3 +356,151 @@ func (m *ConceptoModel) GetCountByTipo(correoFamilia string) (int, int, error) {
 
 	return gastos, ingresos, nil
 }
+
+// FindByFamiliaActivos busca conceptos activos para el usuario actual
+func (m *ConceptoModel) FindByFamiliaActivos(correoFamilia, nombreUsuario, tipo string) ([]entities.Concepto, error) {
+	var tipoInt int8
+	if tipo == "ingreso" {
+		tipoInt = 1
+	} else {
+		tipoInt = 0
+	}
+
+	query := `SELECT c.nombreConcepto, c.correoFamilia, c.tipo, c.icono, c.color, c.nombreUsuario, c.delete_at
+              FROM concepto c
+              LEFT JOIN personalizacionconcepto pc ON c.nombreConcepto = pc.nombreConcepto 
+                                                   AND c.correoFamilia = pc.correoFamilia 
+                                                   AND pc.nombreUsuario = ?
+              WHERE c.correoFamilia = ? AND c.tipo = ? AND c.delete_at IS NULL
+              ORDER BY c.nombreConcepto`
+
+	rows, err := database.DB.Query(query, nombreUsuario, correoFamilia, tipoInt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	conceptos := []entities.Concepto{}
+	for rows.Next() {
+		var concepto entities.Concepto
+		err := rows.Scan(
+			&concepto.NombreConcepto,
+			&concepto.CorreoFamilia,
+			&concepto.Tipo,
+			&concepto.Icono,
+			&concepto.Color,
+			&concepto.NombreUsuario,
+			&concepto.DeleteAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		conceptos = append(conceptos, concepto)
+	}
+
+	return conceptos, nil
+}
+
+// UpdateActualizar concepto (solo para el usuario que lo creó)
+func (m *ConceptoModel) Update(concepto *entities.Concepto) error {
+	query := `UPDATE concepto 
+	          SET icono = ?, color = ?, nombreUsuario = ?
+	          WHERE nombreConcepto = ? AND correoFamilia = ? AND nombreUsuario = ?`
+
+	result, err := database.DB.Exec(query,
+		concepto.Icono,
+		concepto.Color,
+		concepto.NombreUsuario,
+		concepto.NombreConcepto,
+		concepto.CorreoFamilia,
+		concepto.NombreUsuario)
+
+	if err != nil {
+		log.Printf("❌ Error actualizando concepto: %v", err)
+		return err
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	log.Printf("✅ Concepto actualizado - Filas afectadas: %d", rowsAffected)
+	return nil
+}
+
+// ToggleActivo cambia el estado activo/inactivo para un usuario específico
+func (m *ConceptoModel) ToggleActivo(nombreConcepto, correoFamilia, nombreUsuario string) error {
+	// Primero verificar si existe la personalización
+	queryCheck := `SELECT idPersonalizacion FROM personalizacionconcepto 
+	               WHERE nombreConcepto = ? AND correoFamilia = ? AND nombreUsuario = ?`
+
+	var idPersonalizacion int
+	err := database.DB.QueryRow(queryCheck, nombreConcepto, correoFamilia, nombreUsuario).Scan(&idPersonalizacion)
+
+	if err == sql.ErrNoRows {
+		// No existe personalización, crear una con activo = false
+		queryInsert := `INSERT INTO personalizacionconcepto 
+		               (limiteGasto, activo, montoPlanificado, tipoPeriodoPlanificado, 
+		                tipoPeriodoLimite, diaPeriodoPlanificado, notificacion,
+		                nombreUsuario, nombreConcepto, correoFamilia)
+		               VALUES (NULL, false, NULL, NULL, NULL, NULL, false, ?, ?, ?)`
+
+		_, err = database.DB.Exec(queryInsert, nombreUsuario, nombreConcepto, correoFamilia)
+		if err != nil {
+			return err
+		}
+		log.Printf("✅ Personalización creada como inactiva para usuario %s", nombreUsuario)
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	// Ya existe personalización, cambiar el estado activo
+	queryUpdate := `UPDATE personalizacionconcepto 
+	               SET activo = NOT activo 
+	               WHERE nombreConcepto = ? AND correoFamilia = ? AND nombreUsuario = ?`
+
+	result, err := database.DB.Exec(queryUpdate, nombreConcepto, correoFamilia, nombreUsuario)
+	if err != nil {
+		log.Printf("❌ Error cambiando estado activo: %v", err)
+		return err
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	log.Printf("✅ Estado activo cambiado - Filas afectadas: %d", rowsAffected)
+	return nil
+}
+
+// GetEstadoActivo obtiene el estado activo de un concepto para un usuario
+func (m *ConceptoModel) GetEstadoActivo(nombreConcepto, correoFamilia, nombreUsuario string) (bool, error) {
+	query := `SELECT COALESCE(activo, true) as activo
+	          FROM personalizacionconcepto 
+	          WHERE nombreConcepto = ? AND correoFamilia = ? AND nombreUsuario = ?`
+
+	var activo bool
+	err := database.DB.QueryRow(query, nombreConcepto, correoFamilia, nombreUsuario).Scan(&activo)
+
+	if err == sql.ErrNoRows {
+		// Si no existe personalización, el concepto está activo por defecto
+		return true, nil
+	}
+
+	return activo, err
+}
+
+// ActualizarNombreEnPersonalizaciones actualiza el nombre en las personalizaciones
+func (m *ConceptoModel) ActualizarNombreEnPersonalizaciones(nombreViejo, nombreNuevo, correoFamilia string) error {
+	query := `UPDATE personalizacionconcepto 
+	          SET nombreConcepto = ?
+	          WHERE nombreConcepto = ? AND correoFamilia = ?`
+
+	result, err := database.DB.Exec(query, nombreNuevo, nombreViejo, correoFamilia)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	log.Printf("✅ Nombre actualizado en personalizaciones - Filas afectadas: %d", rowsAffected)
+	return nil
+}
+
+// Habilitar reactiva un concepto para todos los usuarios de la familia
+
+// ToggleActivoGlobal cambia el estado activo del concepto para toda la familia

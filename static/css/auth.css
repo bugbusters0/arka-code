@@ -2,7 +2,6 @@ body {
   display: flex;
   justify-content: center;   /* centra horizontalmente */
   align-items: center;       /* centra verticalmente */
-  height: 100vh;             /* ocupa toda la altura de la ventana */
   margin: 0;
   background-color: #f4f4f4; 
   font-family: Arial, sans-serif;

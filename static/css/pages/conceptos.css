@@ -1,7 +1,9 @@
  .conceptos {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     gap: 10px;
+    height: 100%;
+   flex:1;
   }
 
   .concepto {
@@ -101,3 +103,95 @@
     padding: 10px;
     margin-bottom: 15px;
   }
+
+  .iconos-grid{
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap:1rem;
+  }
+  .iconos-group{
+    display: flex;
+    border-radius: 0.5rem;
+    flex-direction: column-reverse;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    box-shadow:0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 0.5rem;
+    
+  }
+  .icono-label, .icono-radio{ 
+    font-size: 20px;
+    cursor: pointer;
+   
+  }
+
+  .color1{
+    border-width: 2px;
+    border-color: transparent;
+  }
+
+  .form-crear{
+    flex:1;
+  }
+  
+  /* deshabiltiar */
+  .form-accion {
+    display: inline;
+    margin: 0;
+    padding: 0;
+}
+
+.btn-deshabilitar, .btn-habilitar {
+    background: none;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1.1em;
+    transition: all 0.3s ease;
+}
+
+.btn-deshabilitar {
+    color: #dc3545;
+}
+
+.btn-deshabilitar:hover {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-habilitar {
+    color: #28a745;
+}
+
+.btn-habilitar:hover {
+    background: #28a745;
+    color: white;
+}
+
+.concepto-acciones {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.concepto-inactivo {
+    opacity: 0.6;
+    background-color: #f8f9fa;
+    border: 1px dashed #dee2e6;
+}
+
+.concepto-inactivo .concepto-nombre {
+    color: #6c757d;
+}
+
+.badge-inactivo {
+    background: #6c757d;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.7em;
+    margin-left: 8px;
+}

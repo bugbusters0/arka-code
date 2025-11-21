@@ -184,6 +184,50 @@ func (c *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 		utils.RenderTemplate(w, "auth", "auth/registro", data)
 		return
 	}
+	existingUser, err := models.UserModelInstance.FindByNombreUsuario(nombreUsuario)
+	if err != nil {
+		data := map[string]interface{}{
+			"Title":            "Registrarse",
+			"ValidationErrors": map[string]string{"general": "Error al verificar nomrbe de usuario"},
+			"FormData": map[string]string{
+				"email":         email,
+				"adminNombre":   adminNombre,
+				"telefono":      telefono,
+				"nombreUsuario": nombreUsuario,
+			},
+		}
+		utils.RenderTemplate(w, "auth", "auth/registro", data)
+		return
+	}
+	if existingUser != nil {
+		data := map[string]interface{}{
+			"Title":            "Registrarse",
+			"ValidationErrors": map[string]string{"general": "El nombre de usuario ya está en uso"},
+			"FormData": map[string]string{
+				"email":         email,
+				"adminNombre":   adminNombre,
+				"telefono":      telefono,
+				"nombreUsuario": nombreUsuario,
+			},
+		}
+		utils.RenderTemplate(w, "auth", "auth/registro", data)
+		return
+	}
+	memberErrors := c.verificarMiembrosAntesDeCrear(r)
+	if len(memberErrors) > 0 {
+		data := map[string]interface{}{
+			"Title":            "Registrarse",
+			"ValidationErrors": map[string]string{"general": "Error el crear miembros"},
+			"FormData": map[string]string{
+				"email":         email,
+				"adminNombre":   adminNombre,
+				"telefono":      telefono,
+				"nombreUsuario": nombreUsuario,
+			},
+		}
+		utils.RenderTemplate(w, "auth", "auth/registro", data)
+		return
+	}
 
 	// Hash de la password de la familia
 	hashedPassword, err := utils.HashPassword(contrasena)
@@ -226,6 +270,7 @@ func (c *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 	// Hash de la contraseña personal del admin
 	hashedContraPersonal, err := utils.HashPassword(contraPersonal)
 	if err != nil {
+		models.FamiliaModelInstance.Delete(email)
 		data := map[string]interface{}{
 			"Title":            "Registrarse",
 			"ValidationErrors": map[string]string{"general": "Error al procesar contraseña personal"},
@@ -250,6 +295,8 @@ func (c *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 
 	err = models.UserModelInstance.Create(adminUser)
 	if err != nil {
+
+		models.FamiliaModelInstance.Delete(email)
 		data := map[string]interface{}{
 			"Title":            "Registrarse",
 			"ValidationErrors": map[string]string{"general": "Error al crear el administrador: " + err.Error()},
@@ -266,6 +313,8 @@ func (c *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 	// NUEVO: Procesar miembros adicionales
 	membersCreated, memberErrors := c.processAdditionalMembers(r, email)
 	if len(memberErrors) > 0 {
+		models.UserModelInstance.Delete(nombreUsuario) // Eliminar admin
+		models.FamiliaModelInstance.Delete(email)      // Eliminar familia
 		// Si hay errores al crear miembros, mostrar mensaje pero no fallar el registro completo
 		data := map[string]interface{}{
 			"Title":            "Registrarse",
@@ -284,6 +333,39 @@ func (c *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 		email, nombreUsuario, membersCreated)
 
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
+}
+
+func (c *AuthController) verificarMiembrosAntesDeCrear(r *http.Request) []string {
+	var errors []string
+	memberUsernames := r.Form["memberUsername[]"]
+
+	for i, username := range memberUsernames {
+		username = strings.TrimSpace(username)
+		if username == "" {
+			continue // Saltar vacíos
+		}
+
+		// Verificar si el usuario ya existe
+		exists, err := models.UserModelInstance.Exists(username)
+		if err != nil {
+			errors = append(errors, "Error verificando usuario: "+username)
+			continue
+		}
+		if exists {
+			errors = append(errors, "El usuario ya existe: "+username)
+			continue
+		}
+
+		// Verificar duplicados en el mismo formulario
+		for j, otherUsername := range memberUsernames {
+			if i != j && username == strings.TrimSpace(otherUsername) {
+				errors = append(errors, "Usuario duplicado: "+username)
+				break
+			}
+		}
+	}
+
+	return errors
 }
 
 // NUEVA FUNCIÓN: Procesar miembros adicionales
