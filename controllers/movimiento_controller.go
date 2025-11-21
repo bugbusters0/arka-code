@@ -75,7 +75,7 @@ func (c *MovimientoController) Index(w http.ResponseWriter, r *http.Request) {
 
 	if tipo == "resumen" {
 		// Obtener todos los movimientos del día
-		movimientos, err = models.MovimientoModelInstance.FindByFamiliaAndDate(sessionData.CorreoFamilia, fecha)
+		movimientos, err = models.MovimientoModelInstance.FindByFamiliaAndDate(sessionData.NombreUsuario, fecha)
 		if err != nil {
 			log.Printf("❌ Error obteniendo movimientos: %v", err)
 			movimientos = []entities.Movimiento{}

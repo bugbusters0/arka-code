@@ -92,7 +92,7 @@ func (m *MovimientoModel) FindByFamilia(correoFamilia string, tipo string) ([]en
 }
 
 // FindByFamiliaAndDate busca movimientos de una familia en una fecha específica
-func (m *MovimientoModel) FindByFamiliaAndDate(correoFamilia string, fecha time.Time) ([]entities.Movimiento, error) {
+func (m *MovimientoModel) FindByFamiliaAndDate(nombreUsuario string, fecha time.Time) ([]entities.Movimiento, error) {
 	query := `SELECT m.idMovimiento, m.fecha, m.monto, m.descripcion, m.nombreUsuario, 
        m.nombreConcepto, m.correoFamilia, c.tipo
 				FROM movimiento m
@@ -101,14 +101,14 @@ func (m *MovimientoModel) FindByFamiliaAndDate(correoFamilia string, fecha time.
 				INNER JOIN personalizacionconcepto pc ON m.nombreConcepto = pc.nombreConcepto 
 																							AND m.correoFamilia = pc.correoFamilia 
 																							AND m.nombreUsuario = pc.nombreUsuario
-				WHERE m.correoFamilia = ? 
+				WHERE m.nombreUsuario = ? 
 					AND DATE(m.fecha) = DATE(?) 
 					AND m.delete_at IS NULL
 					AND pc.activo = 1
 					AND pc.delete_at IS NULL
 				ORDER BY m.fecha DESC`
 
-	rows, err := database.DB.Query(query, correoFamilia, fecha)
+	rows, err := database.DB.Query(query, nombreUsuario, fecha)
 	if err != nil {
 		log.Printf("❌ Error en consulta FindByFamiliaAndDate: %v", err)
 		return nil, err

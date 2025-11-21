@@ -77,8 +77,9 @@
 
     /* Main layout */
     .main_mov {
-      display: grid;
-      grid-template-columns: 420px 1fr;
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
       gap: 18px;
     }
 
