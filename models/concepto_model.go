@@ -12,7 +12,16 @@ type ConceptoModel struct{}
 
 var ConceptoModelInstance = &ConceptoModel{}
 
-// Create crea un nuevo concepto
+// Create crea un nuevo concepto en la base de datos
+// Parámetros:
+// - concepto: Estructura con los datos del concepto a crear
+// Retorno: Error si la creación falla
+// Flujo:
+// - Inserta nuevo registro en tabla concepto
+// - Campos requeridos: nombreConcepto, correoFamilia, tipo, nombreUsuario
+// - Campos opcionales: icono, color
+// - Registra número de filas afectadas para verificación
+// Uso: Creación de nuevos conceptos de gastos/ingresos
 func (m *ConceptoModel) Create(concepto *entities.Concepto) error {
 	query := `INSERT INTO concepto (nombreConcepto, correoFamilia, tipo, icono, color, nombreUsuario)
 	          VALUES (?, ?, ?, ?, ?, ?)`
@@ -35,7 +44,17 @@ func (m *ConceptoModel) Create(concepto *entities.Concepto) error {
 	return nil
 }
 
-// FindByFamilia busca todos los conceptos de una familia por tipo
+// FindByFamilia busca todos los conceptos de una familia filtrados por tipo
+// Parámetros:
+// - correoFamilia: Identificador de la familia
+// - tipo: Tipo de concepto ("gasto" o "ingreso")
+// Retorno: Lista de conceptos con su estado activo/inactivo
+// Flujo:
+// - Convierte tipo string a int8 (0=gasto, 1=ingreso)
+// - Realiza LEFT JOIN con personalizacionconcepto para obtener estado activo
+// - Usa COALESCE para establecer activo=true por defecto si no hay personalización
+// - Excluye conceptos eliminados (soft delete)
+// Uso: Listado de conceptos para selección en movimientos
 func (m *ConceptoModel) FindByFamilia(correoFamilia string, tipo string) ([]entities.Concepto, error) {
 	var tipoInt int8
 	if tipo == "ingreso" {
@@ -85,6 +104,15 @@ func (m *ConceptoModel) FindByFamilia(correoFamilia string, tipo string) ([]enti
 	return conceptos, nil
 }
 
+// UpdateIconoColor actualiza solo el ícono y color de un concepto existente
+// Parámetros:
+// - concepto: Estructura con los nuevos valores de ícono y color
+// Retorno: Error si la actualización falla
+// Flujo:
+// - Actualiza únicamente campos icono y color
+// - Filtra por nombreConcepto, correoFamilia y excluye eliminados
+// - No permite cambiar nombre o tipo del concepto
+// Uso: Personalización visual de conceptos existentes
 func (m *ConceptoModel) UpdateIconoColor(concepto *entities.Concepto) error {
 	query := `UPDATE concepto 
 	          SET icono = ?, color = ?
@@ -106,9 +134,16 @@ func (m *ConceptoModel) UpdateIconoColor(concepto *entities.Concepto) error {
 	return nil
 }
 
+// FindAllByFamilia busca todos los conceptos de una familia sin filtrar por tipo
+// Parámetros:
+// - correoFamilia: Identificador de la familia
+// Retorno: Lista completa de conceptos de la familia
+// Flujo:
+// - Consulta todos los conceptos no eliminados de la familia
+// - No incluye información de personalizaciones
+// - Ordena alfabéticamente por nombre
+// Uso: Reportes generales, estadísticas familiares
 func (m *ConceptoModel) FindAllByFamilia(correoFamilia string) ([]entities.Concepto, error) {
-	// Convertir string a int8 para la base de datos
-
 	query := `SELECT nombreConcepto, correoFamilia, tipo, icono, color, nombreUsuario, delete_at
               FROM concepto 
               WHERE correoFamilia = ? AND delete_at IS NULL
@@ -141,7 +176,16 @@ func (m *ConceptoModel) FindAllByFamilia(correoFamilia string) ([]entities.Conce
 	return conceptos, nil
 }
 
-// FindByNombre busca un concepto por su nombre y familia
+// FindByNombre busca un concepto específico por nombre y familia
+// Parámetros:
+// - nombreConcepto: Nombre del concepto a buscar
+// - correoFamilia: Familia a la que pertenece el concepto
+// Retorno: Puntero al concepto encontrado o nil si no existe
+// Flujo:
+// - Busca concepto exacto por nombre y familia
+// - Excluye conceptos eliminados (soft delete)
+// - Retorna sql.ErrNoRows si no se encuentra
+// Uso: Verificación de existencia, operaciones de edición
 func (m *ConceptoModel) FindByNombre(nombreConcepto, correoFamilia string) (*entities.Concepto, error) {
 	query := `SELECT nombreConcepto, correoFamilia, tipo, icono, color, nombreUsuario, delete_at
 	          FROM concepto 
@@ -165,7 +209,15 @@ func (m *ConceptoModel) FindByNombre(nombreConcepto, correoFamilia string) (*ent
 	return concepto, err
 }
 
-// Exists verifica si un concepto ya existe para una familia
+// Exists verifica si un concepto ya existe para una familia específica
+// Parámetros:
+// - nombreConcepto: Nombre del concepto a verificar
+// - correoFamilia: Familia donde buscar
+// Retorno: true si existe, false si no existe, error en caso de fallo
+// Flujo:
+// - Cuenta registros con nombre y familia coincidentes
+// - Excluye conceptos eliminados (soft delete)
+// Uso: Validación antes de crear nuevos conceptos, evitar duplicados
 func (m *ConceptoModel) Exists(nombreConcepto, correoFamilia string) (bool, error) {
 	query := `SELECT COUNT(*) FROM concepto 
 	          WHERE nombreConcepto = ? AND correoFamilia = ? AND delete_at IS NULL`
@@ -179,7 +231,15 @@ func (m *ConceptoModel) Exists(nombreConcepto, correoFamilia string) (bool, erro
 	return count > 0, nil
 }
 
-// CreatePersonalizacion crea una personalización para un usuario y concepto
+// CreatePersonalizacion crea una configuración personalizada para un usuario y concepto
+// Parámetros:
+// - personalizacion: Mapa con todos los campos de personalización
+// Retorno: Error si la creación falla
+// Flujo:
+// - Inserta registro en tabla personalizacionconcepto
+// - Campos incluyen límites, montos planificados, frecuencias y notificaciones
+// - Registra datos para debugging en caso de error
+// Uso: Configuración individual de conceptos por usuario
 func (m *ConceptoModel) CreatePersonalizacion(personalizacion map[string]interface{}) error {
 	query := `INSERT INTO personalizacionconcepto 
               (limiteGasto, activo, montoPlanificado, tipoPeriodoPlanificado, 
@@ -213,7 +273,15 @@ func (m *ConceptoModel) CreatePersonalizacion(personalizacion map[string]interfa
 	return nil
 }
 
-// GetUsuariosByFamilia obtiene todos los usuarios de una familia
+// GetUsuariosByFamilia obtiene todos los usuarios activos de una familia
+// Parámetros:
+// - correoFamilia: Identificador de la familia
+// Retorno: Lista de usuarios de la familia
+// Flujo:
+// - Consulta tabla usuario filtrada por familia
+// - Excluye usuarios eliminados (soft delete)
+// - Incluye todos los campos de usuario excepto contraseña
+// Uso: Operaciones masivas sobre usuarios familiares
 func (m *ConceptoModel) GetUsuariosByFamilia(correoFamilia string) ([]entities.Usuario, error) {
 	query := `SELECT nombreUsuario, rol, contraseñaPersonal, nombrePersonal, correoFamilia, delete_at
 	          FROM usuario 
@@ -246,7 +314,18 @@ func (m *ConceptoModel) GetUsuariosByFamilia(correoFamilia string) ([]entities.U
 	return usuarios, nil
 }
 
-// CreatePersonalizacionesForAllUsuarios crea personalizaciones para todos los usuarios de la familia
+// CreatePersonalizacionesForAllUsuarios crea personalizaciones para todos los usuarios de una familia
+// Parámetros:
+// - nombreConcepto: Concepto a personalizar
+// - correoFamilia: Familia de los usuarios
+// - datosPersonalizacion: Configuración base para las personalizaciones
+// Retorno: Error si alguna personalización falla
+// Flujo:
+// 1. Obtiene todos los usuarios de la familia
+// 2. Para cada usuario, crea personalización con datos proporcionados
+// 3. Maneja valores nulos correctamente
+// 4. Registra estadísticas de éxito/error
+// Uso: Configuración masiva al crear nuevos conceptos
 func (m *ConceptoModel) CreatePersonalizacionesForAllUsuarios(nombreConcepto, correoFamilia string, datosPersonalizacion map[string]interface{}) error {
 	// Obtener todos los usuarios de la familia
 	usuarios, err := m.GetUsuariosByFamilia(correoFamilia)
@@ -324,7 +403,16 @@ func (m *ConceptoModel) CreatePersonalizacionesForAllUsuarios(nombreConcepto, co
 	return nil
 }
 
-// GetPersonalizacionesByConcepto obtiene todas las personalizaciones de un concepto
+// GetPersonalizacionesByConcepto obtiene todas las personalizaciones de un concepto específico
+// Parámetros:
+// - nombreConcepto: Concepto del cual obtener personalizaciones
+// - correoFamilia: Familia del concepto
+// Retorno: Lista de mapas con datos de personalización
+// Flujo:
+// - Consulta tabla personalizacionconcepto filtrada por concepto y familia
+// - Maneja campos nulos con sql.Null types
+// - Excluye personalizaciones eliminadas
+// Uso: Reportes de configuración, auditoría de conceptos
 func (m *ConceptoModel) GetPersonalizacionesByConcepto(nombreConcepto, correoFamilia string) ([]map[string]interface{}, error) {
 	query := `SELECT idPersonalizacion, nombreUsuario, limiteGasto, montoPlanificado, 
                      tipoPeriodoPlanificado, tipoPeriodoLimite
@@ -364,7 +452,14 @@ func (m *ConceptoModel) GetPersonalizacionesByConcepto(nombreConcepto, correoFam
 	return personalizaciones, nil
 }
 
-// GetCountByTipo obtiene la cantidad de conceptos por tipo
+// GetCountByTipo cuenta la cantidad de conceptos por tipo en una familia
+// Parámetros:
+// - correoFamilia: Familia a contar
+// Retorno: Cantidad de gastos, cantidad de ingresos, error
+// Flujo:
+// - Usa conditional aggregation con SUM y CASE
+// - Cuenta conceptos no eliminados
+// Uso: Estadísticas familiares, dashboards administrativos
 func (m *ConceptoModel) GetCountByTipo(correoFamilia string) (int, int, error) {
 	query := `SELECT 
 	          SUM(CASE WHEN tipo = 0 THEN 1 ELSE 0 END) as gastos,
@@ -381,7 +476,17 @@ func (m *ConceptoModel) GetCountByTipo(correoFamilia string) (int, int, error) {
 	return gastos, ingresos, nil
 }
 
-// FindByFamiliaActivos busca conceptos activos para el usuario actual
+// FindByFamiliaActivos busca conceptos activos para un usuario específico
+// Parámetros:
+// - correoFamilia: Familia de los conceptos
+// - nombreUsuario: Usuario para verificar personalizaciones
+// - tipo: Tipo de concepto ("gasto" o "ingreso")
+// Retorno: Lista de conceptos con estado activo para el usuario
+// Flujo:
+// - LEFT JOIN con personalizacionconcepto para usuario específico
+// - Usa COALESCE para establecer activo=true si no hay personalización
+// - Filtra por tipo y excluye eliminados
+// Uso: Listado de conceptos disponibles para un usuario específico
 func (m *ConceptoModel) FindByFamiliaActivos(correoFamilia, nombreUsuario, tipo string) ([]entities.Concepto, error) {
 	var tipoInt int8
 	if tipo == "ingreso" {
@@ -427,7 +532,15 @@ func (m *ConceptoModel) FindByFamiliaActivos(correoFamilia, nombreUsuario, tipo 
 	return conceptos, nil
 }
 
-// UpdateActualizar concepto (solo para el usuario que lo creó)
+// Update actualiza un concepto existente (solo para el usuario creador)
+// Parámetros:
+// - concepto: Estructura con los datos actualizados
+// Retorno: Error si la actualización falla
+// Flujo:
+// - Actualiza ícono, color y nombreUsuario
+// - Solo permite actualizar conceptos del usuario creador
+// - Filtra por nombreConcepto, correoFamilia y nombreUsuario
+// Uso: Edición de conceptos propios
 func (m *ConceptoModel) Update(concepto *entities.Concepto) error {
 	query := `UPDATE concepto 
 	          SET icono = ?, color = ?, nombreUsuario = ?
@@ -451,7 +564,17 @@ func (m *ConceptoModel) Update(concepto *entities.Concepto) error {
 	return nil
 }
 
-// ToggleActivo cambia el estado activo/inactivo para un usuario específico
+// ToggleActivo cambia el estado activo/inactivo de un concepto para un usuario específico
+// Parámetros:
+// - nombreConcepto: Concepto a modificar
+// - correoFamilia: Familia del concepto
+// - nombreUsuario: Usuario afectado
+// Retorno: Error si la operación falla
+// Flujo:
+// 1. Verifica si existe personalización para el usuario
+// 2. Si no existe, crea una con activo=false
+// 3. Si existe, cambia el estado activo (NOT activo)
+// Uso: Habilitar/deshabilitar conceptos individualmente por usuario
 func (m *ConceptoModel) ToggleActivo(nombreConcepto, correoFamilia, nombreUsuario string) error {
 	// Primero verificar si existe la personalización
 	queryCheck := `SELECT idPersonalizacion FROM personalizacionconcepto 
@@ -494,7 +617,17 @@ func (m *ConceptoModel) ToggleActivo(nombreConcepto, correoFamilia, nombreUsuari
 	return nil
 }
 
-// GetEstadoActivo obtiene el estado activo de un concepto para un usuario
+// GetEstadoActivo obtiene el estado activo de un concepto para un usuario específico
+// Parámetros:
+// - nombreConcepto: Concepto a consultar
+// - correoFamilia: Familia del concepto
+// - nombreUsuario: Usuario a consultar
+// Retorno: Estado activo (true/false), error si existe
+// Flujo:
+// - Consulta estado activo en personalizacionconcepto
+// - Si no existe personalización, retorna true por defecto
+// - Usa COALESCE para manejar valores nulos
+// Uso: Verificar disponibilidad de conceptos para usuarios
 func (m *ConceptoModel) GetEstadoActivo(nombreConcepto, correoFamilia, nombreUsuario string) (bool, error) {
 	query := `SELECT COALESCE(activo, true) as activo
 	          FROM personalizacionconcepto 
@@ -511,7 +644,16 @@ func (m *ConceptoModel) GetEstadoActivo(nombreConcepto, correoFamilia, nombreUsu
 	return activo, err
 }
 
-// ActualizarNombreEnPersonalizaciones actualiza el nombre en las personalizaciones
+// ActualizarNombreEnPersonalizaciones actualiza el nombre de concepto en todas las personalizaciones
+// Parámetros:
+// - nombreViejo: Nombre actual del concepto
+// - nombreNuevo: Nuevo nombre del concepto
+// - correoFamilia: Familia del concepto
+// Retorno: Error si la actualización falla
+// Flujo:
+// - Actualiza campo nombreConcepto en tabla personalizacionconcepto
+// - Mantiene la relación entre personalizaciones y el concepto renombrado
+// Uso: Sincronización al renombrar conceptos
 func (m *ConceptoModel) ActualizarNombreEnPersonalizaciones(nombreViejo, nombreNuevo, correoFamilia string) error {
 	query := `UPDATE personalizacionconcepto 
 	          SET nombreConcepto = ?
@@ -526,6 +668,18 @@ func (m *ConceptoModel) ActualizarNombreEnPersonalizaciones(nombreViejo, nombreN
 	log.Printf("✅ Nombre actualizado en personalizaciones - Filas afectadas: %d", rowsAffected)
 	return nil
 }
+
+// Deshabilitar desactiva un concepto y todas sus personalizaciones para toda la familia
+// Parámetros:
+// - nombreConcepto: Concepto a deshabilitar
+// - correoFamilia: Familia del concepto
+// Retorno: Error si la operación falla
+// Flujo:
+// 1. Inicia transacción para consistencia
+// 2. Desactiva concepto en tabla concepto (activo = 0)
+// 3. Desactiva todas las personalizaciones del concepto
+// 4. Confirma transacción
+// Uso: Deshabilitación completa de conceptos a nivel familiar
 
 func (m *ConceptoModel) Deshabilitar(nombreConcepto, correoFamilia string) error {
 	// Iniciar transacción para asegurar consistencia
@@ -567,7 +721,18 @@ func (m *ConceptoModel) Deshabilitar(nombreConcepto, correoFamilia string) error
 	return nil
 }
 
-// Habilitar reactiva un concepto para todos los usuarios de la familia
+// Habilitar reactiva un concepto y todas sus personalizaciones para toda la familia
+// Parámetros:
+// - nombreConcepto: Concepto a habilitar
+// - correoFamilia: Familia del concepto
+// Retorno: Error si la operación falla
+// Flujo:
+// 1. Inicia transacción para consistencia
+// 2. Reactiva concepto en tabla concepto (activo = 1)
+// 3. Reactiva todas las personalizaciones del concepto
+// 4. Confirma transacción
+// Uso: Reactivación completa de conceptos a nivel familiar
+
 func (m *ConceptoModel) Habilitar(nombreConcepto, correoFamilia string) error {
 	tx, err := database.DB.Begin()
 	if err != nil {
@@ -604,7 +769,17 @@ func (m *ConceptoModel) Habilitar(nombreConcepto, correoFamilia string) error {
 	return nil
 }
 
-// ToggleActivoGlobal cambia el estado activo del concepto para toda la familia
+// ToggleActivoGlobal cambia el estado activo/inactivo de un concepto para toda la familia
+// Parámetros:
+// - nombreConcepto: Concepto a modificar
+// - correoFamilia: Familia del concepto
+// Retorno: Error si la operación falla
+// Flujo:
+// 1. Consulta estado actual del concepto
+// 2. Si está activo, llama a Deshabilitar
+// 3. Si está inactivo, llama a Habilitar
+// Uso: Alternar estado global de conceptos desde interfaz administrativa-
+
 func (m *ConceptoModel) ToggleActivoGlobal(nombreConcepto, correoFamilia string) error {
 	// Primero obtener el estado actual
 	queryEstado := `SELECT activo FROM concepto WHERE nombreConcepto = ? AND correoFamilia = ?`

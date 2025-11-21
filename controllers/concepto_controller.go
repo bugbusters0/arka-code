@@ -443,6 +443,23 @@ func (c *ConceptoController) getIconosDisponibles() []map[string]interface{} {
 		{"ID": 13, "Nombre": "Ahorros", "Path": "fa-solid fa-piggy-bank"},
 		{"ID": 14, "Nombre": "Inversión", "Path": "fa-solid fa-chart-line"},
 		{"ID": 15, "Nombre": "Otros", "Path": "fa-solid fa-circle"},
+		{"ID": 16, "Nombre": "Electricidad", "Path": "fa-solid fa-plug"},
+		{"ID": 17, "Nombre": "Agua", "Path": "fa-solid fa-droplet"},
+		{"ID": 18, "Nombre": "Internet", "Path": "fa-solid fa-wifi"},
+		{"ID": 19, "Nombre": "Teléfono", "Path": "fa-solid fa-mobile-alt"},
+		{"ID": 20, "Nombre": "Gas", "Path": "fa-solid fa-fire-flame-simple"},
+		{"ID": 21, "Nombre": "Taxi", "Path": "fa-solid fa-taxi"},
+		{"ID": 22, "Nombre": "Mantenimiento", "Path": "fa-solid fa-hammer"},
+		{"ID": 23, "Nombre": "Gasolina", "Path": "fa-solid fa-oil-can"},
+		{"ID": 24, "Nombre": "Cine", "Path": "fa-solid fa-clapperboard"},
+		{"ID": 25, "Nombre": "Gimnasio", "Path": "fa-solid fa-weight-hanging"},
+		{"ID": 26, "Nombre": "Farmacia", "Path": "fa-solid fa-pills"},
+		{"ID": 27, "Nombre": "Libros", "Path": "fa-solid fa-book-open"},
+		{"ID": 28, "Nombre": "Alquiler", "Path": "fa-solid fa-building"},
+		{"ID": 29, "Nombre": "Dividendos", "Path": "fa-solid fa-chart-bar"},
+		{"ID": 30, "Nombre": "Freelance", "Path": "fa-solid fa-laptop-code"},
+		{"ID": 31, "Nombre": "Bonos", "Path": "fa-solid fa-star"},
+		{"ID": 32, "Nombre": "Comisiones", "Path": "fa-solid fa-percent"},
 	}
 }
 

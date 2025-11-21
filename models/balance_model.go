@@ -10,11 +10,28 @@ import (
 	"time"
 )
 
+/*
+CASO DE USO:CU-003 Consultar Balance
+*/
+
 type BDBalance struct{}
 
 var BalanceModelInstance = &BDBalance{}
 
-// FindByFamiliaAndDate busca movimientos de una familia en una fecha específica
+// ConsultarMovimientos busca y agrupa movimientos por usuario para una familia y fecha específica
+// Parámetros:
+// - correoFamilia: Identificador de la familia
+// - nombreUsuarios: Lista de usuarios a consultar
+// - fecha: Fecha específica para filtrar movimientos
+// Retorno: Mapa donde la clave es el nombre de usuario y el valor es su lista de movimientos
+// Flujo:
+// 1. Valida que haya usuarios para consultar
+// 2. Construye consulta SQL dinámica con cláusula IN para múltiples usuarios
+// 3. Ejecuta consulta con parámetros preparados
+// 4. Procesa resultados y agrupa movimientos por usuario
+// 5. Asegura que todos los usuarios estén en el mapa (incluso sin movimientos)
+// Uso: Balance familiar, reportes agrupados por miembro
+
 func (m *BDBalance) ConsultarMovimientos(correoFamilia string, nombreUsuarios []string, fecha time.Time) (map[string][]entities.Movimiento, error) {
 	if len(nombreUsuarios) == 0 {
 		return make(map[string][]entities.Movimiento), nil
@@ -100,7 +117,19 @@ func (m *BDBalance) ConsultarMovimientos(correoFamilia string, nombreUsuarios []
 	return movimientosPorUsuario, nil
 }
 
-// FindByFamiliaDateAndTipo busca movimientos filtrados por tipo (gasto/ingreso)
+// FindByFamiliaDateAndTipo busca movimientos de una familia filtrados por tipo y fecha
+// Parámetros:
+// - correoFamilia: Identificador de la familia
+// - fecha: Fecha específica para filtrar
+// - tipo: Tipo de movimiento (0 = gasto, 1 = ingreso)
+// Retorno: Lista de movimientos que cumplen con los criterios
+// Flujo:
+// - Realiza JOIN con tabla concepto para filtrar por tipo
+// - Filtra por fecha exacta y familia
+// - Excluye movimientos eliminados (soft delete)
+// - Ordena por fecha descendente
+// Uso: Vista diaria de gastos/ingresos, reportes por tipo
+
 func (m *BDBalance) FindByFamiliaDateAndTipo(correoFamilia string, fecha time.Time, tipo int8) ([]entities.Movimiento, error) {
 	query := `SELECT m.idMovimiento, m.fecha, m.monto, m.descripcion, m.nombreUsuario, 
 	                 m.nombreConcepto, m.correoFamilia
@@ -148,7 +177,16 @@ func (m *BDBalance) FindByFamiliaDateAndTipo(correoFamilia string, fecha time.Ti
 	return movimientos, nil
 }
 
-// FindByID busca un movimiento por su ID
+// FindByID busca un movimiento específico por su ID único
+// Parámetros:
+// - idMovimiento: Identificador único del movimiento
+// Retorno: Puntero al movimiento encontrado o nil si no existe
+// Flujo:
+// - Consulta movimiento por ID exacto
+// - Excluye movimientos eliminados (soft delete)
+// - Retorna error si hay problemas de base de datos
+// Uso: Edición de movimientos, verificación de existencia, operaciones CRUD
+
 func (m *BDBalance) FindByID(idMovimiento int) (*entities.Movimiento, error) {
 	query := `SELECT idMovimiento, fecha, monto, descripcion, nombreUsuario, 
 	                 nombreConcepto, correoFamilia, delete_at
@@ -179,7 +217,16 @@ func (m *BDBalance) FindByID(idMovimiento int) (*entities.Movimiento, error) {
 	return movimiento, nil
 }
 
-// Update actualiza un movimiento existente
+// Update actualiza un movimiento existente en la base de datos
+// Parámetros:
+// - movimiento: Estructura con los datos actualizados del movimiento
+// Retorno: Error si la actualización falla
+// Flujo:
+// - Actualiza campos: fecha, monto, descripción y concepto
+// - Solo afecta movimientos no eliminados (soft delete)
+// - Registra número de filas afectadas para verificación
+// Uso: Modificación de movimientos existentes, corrección de datos
+
 func (m *BDBalance) Update(movimiento *entities.Movimiento) error {
 	query := `UPDATE movimiento 
 	          SET fecha = ?, monto = ?, descripcion = ?, nombreConcepto = ?
@@ -202,7 +249,15 @@ func (m *BDBalance) Update(movimiento *entities.Movimiento) error {
 	return nil
 }
 
-// Delete realiza soft delete de un movimiento
+// Delete realiza una eliminación lógica (soft delete) de un movimiento
+// Parámetros:
+// - idMovimiento: Identificador único del movimiento a eliminar
+// Retorno: Error si la eliminación falla
+// Flujo:
+// - Establece delete_at con la fecha/hora actual
+// - No elimina físicamente el registro
+// - Permite recuperación de datos si es necesario
+// Uso: Eliminación segura de movimientos, mantenimiento de historial
 func (m *BDBalance) Delete(idMovimiento int) error {
 	query := `UPDATE movimiento SET delete_at = NOW() WHERE idMovimiento = ?`
 
@@ -217,7 +272,16 @@ func (m *BDBalance) Delete(idMovimiento int) error {
 	return nil
 }
 
-// GetTotalesByFamiliaAndDate obtiene totales de ingresos y gastos de una fecha
+// GetTotalesByFamiliaAndDate calcula los totales de ingresos y gastos de una familia en una fecha específica
+// Parámetros:
+// - correoFamilia: Identificador de la familia
+// - fecha: Fecha específica para el cálculo
+// Retorno: Total de gastos, total de ingresos y error si existe
+// Flujo:
+// - Utiliza conditional aggregation con CASE statements
+// - Suma montos separados por tipo de concepto (gasto/ingreso)
+// - Maneja valores nulos con sql.NullFloat64
+// Uso: Resumen diario, cálculo de balance, dashboards
 func (m *BDBalance) GetTotalesByFamiliaAndDate(correoFamilia string, fecha time.Time) (float64, float64, error) {
 	query := `SELECT 
 	          SUM(CASE WHEN c.tipo = 0 THEN m.monto ELSE 0 END) as totalGastos,
