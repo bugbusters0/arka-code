@@ -485,3 +485,87 @@ func (m *MovimientoModel) ExisteMovimientoHoy(nombreUsuario, nombreConcepto, cor
 
 	return count > 0, nil
 }
+
+// FindByUsuarioDateAndTipo busca movimientos de un usuario específico en una fecha y tipo
+func (m *MovimientoModel) FindByUsuarioDateAndTipo(nombreUsuario, correoFamilia string, fecha time.Time, tipo int8) ([]entities.Movimiento, error) {
+	query := `SELECT m.idMovimiento, m.fecha, m.monto, m.descripcion, m.nombreUsuario, 
+                     m.nombreConcepto, m.correoFamilia
+              FROM movimiento m
+              INNER JOIN concepto c ON m.nombreConcepto = c.nombreConcepto 
+                                    AND m.correoFamilia = c.correoFamilia
+              WHERE m.nombreUsuario = ? 
+                AND m.correoFamilia = ?
+                AND DATE(m.fecha) = DATE(?) 
+                AND c.tipo = ?
+                AND m.delete_at IS NULL
+              ORDER BY m.fecha DESC`
+
+	rows, err := database.DB.Query(query, nombreUsuario, correoFamilia, fecha, tipo)
+	if err != nil {
+		log.Printf("❌ Error en consulta FindByUsuarioDateAndTipo: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	movimientos := []entities.Movimiento{}
+	for rows.Next() {
+		var movimiento entities.Movimiento
+
+		err := rows.Scan(
+			&movimiento.IdMovimiento,
+			&movimiento.Fecha,
+			&movimiento.Monto,
+			&movimiento.Descripcion,
+			&movimiento.NombreUsuario,
+			&movimiento.NombreConcepto,
+			&movimiento.CorreoFamilia,
+		)
+		if err != nil {
+			log.Printf("❌ Error escaneando movimiento: %v", err)
+			continue
+		}
+		movimientos = append(movimientos, movimiento)
+	}
+
+	tipoStr := "gastos"
+	if tipo == 1 {
+		tipoStr = "ingresos"
+	}
+	log.Printf("📋 %s encontrados: %d para usuario %s en fecha %s",
+		tipoStr, len(movimientos), nombreUsuario, fecha.Format("2006-01-02"))
+	return movimientos, nil
+}
+
+// GetTotalesByUsuarioAndDate obtiene totales de un usuario específico en una fecha
+func (m *MovimientoModel) GetTotalesByUsuarioAndDate(nombreUsuario, correoFamilia string, fecha time.Time) (float64, float64, error) {
+	query := `SELECT 
+              SUM(CASE WHEN c.tipo = 0 THEN m.monto ELSE 0 END) as totalGastos,
+              SUM(CASE WHEN c.tipo = 1 THEN m.monto ELSE 0 END) as totalIngresos
+              FROM movimiento m
+              INNER JOIN concepto c ON m.nombreConcepto = c.nombreConcepto 
+                                    AND m.correoFamilia = c.correoFamilia
+              WHERE m.nombreUsuario = ? 
+                AND m.correoFamilia = ?
+                AND DATE(m.fecha) = DATE(?)
+                AND m.delete_at IS NULL`
+
+	var totalGastos, totalIngresos sql.NullFloat64
+	err := database.DB.QueryRow(query, nombreUsuario, correoFamilia, fecha).Scan(&totalGastos, &totalIngresos)
+	if err != nil {
+		log.Printf("❌ Error obteniendo totales por usuario: %v", err)
+		return 0, 0, err
+	}
+
+	gastos := 0.0
+	if totalGastos.Valid {
+		gastos = totalGastos.Float64
+	}
+
+	ingresos := 0.0
+	if totalIngresos.Valid {
+		ingresos = totalIngresos.Float64
+	}
+
+	log.Printf("💰 Totales usuario %s - Gastos: %.2f, Ingresos: %.2f", nombreUsuario, gastos, ingresos)
+	return gastos, ingresos, nil
+}

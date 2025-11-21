@@ -75,14 +75,15 @@ func (c *MovimientoController) Index(w http.ResponseWriter, r *http.Request) {
 
 	if tipo == "resumen" {
 		// Obtener todos los movimientos del día
-		movimientos, err = models.MovimientoModelInstance.FindByFamiliaAndDate(sessionData.NombreUsuario, fecha)
+		movimientos, err = models.MovimientoModelInstance.FindByUsuarioAndDate(sessionData.NombreUsuario, sessionData.CorreoFamilia, fecha)
 		if err != nil {
 			log.Printf("❌ Error obteniendo movimientos: %v", err)
 			movimientos = []entities.Movimiento{}
 		}
 
 		// Calcular totales
-		totalGastos, totalIngresos, _ = models.MovimientoModelInstance.GetTotalesByFamiliaAndDate(sessionData.CorreoFamilia, fecha)
+		totalGastos, totalIngresos, _ = models.MovimientoModelInstance.GetTotalesByUsuarioAndDate(
+			sessionData.NombreUsuario, sessionData.CorreoFamilia, fecha)
 		balance := totalIngresos - totalGastos
 		data["Balance"] = balance
 
@@ -110,14 +111,16 @@ func (c *MovimientoController) Index(w http.ResponseWriter, r *http.Request) {
 			tipoInt = 1
 		}
 
-		movimientos, err = models.MovimientoModelInstance.FindByFamiliaDateAndTipo(sessionData.CorreoFamilia, fecha, tipoInt)
+		movimientos, err = models.MovimientoModelInstance.FindByUsuarioDateAndTipo(
+			sessionData.NombreUsuario, sessionData.CorreoFamilia, fecha, tipoInt)
 		if err != nil {
 			log.Printf("❌ Error obteniendo movimientos: %v", err)
 			movimientos = []entities.Movimiento{}
 		}
 
 		// Calcular total del tipo seleccionado
-		totalGastos, totalIngresos, _ = models.MovimientoModelInstance.GetTotalesByFamiliaAndDate(sessionData.CorreoFamilia, fecha)
+		totalGastos, totalIngresos, _ = models.MovimientoModelInstance.GetTotalesByUsuarioAndDate(
+			sessionData.NombreUsuario, sessionData.CorreoFamilia, fecha)
 	}
 
 	// Agregar conceptos con sus datos completos (incluyendo icono y color)
@@ -357,12 +360,17 @@ func (c *MovimientoController) renderWithError(w http.ResponseWriter, r *http.Re
 		})
 	}
 
-	// Obtener movimientos
+	// Obtener movimientos del USUARIO ACTUAL
 	tipoInt := int8(0)
 	if tipo == "ingreso" {
 		tipoInt = 1
 	}
-	movimientos, _ := models.MovimientoModelInstance.FindByFamiliaDateAndTipo(sessionData.CorreoFamilia, fecha, tipoInt)
+	movimientos, _ := models.MovimientoModelInstance.FindByUsuarioDateAndTipo(
+		sessionData.NombreUsuario, sessionData.CorreoFamilia, fecha, tipoInt)
+
+	// Obtener totales del USUARIO ACTUAL
+	totalGastos, totalIngresos, _ := models.MovimientoModelInstance.GetTotalesByUsuarioAndDate(
+		sessionData.NombreUsuario, sessionData.CorreoFamilia, fecha)
 
 	data := map[string]interface{}{
 		"Title":            "Entrada Diaria",
@@ -378,6 +386,13 @@ func (c *MovimientoController) renderWithError(w http.ResponseWriter, r *http.Re
 		},
 		"Conceptos":   conceptosConDatos,
 		"Movimientos": movimientos,
+	}
+
+	// Agregar total según el tipo
+	if tipo == "gasto" {
+		data["TotalDia"] = totalGastos
+	} else if tipo == "ingreso" {
+		data["TotalDia"] = totalIngresos
 	}
 
 	utils.RenderTemplate(w, "dashboard", "movimientos/index", data)
