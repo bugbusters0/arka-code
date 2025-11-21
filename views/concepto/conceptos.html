@@ -158,36 +158,36 @@
       </div>
 
       <!-- SOLO MOSTRAR CONFIGURACIÓN PERSONAL SI NO ES MODO EDICIÓN -->
-      {{if not .ModoEdicion}}
-      <div class="section-title">Configuración Personal</div>
+      {{if and (not .ModoEdicion) (eq .Tipo "gasto")}}
+        <div class="section-title">Configuración Personal</div>
 
-      <div class="form-group2">
-        <label>Desembolso planificado</label>
-        <input type="number" id="desembolso_planejado" name="desembolso_planejado"
-          placeholder="S/. 0" step="0.01" min="0"
-          value="{{.FormData.DesembolsoPlanejado}}">
-        <select id="periodo_tipo" name="periodo_tipo" class="frecuencia">
-          <option value="">Sin frecuencia</option>
-          <option value="diario" {{if eq .FormData.PeriodoTipo "diario"}}selected{{end}}>Diario</option>
-          <option value="quincenal" {{if eq .FormData.PeriodoTipo "quincenal"}}selected{{end}}>Quincenal</option>
-          <option value="mensual" {{if eq .FormData.PeriodoTipo "mensual"}}selected{{end}}>Mensual</option>
-        </select>
-        <input type="number" id="dia_desembolso_planejado" name="dia_desembolso_planejado" disabled placeholder=""/>
-      </div>
+        <div class="form-group2">
+            <label>Desembolso planificado</label>
+            <input type="number" id="desembolso_planejado" name="desembolso_planejado"
+                placeholder="S/. 0" step="0.01" min="0"
+                value="{{.FormData.DesembolsoPlanejado}}">
+            <select id="periodo_tipo" name="periodo_tipo" class="frecuencia">
+                <option value="">Sin frecuencia</option>
+                <option value="diario" {{if eq .FormData.PeriodoTipo "diario"}}selected{{end}}>Diario</option>
+                <option value="quincenal" {{if eq .FormData.PeriodoTipo "quincenal"}}selected{{end}}>Quincenal</option>
+                <option value="mensual" {{if eq .FormData.PeriodoTipo "mensual"}}selected{{end}}>Mensual</option>
+            </select>
+            <input type="number" id="dia_desembolso_planejado" name="dia_desembolso_planejado" disabled placeholder=""/>
+        </div>
 
-      <div class="form-group2">
-        <label>Establecer límite</label>
-        <input type="number" id="limite_monto" name="limite_monto"
-          placeholder="S/. 0" step="0.01" min="0"
-          value="{{.FormData.LimiteMonto}}">
-        <select id="limite_tipo" name="limite_tipo" class="frecuencia">
-          <option value="">Sin frecuencia</option>
-          <option value="diario" {{if eq .FormData.LimiteTipo "diario"}}selected{{end}}>Diario</option>
-          <option value="quincenal" {{if eq .FormData.LimiteTipo "quincenal"}}selected{{end}}>Quincenal</option>
-          <option value="mensual" {{if eq .FormData.LimiteTipo "mensual"}}selected{{end}}>Mensual</option>
-        </select>
-        <input type="number" id="dia_limite_tipo" name="dia_limite_tipo" disabled placeholder=""/>
-      </div>
+        <div class="form-group2">
+            <label>Establecer límite</label>
+            <input type="number" id="limite_monto" name="limite_monto"
+                placeholder="S/. 0" step="0.01" min="0"
+                value="{{.FormData.LimiteMonto}}">
+            <select id="limite_tipo" name="limite_tipo" class="frecuencia">
+                <option value="">Sin frecuencia</option>
+                <option value="diario" {{if eq .FormData.LimiteTipo "diario"}}selected{{end}}>Diario</option>
+                <option value="quincenal" {{if eq .FormData.LimiteTipo "quincenal"}}selected{{end}}>Quincenal</option>
+                <option value="mensual" {{if eq .FormData.LimiteTipo "mensual"}}selected{{end}}>Mensual</option>
+            </select>
+            <input type="number" id="dia_limite_tipo" name="dia_limite_tipo" disabled placeholder=""/>
+        </div>
       {{end}}
 
       <div class="actions">
