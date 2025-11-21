@@ -329,7 +329,7 @@ func (m *MovimientoModel) GetTotalesByUsuarioAndPeriod(nombreUsuario, correoFami
 
 	log.Printf("💰 Totales Usuario %s - Período %s a %s - Gastos: %.2f, Ingresos: %.2f",
 		nombreUsuario, inicio.Format("2006-01-02"), fin.Format("2006-01-02"), gastos, ingresos)
-	return gastos, ingresos, nil
+	return ingresos, gastos, nil
 }
 
 // FindByUsuarioAndDate busca movimientos de un usuario en una fecha específica
