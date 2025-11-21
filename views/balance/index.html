@@ -28,6 +28,27 @@
     {{end}}
   </div>
 
+  <div class="periodo-selector">
+    <div class="control-group">
+      <label>Tipo de Período:</label>
+      <select id="tipoPeriodo" class="periodo-select" onchange="cambiarTipoPeriodo()">
+        <option value="mes">Por Mes</option>
+        <option value="rango">Por Rango de Fechas</option>
+      </select>
+    </div>
+
+    <div id="selectorMes" class="periodo-input">
+      <input type="month" id="mesSeleccionado" value="{{.MesActual}}" onchange="filtrarPorMes()">
+    </div>
+
+    <div id="selectorRango" class="periodo-input" style="display: none;">
+      <input type="date" id="fechaInicio" onchange="filtrarPorRango()">
+      <span>a</span>
+      <input type="date" id="fechaFin" onchange="filtrarPorRango()">
+    </div>
+  </div>
+
+
   <!-- MAIN -->
   <div class="main_balance">
     {{if eq .Tipo "balance"}}
@@ -48,7 +69,7 @@
               </div>
               <div class="movement-body">
                 <div class="movement-title">{{.NombreConcepto}}</div>
-                <div class="movement-user">{{.NombreUsuario}}</div>
+                <div class="movement-user">@{{.NombreUsuario}}</div>
               </div>
               <div class="movement-amount">S/ {{printf "%.2f" .Monto}}</div>
             </div>

@@ -22,7 +22,7 @@ func (s *Scheduler) Start(ctx context.Context) {
 	go s.ejecutarTareasAutomaticas()
 
 	// Configurar ticker cada hora (puedes ajustar según necesidades)
-	s.ticker = time.NewTicker(2 * time.Hour)
+	s.ticker = time.NewTicker(2 * time.Second)
 
 	go func() {
 		for {

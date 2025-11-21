@@ -84,6 +84,28 @@ func (m *ConceptoModel) FindByFamilia(correoFamilia string, tipo string) ([]enti
 	log.Printf("📋 Conceptos encontrados: %d (tipo: %s)", len(conceptos), tipo)
 	return conceptos, nil
 }
+
+func (m *ConceptoModel) UpdateIconoColor(concepto *entities.Concepto) error {
+	query := `UPDATE concepto 
+	          SET icono = ?, color = ?
+	          WHERE nombreConcepto = ? AND correoFamilia = ? AND delete_at IS NULL`
+
+	result, err := database.DB.Exec(query,
+		concepto.Icono,
+		concepto.Color,
+		concepto.NombreConcepto,
+		concepto.CorreoFamilia)
+
+	if err != nil {
+		log.Printf("❌ Error actualizando concepto: %v", err)
+		return err
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	log.Printf("✅ Concepto actualizado - Filas afectadas: %d", rowsAffected)
+	return nil
+}
+
 func (m *ConceptoModel) FindAllByFamilia(correoFamilia string) ([]entities.Concepto, error) {
 	// Convertir string a int8 para la base de datos
 

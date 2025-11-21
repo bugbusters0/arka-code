@@ -210,16 +210,39 @@ func (v *ConceptoValidator) validatePersonalizacion(r *http.Request, result *Val
 }
 
 // ValidateUpdate valida la actualización de un concepto
-func (v *ConceptoValidator) ValidateUpdate(r *http.Request) ValidationResult {
-	result := v.Validate(r)
+func (v *ConceptoValidator) ValidateUpdate(r *http.Request) *ValidationResult {
+	result := &ValidationResult{
+		Success:   true,
+		Errors:    make(map[string]string),
+		CleanData: make(map[string]interface{}),
+	}
 
-	// Validaciones adicionales para actualización
-	nombreConcepto := strings.TrimSpace(r.FormValue("nombre_original"))
-	if nombreConcepto == "" {
-		result.Errors["nombre_original"] = "El nombre original del concepto es requerido para actualizar"
+	// Nombre (solo para identificar, no se puede cambiar)
+	nombre := strings.TrimSpace(r.FormValue("nombre"))
+	if nombre == "" {
 		result.Success = false
+		result.Errors["nombre"] = "El nombre es requerido"
 	} else {
-		result.CleanData["nombre_original"] = nombreConcepto
+		result.CleanData["nombre"] = nombre
+	}
+
+	// Validar ícono
+	idIconoStr := r.FormValue("id_icono")
+	idIcono, err := strconv.Atoi(idIconoStr)
+	if err != nil || idIcono < 1 || idIcono > 15 {
+		result.Success = false
+		result.Errors["id_icono"] = "Debe seleccionar un ícono válido"
+	} else {
+		result.CleanData["id_icono"] = idIcono
+	}
+
+	// Validar color
+	color := r.FormValue("color")
+	if !regexp.MustCompile(`^#[0-9A-Fa-f]{6}$`).MatchString(color) {
+		result.Success = false
+		result.Errors["color"] = "Debe seleccionar un color válido"
+	} else {
+		result.CleanData["color"] = color
 	}
 
 	return result

@@ -195,3 +195,16 @@
     font-size: 0.7em;
     margin-left: 8px;
 }
+
+.input-disabled {
+  background-color: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.help-text {
+  display: block;
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
+}

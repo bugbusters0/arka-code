@@ -43,15 +43,15 @@ func (c *MovimientoController) Index(w http.ResponseWriter, r *http.Request) {
 		fecha = time.Now()
 	}
 
-	// Preparar datos base
+	// Preparar datos base - INICIALIZAR ValidationErrors como mapa vacío
 	data := map[string]interface{}{
-		"Title":       "Entrada Diaria",
-		"CurrentPage": "dashboard",
-		"SessionData": sessionData,
-		"Tipo":        tipo,
-		"FechaActual": fecha.Format("2006-01-02"),
-		"Errors":      map[string]string{},
-		"FormData":    map[string]interface{}{},
+		"Title":            "Entrada Diaria", // CORREGIDO: Cambié "Title" por consistencia
+		"CurrentPage":      "dashboard",
+		"SessionData":      sessionData,
+		"Tipo":             tipo,
+		"FechaActual":      fecha.Format("2006-01-02"),
+		"ValidationErrors": map[string]string{}, // INICIALIZAR COMO MAPA VACÍO
+		"FormData":         map[string]interface{}{},
 	}
 
 	// Obtener conceptos según el tipo
@@ -83,9 +83,9 @@ func (c *MovimientoController) Index(w http.ResponseWriter, r *http.Request) {
 
 		// Calcular totales
 		totalGastos, totalIngresos, _ = models.MovimientoModelInstance.GetTotalesByFamiliaAndDate(sessionData.CorreoFamilia, fecha)
-		// CALCULAR BALANCE AQUÍ
 		balance := totalIngresos - totalGastos
 		data["Balance"] = balance
+
 		// Separar movimientos por tipo
 		var gastosMovimientos []entities.Movimiento
 		var ingresosMovimientos []entities.Movimiento
@@ -131,6 +131,13 @@ func (c *MovimientoController) Index(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	// Crear mapa de conceptos para acceso rápido
+	conceptosMap := make(map[string]map[string]interface{})
+	for _, concepto := range conceptosConDatos {
+		conceptosMap[concepto["NombreConcepto"].(string)] = concepto
+	}
+
+	data["ConceptosMap"] = conceptosMap
 	data["Conceptos"] = conceptosConDatos
 	data["Movimientos"] = movimientos
 	data["TotalGastos"] = totalGastos

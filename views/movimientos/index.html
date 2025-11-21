@@ -118,16 +118,18 @@
           {{if .Movimientos}}
             {{range .Movimientos}}
             <div class="movement-card" data-id="{{.IdMovimiento}}">
-              {{$concepto := index $.Conceptos 0}}
-              {{range $.Conceptos}}
-                {{if eq .NombreConcepto $.NombreConcepto}}
-                  {{$concepto = .}}
-                {{end}}
-              {{end}}
-              
+              <!-- BUSCAR EL CONCEPTO EN EL MAPA USANDO EL NOMBRE DEL MOVIMIENTO -->
+              {{$concepto := index $.ConceptosMap .NombreConcepto}}
+              {{if $concepto}}
               <div class="movement-icon" style="background-color: {{$concepto.Color}};">
                 <i class="{{$concepto.Icono}}"></i>
               </div>
+              {{else}}
+              <!-- CONCEPTO POR DEFECTO SI NO SE ENCUENTRA -->
+              <div class="movement-icon" style="background-color: #ccc;">
+                <i class="fas fa-question"></i>
+              </div>
+              {{end}}
               
               <div class="movement-body">
                 <div class="movement-title">{{.NombreConcepto}}</div>
@@ -167,99 +169,107 @@
     {{else}}
     <!-- VISTA RESUMEN -->
     <div class="resumen-container">
-      <div class="resumen-column">
-        <h3 class="resumen-title">Ingresos</h3>
-        <div class="movements-list">
-          {{if .MovimientosIngresos}}
-            {{range .MovimientosIngresos}}
-            <div class="movement-card" data-id="{{.IdMovimiento}}">
-              {{$concepto := index $.Conceptos 0}}
-              {{range $.Conceptos}}
-                {{if eq .NombreConcepto $.NombreConcepto}}
-                  {{$concepto = .}}
-                {{end}}
-              {{end}}
-              
-             <div class="movement-icon" style="background-color: {{$concepto.Color}};">
-                <i class="{{$concepto.Icono}}"></i>
-              </div>
-              
-              <div class="movement-body">
-                <div class="movement-title">{{.NombreConcepto}}</div>
-                {{if .Descripcion}}
-                <div class="movement-desc">{{.Descripcion}}</div>
-                {{end}}
-              </div>
-              
-              <div class="movement-amount">S/ {{printf "%.2f" .Monto}}</div>
-              
-              <div class="movement-actions">
-                <button class="icon-btn" title="Editar" 
-                        onclick="editarEnResumen('{{.IdMovimiento}}', 'ingreso')">
-                  ✏️
-                </button>
-                <button class="icon-btn" title="Eliminar" 
-                        onclick="eliminarMovimiento('{{.IdMovimiento}}')">
-                  🗑️
-                </button>
-              </div>
-            </div>
-            {{end}}
+  <div class="resumen-column">
+    <h3 class="resumen-title">Ingresos</h3>
+    <div class="movements-list">
+      {{if .MovimientosIngresos}}
+        {{range .MovimientosIngresos}}
+        <div class="movement-card" data-id="{{.IdMovimiento}}">
+          <!-- BUSCAR EL CONCEPTO EN EL MAPA USANDO EL NOMBRE DEL MOVIMIENTO -->
+          {{$concepto := index $.ConceptosMap .NombreConcepto}}
+          {{if $concepto}}
+          <div class="movement-icon" style="background-color: {{$concepto.Color}};">
+            <i class="{{$concepto.Icono}}"></i>
+          </div>
           {{else}}
-          <div class="movement-card empty">No hay ingresos</div>
+          <!-- CONCEPTO POR DEFECTO SI NO SE ENCUENTRA -->
+          <div class="movement-icon" style="background-color: #ccc;">
+            <i class="fas fa-question"></i>
+          </div>
           {{end}}
+          
+          <div class="movement-body">
+            <div class="movement-title">{{.NombreConcepto}}</div>
+            {{if .Descripcion}}
+            <div class="movement-desc">{{.Descripcion}}</div>
+            {{end}}
+          </div>
+          
+          <div class="movement-amount">S/ {{printf "%.2f" .Monto}}</div>
+          
+          <div class="movement-actions">
+            <button class="icon-btn" title="Editar" 
+                    onclick="editarEnResumen('{{.IdMovimiento}}', 'ingreso')">
+              ✏️
+            </button>
+            <button class="icon-btn" title="Eliminar" 
+                    onclick="eliminarMovimiento('{{.IdMovimiento}}')">
+              🗑️
+            </button>
+          </div>
         </div>
-        <div class="resumen-total ingreso">
-          Total Ingresos: S/ {{printf "%.2f" .TotalIngresos}}
-        </div>
+        {{end}}
+      {{else}}
+      <div class="movement-card empty" style="justify-content:center;color:var(--muted)">
+        No hay ingresos
       </div>
+      {{end}}
+    </div>
+    <div class="resumen-total ingreso">
+      Total Ingresos: S/ {{printf "%.2f" .TotalIngresos}}
+    </div>
+  </div>
 
-      <div class="resumen-column">
-        <h3 class="resumen-title">Gastos</h3>
-        <div class="movements-list">
-          {{if .MovimientosGastos}}
-            {{range .MovimientosGastos}}
-            <div class="movement-card" data-id="{{.IdMovimiento}}">
-              {{$concepto := index $.Conceptos 0}}
-              {{range $.Conceptos}}
-                {{if eq .NombreConcepto $.NombreConcepto}}
-                  {{$concepto = .}}
-                {{end}}
-              {{end}}
-              
-              <div class="movement-icon" style="background-color: '{{$concepto.Color}}';">
-                <i class="{{$concepto.Icono}}"></i>
-              </div>
-              
-              <div class="movement-body">
-                <div class="movement-title">{{.NombreConcepto}}</div>
-                {{if .Descripcion}}
-                <div class="movement-desc">{{.Descripcion}}</div>
-                {{end}}
-              </div>
-              
-              <div class="movement-amount">S/ {{printf "%.2f" .Monto}}</div>
-              
-              <div class="movement-actions">
-                <button class="icon-btn" title="Editar" 
-                        onclick="editarEnResumen('{{.IdMovimiento}}', 'gasto')">
-                  ✏️
-                </button>
-                <button class="icon-btn" title="Eliminar" 
-                        onclick="eliminarMovimiento('{{.IdMovimiento}}')">
-                  🗑️
-                </button>
-              </div>
-            </div>
-            {{end}}
+  <div class="resumen-column">
+    <h3 class="resumen-title">Gastos</h3>
+    <div class="movements-list">
+      {{if .MovimientosGastos}}
+        {{range .MovimientosGastos}}
+        <div class="movement-card" data-id="{{.IdMovimiento}}">
+          <!-- BUSCAR EL CONCEPTO EN EL MAPA USANDO EL NOMBRE DEL MOVIMIENTO -->
+          {{$concepto := index $.ConceptosMap .NombreConcepto}}
+          {{if $concepto}}
+          <div class="movement-icon" style="background-color: {{$concepto.Color}};">
+            <i class="{{$concepto.Icono}}"></i>
+          </div>
           {{else}}
-          <div class="movement-card empty">No hay gastos</div>
+          <!-- CONCEPTO POR DEFECTO SI NO SE ENCUENTRA -->
+          <div class="movement-icon" style="background-color: #ccc;">
+            <i class="fas fa-question"></i>
+          </div>
           {{end}}
+          
+          <div class="movement-body">
+            <div class="movement-title">{{.NombreConcepto}}</div>
+            {{if .Descripcion}}
+            <div class="movement-desc">{{.Descripcion}}</div>
+            {{end}}
+          </div>
+          
+          <div class="movement-amount">S/ {{printf "%.2f" .Monto}}</div>
+          
+          <div class="movement-actions">
+            <button class="icon-btn" title="Editar" 
+                    onclick="editarEnResumen('{{.IdMovimiento}}', 'gasto')">
+              ✏️
+            </button>
+            <button class="icon-btn" title="Eliminar" 
+                    onclick="eliminarMovimiento('{{.IdMovimiento}}')">
+              🗑️
+            </button>
+          </div>
         </div>
-        <div class="resumen-total gasto">
-          Total Gastos: S/ {{printf "%.2f" .TotalGastos}}
-        </div>
+        {{end}}
+      {{else}}
+      <div class="movement-card empty" style="justify-content:center;color:var(--muted)">
+        No hay gastos
       </div>
+      {{end}}
+    </div>
+    <div class="resumen-total gasto">
+      Total Gastos: S/ {{printf "%.2f" .TotalGastos}}
+    </div>
+  </div>
     </div>
 
     <div class="balance-final">

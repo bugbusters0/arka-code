@@ -106,9 +106,20 @@ func (m *UserModel) FindByFamilia(correoFamilia string) ([]entities.Usuario, err
 }
 
 func (m *UserModel) GetAllByFamilia(correoFamilia string) ([]entities.Usuario, error) {
-	query := `SELECT nombreUsuario, rol, contraseñaPersonal, nombrePersonal, correoFamilia, delete_at
-	          FROM usuario WHERE correoFamilia = ?
-	          ORDER BY delete_at IS NULL DESC, nombrePersonal`
+	query := `SELECT 
+    nombreUsuario, 
+    rol, 
+    contraseñaPersonal, 
+    nombrePersonal, 
+    correoFamilia, 
+    delete_at
+FROM 
+    usuario 
+WHERE 
+    correoFamilia = ? 
+    AND delete_at IS NULL
+ORDER BY 
+    nombrePersonal DESC;`
 
 	rows, err := database.DB.Query(query, correoFamilia)
 	if err != nil {

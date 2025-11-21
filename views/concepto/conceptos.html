@@ -3,6 +3,7 @@
   <a href="/conceptos?tipo=gasto" class="tab {{if eq .Tipo "gasto"}}active{{end}}">Gastos</a>
   <a href="/conceptos?tipo=ingreso" class="tab {{if eq .Tipo "ingreso"}}active{{end}}">Ingresos</a>
 </div>
+
 {{if .Error}}
 <div class="error-box">
   <p style="color: red;">{{.Error}}</p>
@@ -14,6 +15,7 @@
   <p style="color:green">{{.Success}}</p>
 </div>
 {{end}}
+
 <div class="content-area">
   <!-- Lista de conceptos -->
   <div class="conceptos" id="listaConceptos2">
@@ -61,17 +63,20 @@
         <p>No hay conceptos {{if eq .Tipo "gasto"}}de gastos{{else}}de ingresos{{end}} aún</p>
     </div>
     {{end}}
-    <!-- Botón "Nuevo" -->
+    
+    <!-- Botón "Nuevo" - SOLO MOSTRAR SI NO ESTAMOS EN MODO EDICIÓN -->
+    {{if not .ModoEdicion}}
     <div class="concepto nuevo" onclick="mostrarFormulario()">
       <i class="fa-solid fa-plus"></i>
       <span>Nuevo Concepto</span>
     </div>
+    {{end}}
   </div>
 
   <!-- Formulario lateral -->
-  <form method="POST" action="/conceptos/crear" class="form-crear">
-    <div class="sidebar-right" id="formConcepto">
-      <h3 id="tituloForm">Crear Concepto</h3>
+  <form method="POST" action="{{if .ModoEdicion}}/conceptos/editar{{else}}/conceptos/crear{{end}}" class="form-crear">
+    <div class="sidebar-right {{if .ModoEdicion}}active{{end}}" id="formConcepto">
+      <h3 id="tituloForm">{{if .ModoEdicion}}Editar{{else}}Crear{{end}} Concepto</h3>
 
       <!-- ✅ Muestra errores de validación -->
       {{if .ValidationErrors}}
@@ -91,13 +96,25 @@
       {{end}}
 
       <input type="hidden" name="tipo" value="{{.Tipo}}">
-      <input type="hidden" name="configuracion_usuario" value="true">
 
+      <!-- CAMPO NOMBRE: Editable solo en crear, bloqueado en editar -->
+      {{if .ModoEdicion}}
+      <input type="hidden" name="nombre" value="{{.ConceptoEditar.NombreConcepto}}">
+      
+      <div class="form-group">
+        <label>Nombre del Concepto</label>
+        <input type="text" value="{{.ConceptoEditar.NombreConcepto}}" disabled class="input-disabled">
+        <small class="help-text">El nombre no se puede modificar</small>
+      </div>
+      {{else}}
+      <input type="hidden" name="configuracion_usuario" value="true">
+      
       <div class="form-group">
         <label>Nombre del Concepto *</label>
         <input type="text" id="nombre" name="nombre" placeholder="Ej: Transporte" required
           value="{{.FormData.Nombre}}">
       </div>
+      {{end}}
 
       <div class="form-group">
         <label>Ícono *</label>
@@ -140,6 +157,8 @@
         </div>
       </div>
 
+      <!-- SOLO MOSTRAR CONFIGURACIÓN PERSONAL SI NO ES MODO EDICIÓN -->
+      {{if not .ModoEdicion}}
       <div class="section-title">Configuración Personal</div>
 
       <div class="form-group2">
@@ -169,10 +188,16 @@
         </select>
         <input type="number" id="dia_limite_tipo" name="dia_limite_tipo" disabled placeholder=""/>
       </div>
+      {{end}}
 
       <div class="actions">
-        <button id="btnGuardar" class="btn btn-yellow" type="submit">Guardar Concepto</button>
-        <button id="btnCancelar" class="btn btn-gray" type="button" onclick="ocultarFormulario()">Cancelar</button>
+        <button id="btnGuardar" class="btn btn-yellow" type="submit">
+          {{if .ModoEdicion}}Actualizar{{else}}Guardar{{end}} Concepto
+        </button>
+        <button id="btnCancelar" class="btn btn-gray" type="button" 
+                onclick="{{if .ModoEdicion}}window.location.href='/conceptos?tipo={{.Tipo}}'{{else}}ocultarFormulario(){{end}}">
+          Cancelar
+        </button>
       </div>
     </div>
   </form>
@@ -181,6 +206,24 @@
 
 {{define "page-css"}}
 <link rel="stylesheet" href="/static/css/pages/conceptos.css">
+<style>
+.input-disabled {
+  background-color: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.help-text {
+  display: block;
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
+}
+
+.sidebar-right.active {
+  transform: translateX(0);
+}
+</style>
 {{end}}
 
 {{define "page-js"}}

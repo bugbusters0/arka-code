@@ -68,6 +68,11 @@ func SetupRoutes() *http.ServeMux {
 	mux.HandleFunc("/conceptos/crear", middleware.RequireUsuarioAuth(
 		controllers.ConceptoControllerInstance.Crear,
 	))
+
+	mux.HandleFunc("/conceptos/editar", middleware.RequireUsuarioAuth(
+		controllers.ConceptoControllerInstance.Editar,
+	))
+
 	mux.HandleFunc("/conceptos/deshabilitar", middleware.RequireUsuarioAuth(
 		controllers.ConceptoControllerInstance.Deshabilitar,
 	))

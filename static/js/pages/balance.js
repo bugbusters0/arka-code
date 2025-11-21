@@ -1,9 +1,123 @@
 // static/js/pages/balance.js
 
+// ========================================
+// SELECTOR DE PERÍODO - FUNCIONES GLOBALES
+// ========================================
+
+// Definir TODAS las funciones del selector primero en el ámbito global
+window.cambiarTipoPeriodo = function() {
+  const tipoPeriodo = document.getElementById('tipoPeriodo').value;
+  const selectorMes = document.getElementById('selectorMes');
+  const selectorRango = document.getElementById('selectorRango');
+  
+  if (tipoPeriodo === 'mes') {
+    selectorMes.style.display = 'flex';
+    selectorRango.style.display = 'none';
+    
+    // Solo establecer valor por defecto si no hay uno ya
+    const mesActual = document.getElementById('mesSeleccionado').value;
+    if (!mesActual) {
+      const mesDefault = new Date().toISOString().slice(0, 7);
+      document.getElementById('mesSeleccionado').value = mesDefault;
+    }
+  } else {
+    selectorMes.style.display = 'none';
+    selectorRango.style.display = 'flex';
+    
+    // Solo establecer valores por defecto si no hay ya
+    const fechaInicio = document.getElementById('fechaInicio').value;
+    const fechaFin = document.getElementById('fechaFin').value;
+    
+    if (!fechaInicio || !fechaFin) {
+      const hoy = new Date();
+      const hace30Dias = new Date();
+      hace30Dias.setDate(hoy.getDate() - 30);
+      
+      document.getElementById('fechaInicio').value = hace30Dias.toISOString().slice(0, 10);
+      document.getElementById('fechaFin').value = hoy.toISOString().slice(0, 10);
+    }
+  }
+};
+
+window.filtrarPorMes = function() {
+  const mes = document.getElementById('mesSeleccionado').value;
+  if (!mes) return;
+  
+  console.log('Filtrando por mes:', mes);
+  
+  // Actualizar URL y recargar
+  const url = new URL(window.location);
+  url.searchParams.set('periodo', 'mes');
+  url.searchParams.set('mes', mes);
+  url.searchParams.delete('fechaInicio');
+  url.searchParams.delete('fechaFin');
+  
+  window.location.href = url.toString();
+};
+
+window.filtrarPorRango = function() {
+  const fechaInicio = document.getElementById('fechaInicio').value;
+  const fechaFin = document.getElementById('fechaFin').value;
+  
+  if (!fechaInicio || !fechaFin) return;
+  
+  console.log('Filtrando por rango:', fechaInicio, 'a', fechaFin);
+  
+  // Validar que fecha inicio sea menor que fecha fin
+  if (new Date(fechaInicio) > new Date(fechaFin)) {
+    alert('La fecha de inicio debe ser anterior a la fecha final');
+    return;
+  }
+  
+  // Actualizar URL y recargar
+  const url = new URL(window.location);
+  url.searchParams.set('periodo', 'rango');
+  url.searchParams.set('fechaInicio', fechaInicio);
+  url.searchParams.set('fechaFin', fechaFin);
+  url.searchParams.delete('mes');
+  
+  window.location.href = url.toString();
+};
+
+// ========================================
+// INICIALIZACIÓN
+// ========================================
+
+function inicializarSelectorPeriodo() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const periodo = urlParams.get('periodo');
+  
+  // Establecer valores desde URL o por defecto
+  if (periodo === 'rango') {
+    document.getElementById('tipoPeriodo').value = 'rango';
+    
+    const fechaInicio = urlParams.get('fechaInicio');
+    const fechaFin = urlParams.get('fechaFin');
+    
+    if (fechaInicio) document.getElementById('fechaInicio').value = fechaInicio;
+    if (fechaFin) document.getElementById('fechaFin').value = fechaFin;
+  } else {
+    document.getElementById('tipoPeriodo').value = 'mes';
+    
+    const mes = urlParams.get('mes');
+    if (mes) {
+      document.getElementById('mesSeleccionado').value = mes;
+    } else {
+      // Mes actual por defecto
+      const mesActual = new Date().toISOString().slice(0, 7);
+      document.getElementById('mesSeleccionado').value = mesActual;
+    }
+  }
+  
+  // Llamar a cambiarTipoPeriodo para mostrar el selector correcto
+  window.cambiarTipoPeriodo();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   animarElementos();
   configurarScrolls();
   dibujarGraficosPie();
+  inicializarSelectorPeriodo();
 });
 
 // ========================================
@@ -57,7 +171,7 @@ function animarElementos() {
   // Animar movimientos
   const movements = document.querySelectorAll('.movement-card');
   movements.forEach((mov, index) => {
-    if (index < 15) { // Solo animar los primeros 15
+    if (index < 15) {
       mov.style.opacity = '0';
       mov.style.transform = 'translateX(-20px)';
       
@@ -81,7 +195,7 @@ function animarElementos() {
     }, index * 100);
   });
 
-  // Animar gráficos circulares - ahora se dibujan con canvas
+  // Animar gráficos circulares
   dibujarGraficosPie();
 
   // Animar tarjetas de usuario
@@ -106,7 +220,6 @@ function configurarScrolls() {
   const scrollContainers = document.querySelectorAll('.movements-list, .balance-cards, .grafico-leyenda');
   
   scrollContainers.forEach(container => {
-    // Estilo de scrollbar personalizado
     container.style.scrollbarWidth = 'thin';
     container.style.scrollbarColor = '#cbd5e1 #f1f5f9';
   });
@@ -172,7 +285,7 @@ function dibujarGraficosPie() {
       const centerY = canvas.height / 2;
       const radius = Math.min(centerX, centerY) - 20;
       
-      let currentAngle = -Math.PI / 2; // Empezar desde arriba
+      let currentAngle = -Math.PI / 2;
       
       // Limpiar canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -238,7 +351,6 @@ function dibujarGraficosPie() {
 }
 
 function mostrarTooltipCanvas(evento, data) {
-  // Remover tooltip existente
   ocultarTooltip();
   
   const tooltip = document.createElement('div');
@@ -361,7 +473,11 @@ window.balanceUtils = {
   filtrarUsuario,
   cambiarTipoGrafico,
   cambiarVistaGrafico,
-  animarContador
+  animarContador,
+  cambiarTipoPeriodo: window.cambiarTipoPeriodo,
+  filtrarPorMes: window.filtrarPorMes,
+  filtrarPorRango: window.filtrarPorRango,
+  inicializarSelectorPeriodo
 };
 
 // Log de carga

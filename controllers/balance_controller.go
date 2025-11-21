@@ -43,20 +43,80 @@ func (c *BalanceController) Index(w http.ResponseWriter, r *http.Request) {
 	// Obtener parámetros de URL
 	tipo := r.URL.Query().Get("tipo")
 	if tipo == "" {
-		tipo = "balance" // Por defecto mostrar balance
+		tipo = "balance"
 	}
 
 	tipoGrafico := r.URL.Query().Get("tipoGrafico")
 	if tipoGrafico == "" {
-		tipoGrafico = "barras" // Por defecto gráfico de barras
+		tipoGrafico = "barras"
 	}
 
 	vistaGrafico := r.URL.Query().Get("vistaGrafico")
 	if vistaGrafico == "" {
-		vistaGrafico = "concepto" // Por defecto por concepto
+		vistaGrafico = "concepto"
 	}
 
 	usuarioFiltro := r.URL.Query().Get("usuario")
+
+	// ===== NUEVAS LÍNEAS: Capturar parámetros de fecha =====
+	periodo := r.URL.Query().Get("periodo")
+	if periodo == "" {
+		periodo = "mes" // Por defecto mes actual
+	}
+
+	var inicioRango, finRango time.Time
+	now := time.Now()
+
+	if periodo == "mes" {
+		// Filtrar por mes específico
+		mesStr := r.URL.Query().Get("mes")
+		if mesStr != "" {
+			// Parsear formato YYYY-MM
+			mesDate, err := time.Parse("2006-01", mesStr)
+			if err == nil {
+				inicioRango = time.Date(mesDate.Year(), mesDate.Month(), 1, 0, 0, 0, 0, mesDate.Location())
+				finRango = inicioRango.AddDate(0, 1, 0).Add(-time.Second)
+			} else {
+				// Si hay error, usar mes actual
+				inicioRango = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+				finRango = inicioRango.AddDate(0, 1, 0).Add(-time.Second)
+			}
+		} else {
+			// Mes actual por defecto
+			inicioRango = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+			finRango = inicioRango.AddDate(0, 1, 0).Add(-time.Second)
+		}
+	} else if periodo == "rango" {
+		// Filtrar por rango personalizado
+		fechaInicioStr := r.URL.Query().Get("fechaInicio")
+		fechaFinStr := r.URL.Query().Get("fechaFin")
+
+		if fechaInicioStr != "" && fechaFinStr != "" {
+			fechaInicio, err1 := time.Parse("2006-01-02", fechaInicioStr)
+			fechaFin, err2 := time.Parse("2006-01-02", fechaFinStr)
+
+			if err1 == nil && err2 == nil {
+				inicioRango = time.Date(fechaInicio.Year(), fechaInicio.Month(), fechaInicio.Day(), 0, 0, 0, 0, fechaInicio.Location())
+				finRango = time.Date(fechaFin.Year(), fechaFin.Month(), fechaFin.Day(), 23, 59, 59, 0, fechaFin.Location())
+			} else {
+				// Si hay error, usar mes actual
+				inicioRango = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+				finRango = inicioRango.AddDate(0, 1, 0).Add(-time.Second)
+			}
+		} else {
+			// Por defecto últimos 30 días
+			inicioRango = now.AddDate(0, 0, -30)
+			finRango = now
+		}
+	} else {
+		// Por defecto mes actual
+		inicioRango = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+		finRango = inicioRango.AddDate(0, 1, 0).Add(-time.Second)
+	}
+
+	log.Printf("📅 Período seleccionado: %s - Desde: %s Hasta: %s",
+		periodo, inicioRango.Format("2006-01-02"), finRango.Format("2006-01-02"))
+	// ===== FIN NUEVAS LÍNEAS =====
 
 	// Preparar datos base
 	data := map[string]interface{}{
@@ -66,23 +126,25 @@ func (c *BalanceController) Index(w http.ResponseWriter, r *http.Request) {
 		"Tipo":         tipo,
 		"TipoGrafico":  tipoGrafico,
 		"VistaGrafico": vistaGrafico,
+		"MesActual":    now.Format("2006-01"), // Para el input type="month"
 	}
 
 	if tipo == "balance" {
-		c.cargarDatosBalance(w, r, sessionData, usuarioFiltro, data)
+		c.cargarDatosBalance(w, r, sessionData, usuarioFiltro, inicioRango, finRango, data)
 	} else if tipo == "graficos" {
-		c.cargarDatosGraficos(w, r, sessionData, usuarioFiltro, tipoGrafico, vistaGrafico, data)
+		c.cargarDatosGraficos(w, r, sessionData, usuarioFiltro, tipoGrafico, vistaGrafico, inicioRango, finRango, data)
 	}
 
 	utils.RenderTemplate(w, "dashboard", "balance/index", data)
 }
 
 // cargarDatosBalance carga los datos para la vista de balance
-func (c *BalanceController) cargarDatosBalance(w http.ResponseWriter, _ *http.Request, sessionData *entities.SessionData, usuarioFiltro string, data map[string]interface{}) {
-	// Calcular fechas para mes y año actual
-	inicioMes := time.Date(time.Now().Year(), time.Now().Month(), 1, 0, 0, 0, 0, time.Now().Location())
-	finMes := inicioMes.AddDate(0, 1, 0).Add(-time.Second)
+func (c *BalanceController) cargarDatosBalance(w http.ResponseWriter, _ *http.Request, sessionData *entities.SessionData, usuarioFiltro string, inicioRango, finRango time.Time, data map[string]interface{}) {
+	// Usar inicioRango y finRango en lugar de fechas fijas
+	inicioMes := inicioRango
+	finMes := finRango
 
+	// Para el balance anual, usar el año completo
 	inicioAnio := time.Date(time.Now().Year(), 1, 1, 0, 0, 0, 0, time.Now().Location())
 	finAnio := time.Date(time.Now().Year(), 12, 31, 23, 59, 59, 0, time.Now().Location())
 
@@ -153,24 +215,20 @@ func (c *BalanceController) cargarDatosBalance(w http.ResponseWriter, _ *http.Re
 }
 
 // cargarDatosGraficos carga los datos para la vista de gráficos
-func (c *BalanceController) cargarDatosGraficos(_ http.ResponseWriter, _ *http.Request, sessionData *entities.SessionData, usuarioFiltro, _, vistaGrafico string, data map[string]interface{}) {
-	inicioMes := time.Date(time.Now().Year(), time.Now().Month(), 1, 0, 0, 0, 0, time.Now().Location())
-	finMes := inicioMes.AddDate(0, 1, 0).Add(-time.Second)
-
+func (c *BalanceController) cargarDatosGraficos(_ http.ResponseWriter, _ *http.Request, sessionData *entities.SessionData, usuarioFiltro, _, vistaGrafico string, inicioRango, finRango time.Time, data map[string]interface{}) {
+	// Usar inicioRango y finRango directamente
 	if vistaGrafico == "concepto" {
-		// Gráficos por concepto
-		datosIngresos, datosGastos := c.obtenerDatosPorConcepto(sessionData, usuarioFiltro, inicioMes, finMes)
+		datosIngresos, datosGastos := c.obtenerDatosPorConcepto(sessionData, usuarioFiltro, inicioRango, finRango)
 		data["IngresosData"] = datosIngresos
 		data["GastosData"] = datosGastos
 	} else if vistaGrafico == "miembro" && sessionData.Rol == 1 {
-		// Gráficos por miembro (solo admin)
-		datosIngresos, datosGastos := c.obtenerDatosPorMiembro(sessionData, inicioMes, finMes)
+		datosIngresos, datosGastos := c.obtenerDatosPorMiembro(sessionData, inicioRango, finRango)
 		data["IngresosData"] = datosIngresos
 		data["GastosData"] = datosGastos
 	}
-
 }
 
+// calcularBalanceUsuarioCompleto calcula el balance completo de un usuario
 // calcularBalanceUsuarioCompleto calcula el balance completo de un usuario
 func (c *BalanceController) calcularBalanceUsuarioCompleto(nombreUsuario, correoFamilia string, inicioMes, finMes, inicioAnio, finAnio time.Time) BalanceUsuario {
 	balance := BalanceUsuario{
@@ -183,21 +241,21 @@ func (c *BalanceController) calcularBalanceUsuarioCompleto(nombreUsuario, correo
 		balance.NombrePersonal = usuario.NombrePersonal
 	}
 
-	// Balance mensual
-	gastosMes, ingresosMes, _ := models.MovimientoModelInstance.GetTotalesByUsuarioAndPeriod(
+	// ✅ USAR EL RANGO SELECCIONADO (inicioMes, finMes)
+	ingresosMes, gastosMes, _ := models.MovimientoModelInstance.GetTotalesByUsuarioAndPeriod(
 		nombreUsuario, correoFamilia, inicioMes, finMes,
 	)
 	balance.BalanceMensual = ingresosMes - gastosMes
 	balance.TotalIngresos = ingresosMes
 	balance.TotalGastos = gastosMes
 
-	// Balance anual
-	gastosAnio, ingresosAnio, _ := models.MovimientoModelInstance.GetTotalesByUsuarioAndPeriod(
+	// Balance anual (año completo)
+	ingresosAnio, gastosAnio, _ := models.MovimientoModelInstance.GetTotalesByUsuarioAndPeriod(
 		nombreUsuario, correoFamilia, inicioAnio, finAnio,
 	)
 	balance.BalanceAnual = ingresosAnio - gastosAnio
 
-	// Movimientos del mes
+	// ✅ MOVIMIENTOS DEL RANGO SELECCIONADO
 	movimientos, _ := models.MovimientoModelInstance.FindByUsuarioAndPeriod(
 		nombreUsuario, correoFamilia, inicioMes, finMes,
 	)

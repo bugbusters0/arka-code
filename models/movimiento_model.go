@@ -293,6 +293,7 @@ func (m *MovimientoModel) GetTotalesByFamiliaAndDate(correoFamilia string, fecha
 
 // Agregar estas funciones al archivo models/movimiento.go
 
+// GetTotalesByUsuarioAndPeriod obtiene totales de ingresos y gastos de un usuario en un período
 func (m *MovimientoModel) GetTotalesByUsuarioAndPeriod(nombreUsuario, correoFamilia string, inicio, fin time.Time) (float64, float64, error) {
 	query := `SELECT 
 	          SUM(CASE WHEN c.tipo = 0 THEN m.monto ELSE 0 END) as totalGastos,
@@ -302,13 +303,17 @@ func (m *MovimientoModel) GetTotalesByUsuarioAndPeriod(nombreUsuario, correoFami
 	                                AND m.correoFamilia = c.correoFamilia
 	          WHERE m.nombreUsuario = ? 
 	            AND m.correoFamilia = ?
-	            AND m.fecha BETWEEN ? AND ?
+	            AND m.fecha >= ?
+	            AND m.fecha <= ?
 	            AND m.delete_at IS NULL`
 
 	var totalGastos, totalIngresos sql.NullFloat64
+
+	// ✅ IMPORTANTE: Pasar inicio y fin correctamente
 	err := database.DB.QueryRow(query, nombreUsuario, correoFamilia, inicio, fin).Scan(&totalGastos, &totalIngresos)
 	if err != nil {
 		log.Printf("❌ Error obteniendo totales por período: %v", err)
+		log.Printf("   Usuario: %s, Inicio: %s, Fin: %s", nombreUsuario, inicio.Format("2006-01-02"), fin.Format("2006-01-02"))
 		return 0, 0, err
 	}
 
@@ -371,13 +376,15 @@ func (m *MovimientoModel) FindByUsuarioAndDate(nombreUsuario, correoFamilia stri
 }
 
 // FindByUsuarioAndPeriod busca movimientos de un usuario en un período
+// FindByUsuarioAndPeriod busca movimientos de un usuario en un período
 func (m *MovimientoModel) FindByUsuarioAndPeriod(nombreUsuario, correoFamilia string, inicio, fin time.Time) ([]entities.Movimiento, error) {
 	query := `SELECT m.idMovimiento, m.fecha, m.monto, m.descripcion, m.nombreUsuario, 
 	                 m.nombreConcepto, m.correoFamilia
 	          FROM movimiento m
 	          WHERE m.nombreUsuario = ? 
 	            AND m.correoFamilia = ?
-	            AND m.fecha BETWEEN ? AND ?
+	            AND m.fecha >= ?
+	            AND m.fecha <= ?
 	            AND m.delete_at IS NULL
 	          ORDER BY m.fecha DESC`
 
@@ -408,18 +415,20 @@ func (m *MovimientoModel) FindByUsuarioAndPeriod(nombreUsuario, correoFamilia st
 		movimientos = append(movimientos, movimiento)
 	}
 
-	log.Printf("📋 Movimientos encontrados: %d para usuario %s en período",
-		len(movimientos), nombreUsuario)
+	log.Printf("📋 Movimientos encontrados: %d para usuario %s en período %s a %s",
+		len(movimientos), nombreUsuario, inicio.Format("2006-01-02"), fin.Format("2006-01-02"))
 	return movimientos, nil
 }
 
+// GetTotalByConceptoAndPeriod obtiene el total de un concepto en un período
 // GetTotalByConceptoAndPeriod obtiene el total de un concepto en un período
 func (m *MovimientoModel) GetTotalByConceptoAndPeriod(nombreConcepto, correoFamilia string, inicio, fin time.Time, usuarioFiltro string) (float64, error) {
 	query := `SELECT COALESCE(SUM(m.monto), 0) as total
 	          FROM movimiento m
 	          WHERE m.nombreConcepto = ? 
 	            AND m.correoFamilia = ?
-	            AND m.fecha BETWEEN ? AND ?
+	            AND m.fecha >= ?
+	            AND m.fecha <= ?
 	            AND m.delete_at IS NULL`
 
 	args := []interface{}{nombreConcepto, correoFamilia, inicio, fin}
@@ -433,9 +442,12 @@ func (m *MovimientoModel) GetTotalByConceptoAndPeriod(nombreConcepto, correoFami
 	err := database.DB.QueryRow(query, args...).Scan(&total)
 	if err != nil {
 		log.Printf("❌ Error obteniendo total por concepto: %v", err)
+		log.Printf("   Concepto: %s, Inicio: %s, Fin: %s", nombreConcepto, inicio.Format("2006-01-02"), fin.Format("2006-01-02"))
 		return 0, err
 	}
 
+	log.Printf("📊 Total concepto %s: %.2f (período: %s a %s)",
+		nombreConcepto, total, inicio.Format("2006-01-02"), fin.Format("2006-01-02"))
 	return total, nil
 }
 

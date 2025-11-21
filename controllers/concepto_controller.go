@@ -243,6 +243,160 @@ func (c *ConceptoController) Crear(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/conceptos?success=concepto_creado&tipo="+validation.CleanData["tipo"].(string), http.StatusSeeOther)
 }
 
+func (c *ConceptoController) Editar(w http.ResponseWriter, r *http.Request) {
+	log.Printf("✏️ ConceptoController.Editar llamado - Método: %s", r.Method)
+
+	sessionData, ok := utils.GetSessionData(r)
+	if !ok {
+		log.Printf("❌ No hay sesión en Editar")
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	if r.Method == http.MethodGet {
+		// Mostrar formulario de edición
+		nombreConcepto := r.URL.Query().Get("nombre")
+		if nombreConcepto == "" {
+			log.Printf("❌ Nombre de concepto vacío")
+			http.Error(w, "Nombre de concepto requerido", http.StatusBadRequest)
+			return
+		}
+
+		// Obtener el concepto
+		concepto, err := models.ConceptoModelInstance.FindByNombre(nombreConcepto, sessionData.CorreoFamilia)
+		if err != nil || concepto == nil {
+			log.Printf("❌ Concepto no encontrado: %s", nombreConcepto)
+			http.Error(w, "Concepto no encontrado", http.StatusNotFound)
+			return
+		}
+
+		// Obtener todos los conceptos del mismo tipo para mostrar la lista
+		tipo := concepto.TipoNombre()
+		conceptos, _ := models.ConceptoModelInstance.FindByFamilia(sessionData.CorreoFamilia, tipo)
+		iconos := c.getIconosDisponibles()
+
+		// Encontrar el ID del ícono actual
+		idIconoActual := 15 // Por defecto "Otros"
+		for _, icono := range iconos {
+			if icono["Path"].(string) == *concepto.Icono {
+				idIconoActual = icono["ID"].(int)
+				break
+			}
+		}
+
+		data := map[string]interface{}{
+			"Title":            "Editar Concepto",
+			"CurrentPage":      "conceptos",
+			"SessionData":      sessionData,
+			"Tipo":             tipo,
+			"Conceptos":        conceptos,
+			"Iconos":           iconos,
+			"ValidationErrors": nil,
+			"ModoEdicion":      true,
+			"ConceptoEditar":   concepto,
+			"FormData": map[string]interface{}{
+				"Nombre":  concepto.NombreConcepto,
+				"IDIcono": idIconoActual,
+				"Color":   *concepto.Color,
+			},
+		}
+
+		utils.RenderTemplate(w, "dashboard", "concepto/conceptos", data)
+		return
+	}
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Procesar actualización
+	if err := r.ParseForm(); err != nil {
+		log.Printf("❌ Error parseando formulario: %v", err)
+		http.Error(w, "Error procesando solicitud", http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("📝 FORMULARIO EDICIÓN RECIBIDO:")
+	for key, values := range r.Form {
+		log.Printf("   %s: %v", key, values)
+	}
+
+	// Validar datos
+	validation := validators.ConceptoValidatorInstance.ValidateUpdate(r)
+	if !validation.Success {
+		log.Printf("❌ Validación fallida: %v", validation.Errors)
+		c.recargarEdicionConErrores(w, r, sessionData, validation.Errors, validation.CleanData)
+		return
+	}
+
+	nombreConcepto := validation.CleanData["nombre"].(string)
+
+	// Verificar que el concepto existe
+	concepto, err := models.ConceptoModelInstance.FindByNombre(nombreConcepto, sessionData.CorreoFamilia)
+	if err != nil || concepto == nil {
+		log.Printf("❌ Concepto no encontrado: %s", nombreConcepto)
+		http.Error(w, "Concepto no encontrado", http.StatusNotFound)
+		return
+	}
+
+	// Solo el creador puede editar
+	if concepto.NombreUsuario != sessionData.NombreUsuario && sessionData.Rol != 1 {
+		log.Printf("❌ Usuario %s no tiene permisos para editar concepto de %s",
+			sessionData.NombreUsuario, concepto.NombreUsuario)
+		http.Error(w, "No tienes permisos para editar este concepto", http.StatusForbidden)
+		return
+	}
+
+	// Actualizar ícono y color
+	idIcono := validation.CleanData["id_icono"].(int)
+	iconoNuevo := c.getIconoPorID(idIcono)
+	colorNuevo := validation.CleanData["color"].(string)
+
+	concepto.Icono = &iconoNuevo
+	concepto.Color = &colorNuevo
+
+	err = models.ConceptoModelInstance.UpdateIconoColor(concepto)
+	if err != nil {
+		log.Printf("❌ Error actualizando concepto: %v", err)
+		http.Error(w, "Error al actualizar el concepto", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("✅ Concepto actualizado exitosamente: %s", nombreConcepto)
+	http.Redirect(w, r, "/conceptos?tipo="+concepto.TipoNombre()+"&success=concepto_editado", http.StatusSeeOther)
+}
+
+// recargarEdicionConErrores recarga la página de edición con errores
+func (c *ConceptoController) recargarEdicionConErrores(w http.ResponseWriter, r *http.Request, sessionData *entities.SessionData, errors map[string]string, formData map[string]interface{}) {
+	nombreConcepto := formData["nombre"].(string)
+
+	concepto, _ := models.ConceptoModelInstance.FindByNombre(nombreConcepto, sessionData.CorreoFamilia)
+	if concepto == nil {
+		http.Error(w, "Concepto no encontrado", http.StatusNotFound)
+		return
+	}
+
+	tipo := concepto.TipoNombre()
+	conceptos, _ := models.ConceptoModelInstance.FindByFamilia(sessionData.CorreoFamilia, tipo)
+	iconos := c.getIconosDisponibles()
+
+	data := map[string]interface{}{
+		"Title":            "Editar Concepto",
+		"CurrentPage":      "conceptos",
+		"SessionData":      sessionData,
+		"Tipo":             tipo,
+		"Conceptos":        conceptos,
+		"Iconos":           iconos,
+		"ValidationErrors": errors,
+		"ModoEdicion":      true,
+		"ConceptoEditar":   concepto,
+		"FormData":         formData,
+	}
+
+	utils.RenderTemplate(w, "dashboard", "concepto/conceptos", data)
+}
+
 // recargarPaginaConErrores recarga la página mostrando errores de validación
 func (c *ConceptoController) recargarPaginaConErrores(w http.ResponseWriter, r *http.Request, sessionData *entities.SessionData, errors map[string]string, formData map[string]interface{}) {
 	log.Printf("🔄 Recargando página con errores: %v", errors)

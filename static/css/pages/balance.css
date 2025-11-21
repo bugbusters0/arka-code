@@ -631,3 +631,80 @@
     flex: 1;
   }
 }
+
+/* Selector de Período */
+.periodo-selector {
+  background: var(--bg-white);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 24px;
+  display: flex;
+  gap: 20px;
+  align-items: end;
+  flex-wrap: wrap;
+}
+
+.periodo-select {
+  padding: 10px 16px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-white);
+  color: var(--text-dark);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  min-width: 180px;
+}
+
+.periodo-select:focus {
+  border-color: var(--primary);
+  outline: none;
+}
+
+.periodo-input {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.periodo-input input[type="month"],
+.periodo-input input[type="date"] {
+  padding: 10px 16px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-white);
+  color: var(--text-dark);
+  font-weight: 600;
+  font-size: 14px;
+  min-width: 150px;
+}
+
+.periodo-input input:focus {
+  border-color: var(--primary);
+  outline: none;
+}
+
+.periodo-input span {
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .periodo-selector {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+  
+  .periodo-input {
+    justify-content: center;
+  }
+  
+  .periodo-input input[type="month"],
+  .periodo-input input[type="date"] {
+    flex: 1;
+  }
+}
