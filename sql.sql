@@ -7,8 +7,8 @@
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
-CREATE DATABASE IF NOT EXISTS arka_go;
-USE arka_go;
+CREATE DATABASE IF NOT EXISTS arka;
+USE arka;
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;

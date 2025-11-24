@@ -24,10 +24,10 @@ func LoadConfig() {
 		DBHost:     getEnv("DB_HOST", "localhost"),
 		DBPort:     getEnv("DB_PORT", "3306"),
 		DBUser:     getEnv("DB_USER", "root"),
-		DBPassword: getEnv("DB_PASSWORD", "root"),
-		DBName:     getEnv("DB_NAME", "arka_go"),
+		DBPassword: getEnv("DB_PASSWORD", ""),
+		DBName: getEnv("DB_NAME", "arka"),
 		SessionKey: getEnv("SESSION_KEY", "mi-clave-secreta"),
-		DBSocket:   getEnv("DB_SOCKET", "/var/run/mysqld/mysqld.sock"), // Socket por defecto
+		DBSocket: getEnv("DB_SOCKET", ""), // Socket por defecto
 	}
 
 	log.Printf("✅ Configuración cargada - DB: %s@%s", AppConfig.DBUser, AppConfig.DBSocket)

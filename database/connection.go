@@ -14,12 +14,14 @@ var DB *sql.DB
 func Connect() {
 	cfg := config.AppConfig
 
-	// Usar socket Unix en lugar de TCP
-	dsn := fmt.Sprintf("%s:%s@unix(%s)/%s?parseTime=true",
+	// Conexión TCP para Windows / XAMPP
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true&charset=utf8mb4&loc=Local",
 		cfg.DBUser,
 		cfg.DBPassword,
-		"/var/run/mysqld/mysqld.sock", // Socket path
-		cfg.DBName)
+		cfg.DBHost,
+		cfg.DBPort,
+		cfg.DBName,
+	)
 
 	var err error
 	DB, err = sql.Open("mysql", dsn)
@@ -31,7 +33,7 @@ func Connect() {
 		log.Fatal("Error al hacer ping a la base de datos:", err)
 	}
 
-	log.Println("✓ Conexión exitosa a MySQL via socket")
+	log.Println("✓ Conexión exitosa a MySQL por TCP")
 }
 
 func Close() {
