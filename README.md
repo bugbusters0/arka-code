@@ -133,7 +133,7 @@ FLUSH PRIVILEGES;
 EXIT;
 
 # Importar estructura
-mysql -u root -p arka < sql.sql
+mysql -u root -p arka < tablas_SQL_Arka.sql
 ```
 
 4. **Configurar variables de entorno**
