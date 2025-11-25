@@ -23,24 +23,29 @@ var ConceptoModelInstance = &ConceptoModel{}
 // - Registra número de filas afectadas para verificación
 // Uso: Creación de nuevos conceptos de gastos/ingresos
 func (m *ConceptoModel) Create(concepto *entities.Concepto) error {
-	query := `INSERT INTO concepto (nombreConcepto, correoFamilia, tipo, icono, color, nombreUsuario)
-	          VALUES (?, ?, ?, ?, ?, ?)`
+	query := `CALL sp_create_concepto(?, ?, ?, ?, ?, ?)`
 
-	result, err := database.DB.Exec(query,
+	var rowsAffected int64
+	var idConcepto int64
+
+	err := database.DB.QueryRow(query,
 		concepto.NombreConcepto,
 		concepto.CorreoFamilia,
 		concepto.Tipo,
 		concepto.Icono,
 		concepto.Color,
-		concepto.NombreUsuario)
+		concepto.NombreUsuario).Scan(&rowsAffected, &idConcepto)
 
 	if err != nil {
-		log.Printf("❌ Error en consulta INSERT concepto: %v", err)
+		log.Printf("❌ Error al ejecutar sp_create_concepto: %v", err)
 		return err
 	}
 
-	rowsAffected, _ := result.RowsAffected()
-	log.Printf("✅ Concepto creado - Filas afectadas: %d", rowsAffected)
+	log.Printf("✅ Concepto creado - ID: %d, Filas afectadas: %d", idConcepto, rowsAffected)
+	
+	// Opcional: asignar el ID generado al objeto concepto
+	// concepto.ID = int(idConcepto)
+	
 	return nil
 }
 
@@ -63,19 +68,11 @@ func (m *ConceptoModel) FindByFamilia(correoFamilia string, tipo string) ([]enti
 		tipoInt = 0
 	}
 
-	// ✅ CORREGIDO: JOIN con personalizacionconcepto para obtener el estado activo
-	query := `SELECT c.nombreConcepto, c.correoFamilia, c.tipo, c.icono, c.color, c.nombreUsuario,
-                     COALESCE(pc.activo, 1) as activo, c.delete_at
-              FROM concepto c
-              LEFT JOIN personalizacionconcepto pc ON c.nombreConcepto = pc.nombreConcepto 
-                                                   AND c.correoFamilia = pc.correoFamilia 
-                                                   AND pc.nombreUsuario = c.nombreUsuario
-              WHERE c.correoFamilia = ? AND c.tipo = ? AND c.delete_at IS NULL
-              ORDER BY c.nombreConcepto`
+	query := `CALL sp_find_conceptos_by_familia(?, ?)`
 
 	rows, err := database.DB.Query(query, correoFamilia, tipoInt)
 	if err != nil {
-		log.Printf("❌ Error en FindByFamilia: %v", err)
+		log.Printf("❌ Error al ejecutar sp_find_conceptos_by_familia: %v", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -100,7 +97,7 @@ func (m *ConceptoModel) FindByFamilia(correoFamilia string, tipo string) ([]enti
 		conceptos = append(conceptos, concepto)
 	}
 
-	log.Printf("📋 Conceptos encontrados: %d (tipo: %s)", len(conceptos), tipo)
+	log.Printf("📋 Conceptos encontrados: %d (tipo: %s, correo: %s)", len(conceptos), tipo, correoFamilia)
 	return conceptos, nil
 }
 
@@ -114,23 +111,28 @@ func (m *ConceptoModel) FindByFamilia(correoFamilia string, tipo string) ([]enti
 // - No permite cambiar nombre o tipo del concepto
 // Uso: Personalización visual de conceptos existentes
 func (m *ConceptoModel) UpdateIconoColor(concepto *entities.Concepto) error {
-	query := `UPDATE concepto 
-	          SET icono = ?, color = ?
-	          WHERE nombreConcepto = ? AND correoFamilia = ? AND delete_at IS NULL`
+	query := `CALL sp_update_concepto_icono_color(?, ?, ?, ?)`
 
-	result, err := database.DB.Exec(query,
+	var rowsAffected int64
+
+	err := database.DB.QueryRow(query,
 		concepto.Icono,
 		concepto.Color,
 		concepto.NombreConcepto,
-		concepto.CorreoFamilia)
+		concepto.CorreoFamilia).Scan(&rowsAffected)
 
 	if err != nil {
-		log.Printf("❌ Error actualizando concepto: %v", err)
+		log.Printf("❌ Error al ejecutar sp_update_concepto_icono_color: %v", err)
 		return err
 	}
 
-	rowsAffected, _ := result.RowsAffected()
-	log.Printf("✅ Concepto actualizado - Filas afectadas: %d", rowsAffected)
+	if rowsAffected == 0 {
+		log.Printf("⚠️ No se encontró el concepto o ya fue eliminado - Nombre: %s, Familia: %s", 
+			concepto.NombreConcepto, concepto.CorreoFamilia)
+	} else {
+		log.Printf("✅ Concepto actualizado - Filas afectadas: %d", rowsAffected)
+	}
+
 	return nil
 }
 
@@ -144,13 +146,11 @@ func (m *ConceptoModel) UpdateIconoColor(concepto *entities.Concepto) error {
 // - Ordena alfabéticamente por nombre
 // Uso: Reportes generales, estadísticas familiares
 func (m *ConceptoModel) FindAllByFamilia(correoFamilia string) ([]entities.Concepto, error) {
-	query := `SELECT nombreConcepto, correoFamilia, tipo, icono, color, nombreUsuario, delete_at
-              FROM concepto 
-              WHERE correoFamilia = ? AND delete_at IS NULL
-              ORDER BY nombreConcepto`
+	query := `CALL sp_find_all_conceptos_by_familia(?)`
 
 	rows, err := database.DB.Query(query, correoFamilia)
 	if err != nil {
+		log.Printf("❌ Error al ejecutar sp_find_all_conceptos_by_familia: %v", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -168,14 +168,15 @@ func (m *ConceptoModel) FindAllByFamilia(correoFamilia string) ([]entities.Conce
 			&concepto.DeleteAt,
 		)
 		if err != nil {
+			log.Printf("❌ Error escaneando concepto: %v", err)
 			return nil, err
 		}
 		conceptos = append(conceptos, concepto)
 	}
 
+	log.Printf("📋 Total de conceptos encontrados para familia '%s': %d", correoFamilia, len(conceptos))
 	return conceptos, nil
 }
-
 // FindByNombre busca un concepto específico por nombre y familia
 // Parámetros:
 // - nombreConcepto: Nombre del concepto a buscar
@@ -187,9 +188,7 @@ func (m *ConceptoModel) FindAllByFamilia(correoFamilia string) ([]entities.Conce
 // - Retorna sql.ErrNoRows si no se encuentra
 // Uso: Verificación de existencia, operaciones de edición
 func (m *ConceptoModel) FindByNombre(nombreConcepto, correoFamilia string) (*entities.Concepto, error) {
-	query := `SELECT nombreConcepto, correoFamilia, tipo, icono, color, nombreUsuario, delete_at
-	          FROM concepto 
-	          WHERE nombreConcepto = ? AND correoFamilia = ? AND delete_at IS NULL`
+	query := `CALL sp_find_concepto_by_nombre(?, ?)`
 
 	concepto := &entities.Concepto{}
 	err := database.DB.QueryRow(query, nombreConcepto, correoFamilia).Scan(
@@ -203,10 +202,17 @@ func (m *ConceptoModel) FindByNombre(nombreConcepto, correoFamilia string) (*ent
 	)
 
 	if err == sql.ErrNoRows {
+		log.Printf("ℹ️ Concepto no encontrado - Nombre: %s, Familia: %s", nombreConcepto, correoFamilia)
 		return nil, nil
 	}
 
-	return concepto, err
+	if err != nil {
+		log.Printf("❌ Error al ejecutar sp_find_concepto_by_nombre: %v", err)
+		return nil, err
+	}
+
+	log.Printf("✅ Concepto encontrado - Nombre: %s, Familia: %s", nombreConcepto, correoFamilia)
+	return concepto, nil
 }
 
 // Exists verifica si un concepto ya existe para una familia específica
@@ -219,16 +225,20 @@ func (m *ConceptoModel) FindByNombre(nombreConcepto, correoFamilia string) (*ent
 // - Excluye conceptos eliminados (soft delete)
 // Uso: Validación antes de crear nuevos conceptos, evitar duplicados
 func (m *ConceptoModel) Exists(nombreConcepto, correoFamilia string) (bool, error) {
-	query := `SELECT COUNT(*) FROM concepto 
-	          WHERE nombreConcepto = ? AND correoFamilia = ? AND delete_at IS NULL`
+	query := `CALL sp_concepto_exists(?, ?)`
 
 	var count int
 	err := database.DB.QueryRow(query, nombreConcepto, correoFamilia).Scan(&count)
 	if err != nil {
+		log.Printf("❌ Error al ejecutar sp_concepto_exists: %v", err)
 		return false, err
 	}
 
-	return count > 0, nil
+	exists := count > 0
+	log.Printf("🔍 Verificación de existencia - Concepto: %s, Familia: %s, Existe: %v", 
+		nombreConcepto, correoFamilia, exists)
+	
+	return exists, nil
 }
 
 // CreatePersonalizacion crea una configuración personalizada para un usuario y concepto
@@ -241,13 +251,12 @@ func (m *ConceptoModel) Exists(nombreConcepto, correoFamilia string) (bool, erro
 // - Registra datos para debugging en caso de error
 // Uso: Configuración individual de conceptos por usuario
 func (m *ConceptoModel) CreatePersonalizacion(personalizacion map[string]interface{}) error {
-	query := `INSERT INTO personalizacionconcepto 
-              (limiteGasto, activo, montoPlanificado, tipoPeriodoPlanificado, 
-               tipoPeriodoLimite, diaPeriodoPlanificado, diaPeriodoLimite, notificacion,
-               nombreUsuario, nombreConcepto, correoFamilia)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	query := `CALL sp_create_personalizacion(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
-	result, err := database.DB.Exec(query,
+	var rowsAffected int64
+	var idPersonalizacion int64
+
+	err := database.DB.QueryRow(query,
 		personalizacion["limiteGasto"],
 		personalizacion["activo"],
 		personalizacion["montoPlanificado"],
@@ -258,17 +267,16 @@ func (m *ConceptoModel) CreatePersonalizacion(personalizacion map[string]interfa
 		personalizacion["notificacion"],
 		personalizacion["nombreUsuario"],
 		personalizacion["nombreConcepto"],
-		personalizacion["correoFamilia"])
+		personalizacion["correoFamilia"]).Scan(&rowsAffected, &idPersonalizacion)
 
 	if err != nil {
-		log.Printf("❌ Error en consulta INSERT personalizacion: %v", err)
+		log.Printf("❌ Error al ejecutar sp_create_personalizacion: %v", err)
 		log.Printf("   Datos: %+v", personalizacion)
 		return err
 	}
 
-	rowsAffected, _ := result.RowsAffected()
-	log.Printf("✅ Personalización creada para %s - Filas afectadas: %d",
-		personalizacion["nombreUsuario"], rowsAffected)
+	log.Printf("✅ Personalización creada para %s - ID: %d, Filas afectadas: %d",
+		personalizacion["nombreUsuario"], idPersonalizacion, rowsAffected)
 
 	return nil
 }
@@ -283,12 +291,11 @@ func (m *ConceptoModel) CreatePersonalizacion(personalizacion map[string]interfa
 // - Incluye todos los campos de usuario excepto contraseña
 // Uso: Operaciones masivas sobre usuarios familiares
 func (m *ConceptoModel) GetUsuariosByFamilia(correoFamilia string) ([]entities.Usuario, error) {
-	query := `SELECT nombreUsuario, rol, contraseñaPersonal, nombrePersonal, correoFamilia, delete_at
-	          FROM usuario 
-	          WHERE correoFamilia = ? AND delete_at IS NULL`
+	query := `CALL sp_get_usuarios_by_familia(?)`
 
 	rows, err := database.DB.Query(query, correoFamilia)
 	if err != nil {
+		log.Printf("❌ Error al ejecutar sp_get_usuarios_by_familia: %v", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -305,12 +312,13 @@ func (m *ConceptoModel) GetUsuariosByFamilia(correoFamilia string) ([]entities.U
 			&usuario.DeleteAt,
 		)
 		if err != nil {
+			log.Printf("❌ Error escaneando usuario: %v", err)
 			return nil, err
 		}
 		usuarios = append(usuarios, usuario)
 	}
 
-	log.Printf("👥 Usuarios encontrados en la familia: %d", len(usuarios))
+	log.Printf("👥 Usuarios encontrados en la familia '%s': %d", correoFamilia, len(usuarios))
 	return usuarios, nil
 }
 
@@ -327,77 +335,62 @@ func (m *ConceptoModel) GetUsuariosByFamilia(correoFamilia string) ([]entities.U
 // 4. Registra estadísticas de éxito/error
 // Uso: Configuración masiva al crear nuevos conceptos
 func (m *ConceptoModel) CreatePersonalizacionesForAllUsuarios(nombreConcepto, correoFamilia string, datosPersonalizacion map[string]interface{}) error {
-	// Obtener todos los usuarios de la familia
-	usuarios, err := m.GetUsuariosByFamilia(correoFamilia)
+	query := `CALL sp_create_personalizaciones_all_usuarios(?, ?, ?, ?, ?, ?, ?, ?)`
+
+	// Convertir y manejar valores nulos correctamente
+	var limiteGasto interface{} = nil
+	if limite, ok := datosPersonalizacion["limite_monto"].(float64); ok && limite > 0 {
+		limiteGasto = limite
+	}
+
+	var montoPlanificado interface{} = nil
+	if desembolso, ok := datosPersonalizacion["desembolso_planejado"].(float64); ok && desembolso > 0 {
+		montoPlanificado = desembolso
+	}
+
+	var diaDesembolsoPlanejado interface{} = nil
+	if diaDesembolso, ok := datosPersonalizacion["dia_desembolso_planejado"].(int8); ok && diaDesembolso > 0 {
+		diaDesembolsoPlanejado = diaDesembolso
+	}
+
+	var diaPeriodoLimite interface{} = nil
+	if diaLimiteTipo, ok := datosPersonalizacion["dia_limite_tipo"].(int8); ok && diaLimiteTipo > 0 {
+		diaPeriodoLimite = diaLimiteTipo
+	}
+
+	var tipoPeriodoPlanificado interface{} = nil
+	if periodo, ok := datosPersonalizacion["periodo_tipo"].(string); ok && periodo != "" {
+		tipoPeriodoPlanificado = periodo
+	}
+
+	var tipoPeriodoLimite interface{} = nil
+	if limiteTipo, ok := datosPersonalizacion["limite_tipo"].(string); ok && limiteTipo != "" {
+		tipoPeriodoLimite = limiteTipo
+	}
+
+	var usuariosTotal, usuariosCreados, usuariosError int
+
+	err := database.DB.QueryRow(query,
+		nombreConcepto,
+		correoFamilia,
+		limiteGasto,
+		montoPlanificado,
+		tipoPeriodoPlanificado,
+		tipoPeriodoLimite,
+		diaDesembolsoPlanejado,
+		diaPeriodoLimite).Scan(&usuariosTotal, &usuariosCreados, &usuariosError)
+
 	if err != nil {
-		log.Printf("❌ Error obteniendo usuarios de la familia: %v", err)
+		log.Printf("❌ Error al ejecutar sp_create_personalizaciones_all_usuarios: %v", err)
 		return err
 	}
 
-	log.Printf("👥 Creando personalizaciones para %d usuarios", len(usuarios))
-
-	usuariosConPersonalizacion := 0
-	usuariosConError := 0
-
-	// Crear personalización para cada usuario
-	for _, usuario := range usuarios {
-		// Convertir y manejar valores nulos correctamente
-		var limiteGasto interface{} = nil
-		if limite, ok := datosPersonalizacion["limite_monto"].(float64); ok && limite > 0 {
-			limiteGasto = limite
-		}
-
-		var montoPlanificado interface{} = nil
-		if desembolso, ok := datosPersonalizacion["desembolso_planejado"].(float64); ok && desembolso > 0 {
-			montoPlanificado = desembolso
-		}
-		var diaDesembolsoPlanejado interface{} = nil
-		if diaDesembolso, ok := datosPersonalizacion["dia_desembolso_planejado"].(int8); ok && diaDesembolso > 0 {
-			diaDesembolsoPlanejado = diaDesembolso
-		}
-		var diaPeriodoLimite interface{} = nil
-		if diaLimiteTipo, ok := datosPersonalizacion["dia_limite_tipo"].(int8); ok && diaLimiteTipo > 0 {
-			diaPeriodoLimite = diaLimiteTipo
-		}
-
-		var tipoPeriodoPlanificado interface{} = nil
-		if periodo, ok := datosPersonalizacion["periodo_tipo"].(string); ok && periodo != "" {
-			tipoPeriodoPlanificado = periodo
-		}
-
-		var tipoPeriodoLimite interface{} = nil
-		if limiteTipo, ok := datosPersonalizacion["limite_tipo"].(string); ok && limiteTipo != "" {
-			tipoPeriodoLimite = limiteTipo
-		}
-
-		personalizacion := map[string]interface{}{
-			"limiteGasto":            limiteGasto,
-			"activo":                 true,
-			"montoPlanificado":       montoPlanificado,
-			"tipoPeriodoPlanificado": tipoPeriodoPlanificado,
-			"tipoPeriodoLimite":      tipoPeriodoLimite,
-			"diaPeriodoPlanificado":  diaDesembolsoPlanejado, // Por ahora siempre nil
-			"diaPeriodoLimite":       diaPeriodoLimite,       // Por ahora siempre nil
-			"notificacion":           false,                  // Por defecto false
-			"nombreUsuario":          usuario.NombreUsuario,
-			"nombreConcepto":         nombreConcepto,
-			"correoFamilia":          correoFamilia,
-		}
-
-		err := m.CreatePersonalizacion(personalizacion)
-		if err != nil {
-			log.Printf("❌ Error creando personalización para usuario %s: %v", usuario.NombreUsuario, err)
-			usuariosConError++
-			continue
-		}
-		usuariosConPersonalizacion++
-	}
-
+	log.Printf("👥 Creando personalizaciones para %d usuarios", usuariosTotal)
 	log.Printf("✅ Personalizaciones creadas: %d/%d usuarios (errores: %d)",
-		usuariosConPersonalizacion, len(usuarios), usuariosConError)
+		usuariosCreados, usuariosTotal, usuariosError)
 
-	if usuariosConError > 0 {
-		return fmt.Errorf("algunas personalizaciones fallaron: %d errores", usuariosConError)
+	if usuariosError > 0 {
+		return fmt.Errorf("algunas personalizaciones fallaron: %d errores", usuariosError)
 	}
 
 	return nil
@@ -414,13 +407,11 @@ func (m *ConceptoModel) CreatePersonalizacionesForAllUsuarios(nombreConcepto, co
 // - Excluye personalizaciones eliminadas
 // Uso: Reportes de configuración, auditoría de conceptos
 func (m *ConceptoModel) GetPersonalizacionesByConcepto(nombreConcepto, correoFamilia string) ([]map[string]interface{}, error) {
-	query := `SELECT idPersonalizacion, nombreUsuario, limiteGasto, montoPlanificado, 
-                     tipoPeriodoPlanificado, tipoPeriodoLimite
-              FROM personalizacionconcepto 
-              WHERE nombreConcepto = ? AND correoFamilia = ? AND delete_at IS NULL`
+	query := `CALL sp_get_personalizaciones_by_concepto(?, ?)`
 
 	rows, err := database.DB.Query(query, nombreConcepto, correoFamilia)
 	if err != nil {
+		log.Printf("❌ Error al ejecutar sp_get_personalizaciones_by_concepto: %v", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -435,6 +426,7 @@ func (m *ConceptoModel) GetPersonalizacionesByConcepto(nombreConcepto, correoFam
 		err := rows.Scan(&idPersonalizacion, &nombreUsuario, &limiteGasto, &montoPlanificado,
 			&tipoPeriodoPlanificado, &tipoPeriodoLimite)
 		if err != nil {
+			log.Printf("❌ Error escaneando personalización: %v", err)
 			return nil, err
 		}
 
@@ -449,6 +441,7 @@ func (m *ConceptoModel) GetPersonalizacionesByConcepto(nombreConcepto, correoFam
 		personalizaciones = append(personalizaciones, personalizacion)
 	}
 
+	log.Printf("📋 Personalizaciones encontradas para concepto '%s': %d", nombreConcepto, len(personalizaciones))
 	return personalizaciones, nil
 }
 
@@ -461,19 +454,30 @@ func (m *ConceptoModel) GetPersonalizacionesByConcepto(nombreConcepto, correoFam
 // - Cuenta conceptos no eliminados
 // Uso: Estadísticas familiares, dashboards administrativos
 func (m *ConceptoModel) GetCountByTipo(correoFamilia string) (int, int, error) {
-	query := `SELECT 
-	          SUM(CASE WHEN tipo = 0 THEN 1 ELSE 0 END) as gastos,
-	          SUM(CASE WHEN tipo = 1 THEN 1 ELSE 0 END) as ingresos
-	          FROM concepto 
-	          WHERE correoFamilia = ? AND delete_at IS NULL`
+	query := `CALL sp_get_count_by_tipo(?)`
 
-	var gastos, ingresos int
+	var gastos, ingresos sql.NullInt64
 	err := database.DB.QueryRow(query, correoFamilia).Scan(&gastos, &ingresos)
 	if err != nil {
+		log.Printf("❌ Error al ejecutar sp_get_count_by_tipo: %v", err)
 		return 0, 0, err
 	}
 
-	return gastos, ingresos, nil
+	// Convertir NULL a 0
+	gastosVal := int(0)
+	if gastos.Valid {
+		gastosVal = int(gastos.Int64)
+	}
+
+	ingresosVal := int(0)
+	if ingresos.Valid {
+		ingresosVal = int(ingresos.Int64)
+	}
+
+	log.Printf("📊 Estadísticas familia '%s' - Gastos: %d, Ingresos: %d", 
+		correoFamilia, gastosVal, ingresosVal)
+
+	return gastosVal, ingresosVal, nil
 }
 
 // FindByFamiliaActivos busca conceptos activos para un usuario específico
@@ -495,17 +499,11 @@ func (m *ConceptoModel) FindByFamiliaActivos(correoFamilia, nombreUsuario, tipo 
 		tipoInt = 0
 	}
 
-	query := `SELECT c.nombreConcepto, c.correoFamilia, c.tipo, c.icono, c.color, c.nombreUsuario, 
-	                 COALESCE(pc.activo, true) as activo, c.delete_at
-              FROM concepto c
-              LEFT JOIN personalizacionconcepto pc ON c.nombreConcepto = pc.nombreConcepto 
-                                                   AND c.correoFamilia = pc.correoFamilia 
-                                                   AND pc.nombreUsuario = ?
-              WHERE c.correoFamilia = ? AND c.tipo = ? AND c.delete_at IS NULL
-              ORDER BY c.nombreConcepto`
+	query := `CALL sp_find_conceptos_by_familia_activos(?, ?, ?)`
 
-	rows, err := database.DB.Query(query, nombreUsuario, correoFamilia, tipoInt)
+	rows, err := database.DB.Query(query, correoFamilia, nombreUsuario, tipoInt)
 	if err != nil {
+		log.Printf("❌ Error al ejecutar sp_find_conceptos_by_familia_activos: %v", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -524,11 +522,14 @@ func (m *ConceptoModel) FindByFamiliaActivos(correoFamilia, nombreUsuario, tipo 
 			&concepto.DeleteAt,
 		)
 		if err != nil {
+			log.Printf("❌ Error escaneando concepto: %v", err)
 			return nil, err
 		}
 		conceptos = append(conceptos, concepto)
 	}
 
+	log.Printf("📋 Conceptos activos encontrados para usuario '%s' (tipo: %s): %d", 
+		nombreUsuario, tipo, len(conceptos))
 	return conceptos, nil
 }
 
@@ -542,25 +543,30 @@ func (m *ConceptoModel) FindByFamiliaActivos(correoFamilia, nombreUsuario, tipo 
 // - Filtra por nombreConcepto, correoFamilia y nombreUsuario
 // Uso: Edición de conceptos propios
 func (m *ConceptoModel) Update(concepto *entities.Concepto) error {
-	query := `UPDATE concepto 
-	          SET icono = ?, color = ?, nombreUsuario = ?
-	          WHERE nombreConcepto = ? AND correoFamilia = ? AND nombreUsuario = ?`
+	query := `CALL sp_update_concepto(?, ?, ?, ?, ?)`
 
-	result, err := database.DB.Exec(query,
+	var rowsAffected int64
+
+	err := database.DB.QueryRow(query,
 		concepto.Icono,
 		concepto.Color,
 		concepto.NombreUsuario,
 		concepto.NombreConcepto,
-		concepto.CorreoFamilia,
-		concepto.NombreUsuario)
+		concepto.CorreoFamilia).Scan(&rowsAffected)
 
 	if err != nil {
-		log.Printf("❌ Error actualizando concepto: %v", err)
+		log.Printf("❌ Error al ejecutar sp_update_concepto: %v", err)
 		return err
 	}
 
-	rowsAffected, _ := result.RowsAffected()
-	log.Printf("✅ Concepto actualizado - Filas afectadas: %d", rowsAffected)
+	if rowsAffected == 0 {
+		log.Printf("⚠️ Concepto no encontrado o no pertenece al usuario - Concepto: %s, Usuario: %s", 
+			concepto.NombreConcepto, concepto.NombreUsuario)
+	} else {
+		log.Printf("✅ Concepto actualizado - Concepto: %s, Filas afectadas: %d", 
+			concepto.NombreConcepto, rowsAffected)
+	}
+
 	return nil
 }
 
@@ -576,44 +582,28 @@ func (m *ConceptoModel) Update(concepto *entities.Concepto) error {
 // 3. Si existe, cambia el estado activo (NOT activo)
 // Uso: Habilitar/deshabilitar conceptos individualmente por usuario
 func (m *ConceptoModel) ToggleActivo(nombreConcepto, correoFamilia, nombreUsuario string) error {
-	// Primero verificar si existe la personalización
-	queryCheck := `SELECT idPersonalizacion FROM personalizacionconcepto 
-	               WHERE nombreConcepto = ? AND correoFamilia = ? AND nombreUsuario = ?`
+	query := `CALL sp_toggle_activo_concepto(?, ?, ?)`
 
-	var idPersonalizacion int
-	err := database.DB.QueryRow(queryCheck, nombreConcepto, correoFamilia, nombreUsuario).Scan(&idPersonalizacion)
+	var accion string
+	var nuevoEstado bool
+	var rowsAffected int64
 
-	if err == sql.ErrNoRows {
-		// No existe personalización, crear una con activo = false
-		queryInsert := `INSERT INTO personalizacionconcepto 
-		               (limiteGasto, activo, montoPlanificado, tipoPeriodoPlanificado, 
-		                tipoPeriodoLimite, diaPeriodoPlanificado, notificacion,
-		                nombreUsuario, nombreConcepto, correoFamilia)
-		               VALUES (NULL, false, NULL, NULL, NULL, NULL, false, ?, ?, ?)`
+	err := database.DB.QueryRow(query, nombreConcepto, correoFamilia, nombreUsuario).
+		Scan(&accion, &nuevoEstado, &rowsAffected)
 
-		_, err = database.DB.Exec(queryInsert, nombreUsuario, nombreConcepto, correoFamilia)
-		if err != nil {
-			return err
-		}
-		log.Printf("✅ Personalización creada como inactiva para usuario %s", nombreUsuario)
-		return nil
-	} else if err != nil {
-		return err
-	}
-
-	// Ya existe personalización, cambiar el estado activo
-	queryUpdate := `UPDATE personalizacionconcepto 
-	               SET activo = NOT activo 
-	               WHERE nombreConcepto = ? AND correoFamilia = ? AND nombreUsuario = ?`
-
-	result, err := database.DB.Exec(queryUpdate, nombreConcepto, correoFamilia, nombreUsuario)
 	if err != nil {
-		log.Printf("❌ Error cambiando estado activo: %v", err)
+		log.Printf("❌ Error al ejecutar sp_toggle_activo_concepto: %v", err)
 		return err
 	}
 
-	rowsAffected, _ := result.RowsAffected()
-	log.Printf("✅ Estado activo cambiado - Filas afectadas: %d", rowsAffected)
+	if accion == "created" {
+		log.Printf("✅ Personalización creada como inactiva - Usuario: %s, Concepto: %s", 
+			nombreUsuario, nombreConcepto)
+	} else {
+		log.Printf("✅ Estado activo cambiado - Usuario: %s, Concepto: %s, Nuevo estado: %v, Filas: %d", 
+			nombreUsuario, nombreConcepto, nuevoEstado, rowsAffected)
+	}
+
 	return nil
 }
 
@@ -629,19 +619,27 @@ func (m *ConceptoModel) ToggleActivo(nombreConcepto, correoFamilia, nombreUsuari
 // - Usa COALESCE para manejar valores nulos
 // Uso: Verificar disponibilidad de conceptos para usuarios
 func (m *ConceptoModel) GetEstadoActivo(nombreConcepto, correoFamilia, nombreUsuario string) (bool, error) {
-	query := `SELECT COALESCE(activo, true) as activo
-	          FROM personalizacionconcepto 
-	          WHERE nombreConcepto = ? AND correoFamilia = ? AND nombreUsuario = ?`
+	query := `CALL sp_get_estado_activo_concepto(?, ?, ?)`
 
 	var activo bool
 	err := database.DB.QueryRow(query, nombreConcepto, correoFamilia, nombreUsuario).Scan(&activo)
 
 	if err == sql.ErrNoRows {
 		// Si no existe personalización, el concepto está activo por defecto
+		log.Printf("ℹ️ No existe personalización, concepto activo por defecto - Usuario: %s, Concepto: %s", 
+			nombreUsuario, nombreConcepto)
 		return true, nil
 	}
 
-	return activo, err
+	if err != nil {
+		log.Printf("❌ Error al ejecutar sp_get_estado_activo_concepto: %v", err)
+		return false, err
+	}
+
+	log.Printf("🔍 Estado activo consultado - Usuario: %s, Concepto: %s, Activo: %v", 
+		nombreUsuario, nombreConcepto, activo)
+
+	return activo, nil
 }
 
 // ActualizarNombreEnPersonalizaciones actualiza el nombre de concepto en todas las personalizaciones
@@ -655,17 +653,19 @@ func (m *ConceptoModel) GetEstadoActivo(nombreConcepto, correoFamilia, nombreUsu
 // - Mantiene la relación entre personalizaciones y el concepto renombrado
 // Uso: Sincronización al renombrar conceptos
 func (m *ConceptoModel) ActualizarNombreEnPersonalizaciones(nombreViejo, nombreNuevo, correoFamilia string) error {
-	query := `UPDATE personalizacionconcepto 
-	          SET nombreConcepto = ?
-	          WHERE nombreConcepto = ? AND correoFamilia = ?`
+	query := `CALL sp_actualizar_nombre_personalizaciones(?, ?, ?)`
 
-	result, err := database.DB.Exec(query, nombreNuevo, nombreViejo, correoFamilia)
+	var rowsAffected int64
+
+	err := database.DB.QueryRow(query, nombreViejo, nombreNuevo, correoFamilia).Scan(&rowsAffected)
 	if err != nil {
+		log.Printf("❌ Error al ejecutar sp_actualizar_nombre_personalizaciones: %v", err)
 		return err
 	}
 
-	rowsAffected, _ := result.RowsAffected()
-	log.Printf("✅ Nombre actualizado en personalizaciones - Filas afectadas: %d", rowsAffected)
+	log.Printf("✅ Nombre actualizado en personalizaciones - '%s' → '%s', Filas afectadas: %d", 
+		nombreViejo, nombreNuevo, rowsAffected)
+
 	return nil
 }
 
@@ -682,42 +682,23 @@ func (m *ConceptoModel) ActualizarNombreEnPersonalizaciones(nombreViejo, nombreN
 // Uso: Deshabilitación completa de conceptos a nivel familiar
 
 func (m *ConceptoModel) Deshabilitar(nombreConcepto, correoFamilia string) error {
-	// Iniciar transacción para asegurar consistencia
-	tx, err := database.DB.Begin()
+	query := `CALL sp_deshabilitar_concepto(?, ?)`
+
+	var conceptoRows, personalizacionesRows int
+	var estado string
+
+	err := database.DB.QueryRow(query, nombreConcepto, correoFamilia).
+		Scan(&conceptoRows, &personalizacionesRows, &estado)
+
 	if err != nil {
+		log.Printf("❌ Error al ejecutar sp_deshabilitar_concepto: %v", err)
 		return err
 	}
 
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-		}
-	}()
+	log.Printf("✅ Concepto deshabilitado: '%s' para familia '%s'", nombreConcepto, correoFamilia)
+	log.Printf("   📊 Concepto: %d fila(s), Personalizaciones: %d fila(s)", 
+		conceptoRows, personalizacionesRows)
 
-	// 1. Desactivar el concepto en la tabla concepto (soft delete)
-	queryConcepto := `UPDATE concepto SET activo = 0 WHERE nombreConcepto = ? AND correoFamilia = ?`
-	_, err = tx.Exec(queryConcepto, nombreConcepto, correoFamilia)
-	if err != nil {
-		log.Printf("❌ Error desactivando concepto: %v", err)
-		return err
-	}
-
-	// 2. Desactivar todas las personalizaciones del concepto
-	queryPersonalizaciones := `UPDATE personalizacionconcepto SET activo = 0 
-                              WHERE nombreConcepto = ? AND correoFamilia = ?`
-	_, err = tx.Exec(queryPersonalizaciones, nombreConcepto, correoFamilia)
-	if err != nil {
-		log.Printf("❌ Error desactivando personalizaciones: %v", err)
-		return err
-	}
-
-	// Confirmar transacción
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-
-	log.Printf("✅ Concepto deshabilitado: %s para familia %s", nombreConcepto, correoFamilia)
 	return nil
 }
 
@@ -734,38 +715,23 @@ func (m *ConceptoModel) Deshabilitar(nombreConcepto, correoFamilia string) error
 // Uso: Reactivación completa de conceptos a nivel familiar
 
 func (m *ConceptoModel) Habilitar(nombreConcepto, correoFamilia string) error {
-	tx, err := database.DB.Begin()
+	query := `CALL sp_habilitar_concepto(?, ?)`
+
+	var conceptoRows, personalizacionesRows int
+	var estado string
+
+	err := database.DB.QueryRow(query, nombreConcepto, correoFamilia).
+		Scan(&conceptoRows, &personalizacionesRows, &estado)
+
 	if err != nil {
+		log.Printf("❌ Error al ejecutar sp_habilitar_concepto: %v", err)
 		return err
 	}
 
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-		}
-	}()
+	log.Printf("✅ Concepto habilitado: '%s' para familia '%s'", nombreConcepto, correoFamilia)
+	log.Printf("   📊 Concepto: %d fila(s), Personalizaciones: %d fila(s)", 
+		conceptoRows, personalizacionesRows)
 
-	// 1. Reactivar el concepto
-	queryConcepto := `UPDATE concepto SET activo = 1 WHERE nombreConcepto = ? AND correoFamilia = ?`
-	_, err = tx.Exec(queryConcepto, nombreConcepto, correoFamilia)
-	if err != nil {
-		return err
-	}
-
-	// 2. Reactivar todas las personalizaciones
-	queryPersonalizaciones := `UPDATE personalizacionconcepto SET activo = 1 
-                              WHERE nombreConcepto = ? AND correoFamilia = ?`
-	_, err = tx.Exec(queryPersonalizaciones, nombreConcepto, correoFamilia)
-	if err != nil {
-		return err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-
-	log.Printf("✅ Concepto habilitado: %s para familia %s", nombreConcepto, correoFamilia)
 	return nil
 }
 
@@ -781,17 +747,24 @@ func (m *ConceptoModel) Habilitar(nombreConcepto, correoFamilia string) error {
 // Uso: Alternar estado global de conceptos desde interfaz administrativa-
 
 func (m *ConceptoModel) ToggleActivoGlobal(nombreConcepto, correoFamilia string) error {
-	// Primero obtener el estado actual
-	queryEstado := `SELECT activo FROM concepto WHERE nombreConcepto = ? AND correoFamilia = ?`
-	var activoActual bool
-	err := database.DB.QueryRow(queryEstado, nombreConcepto, correoFamilia).Scan(&activoActual)
+	query := `CALL sp_toggle_activo_global(?, ?)`
+
+	var conceptoRows, personalizacionesRows int
+	var accion string
+	var nuevoEstado bool
+
+	err := database.DB.QueryRow(query, nombreConcepto, correoFamilia).
+		Scan(&conceptoRows, &personalizacionesRows, &accion, &nuevoEstado)
+
 	if err != nil {
+		log.Printf("❌ Error al ejecutar sp_toggle_activo_global: %v", err)
 		return err
 	}
 
-	if activoActual {
-		return m.Deshabilitar(nombreConcepto, correoFamilia)
-	} else {
-		return m.Habilitar(nombreConcepto, correoFamilia)
-	}
+	log.Printf("✅ Concepto '%s' %s para familia '%s' - Nuevo estado: %v", 
+		nombreConcepto, accion, correoFamilia, nuevoEstado)
+	log.Printf("   📊 Concepto: %d fila(s), Personalizaciones: %d fila(s)", 
+		conceptoRows, personalizacionesRows)
+
+	return nil
 }
