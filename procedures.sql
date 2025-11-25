@@ -1,3 +1,7 @@
+SET NAMES utf8mb4;
+SET CHARACTER SET utf8mb4;
+SET collation_connection = 'utf8mb4_unicode_ci';
+
 DELIMITER $$
 
 DROP PROCEDURE IF EXISTS sp_create_concepto$$
@@ -635,6 +639,88 @@ BEGIN
     
     -- Confirmar transacción
     COMMIT;
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS sp_familia_create$$
+
+CREATE PROCEDURE sp_familia_create(
+    IN p_correo VARCHAR(255),
+    IN p_telefono VARCHAR(20),
+    IN p_contraseña VARCHAR(255),
+    OUT p_id_familia INT
+)
+BEGIN
+    INSERT INTO familia (correo, telefono, contraseña)
+    VALUES (p_correo, p_telefono, p_contraseña);
+    
+    SET p_id_familia = LAST_INSERT_ID();
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS sp_familia_find_by_email$$
+
+CREATE PROCEDURE sp_familia_find_by_email(
+    IN p_correo VARCHAR(255)
+)
+BEGIN
+    SELECT correo, telefono, contraseña, delete_at
+    FROM familia 
+    WHERE correo = p_correo 
+      AND delete_at IS NULL;
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS sp_familia_get_all$$
+
+CREATE PROCEDURE sp_familia_get_all()
+BEGIN
+    SELECT id_familia, correo, telefono, contraseña, delete_at
+    FROM familia 
+    WHERE delete_at IS NULL
+    ORDER BY id_familia;
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS sp_get_password_familia$$
+
+CREATE PROCEDURE sp_get_password_familia(
+    IN p_correo VARCHAR(255)
+)
+BEGIN
+    SELECT contraseña
+    FROM familia 
+    WHERE correo = p_correo 
+        AND delete_at IS NULL
+    LIMIT 1;
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS sp_delete_familia$$
+
+CREATE PROCEDURE sp_delete_familia(
+    IN p_correo VARCHAR(255)
+)
+BEGIN
+    DELETE FROM familia 
+    WHERE correo = p_correo;
+    
+    SELECT ROW_COUNT() AS rows_affected;
 END$$
 
 DELIMITER ;
