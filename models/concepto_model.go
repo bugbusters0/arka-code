@@ -91,7 +91,7 @@ func (m *ConceptoModel) FindByFamilia(correoFamilia string, tipo string) ([]enti
 			&concepto.DeleteAt,
 		)
 		if err != nil {
-			log.Printf("❌ Error escaneando concepto: %v", err)
+			log.Printf("❌ Error escaneando concepto 'Funcion FindByFamilia': %v", err)
 			return nil, err
 		}
 		conceptos = append(conceptos, concepto)
@@ -168,7 +168,7 @@ func (m *ConceptoModel) FindAllByFamilia(correoFamilia string) ([]entities.Conce
 			&concepto.DeleteAt,
 		)
 		if err != nil {
-			log.Printf("❌ Error escaneando concepto: %v", err)
+			log.Printf("❌ Error escaneando concepto 'Funcion FindAllBytFamilia': %v", err)
 			return nil, err
 		}
 		conceptos = append(conceptos, concepto)
@@ -522,7 +522,7 @@ func (m *ConceptoModel) FindByFamiliaActivos(correoFamilia, nombreUsuario, tipo 
 			&concepto.DeleteAt,
 		)
 		if err != nil {
-			log.Printf("❌ Error escaneando concepto: %v", err)
+			log.Printf("❌ Error escaneando concepto 'Funcion FindFamiliaActivos': %v", err)
 			return nil, err
 		}
 		conceptos = append(conceptos, concepto)

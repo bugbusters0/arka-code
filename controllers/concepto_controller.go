@@ -36,7 +36,7 @@ func (c *ConceptoController) Index(w http.ResponseWriter, r *http.Request) {
 	conceptos, err := models.ConceptoModelInstance.FindByFamilia(sessionData.CorreoFamilia, tipo)
 	log.Printf("Conceptosssssssssssssssssssssss: %+v", conceptos)
 	if err != nil {
-		log.Printf("❌ Error buscando conceptos: %v", err)
+		log.Printf("❌ Error buscando conceptos AQUI: %v", err)
 	}
 
 	// Obtener lista de íconos disponibles
@@ -325,7 +325,7 @@ func (c *ConceptoController) Editar(w http.ResponseWriter, r *http.Request) {
 	// Validar datos
 	validation := validators.ConceptoValidatorInstance.ValidateUpdate(r)
 	if !validation.Success {
-		log.Printf("❌ Validación fallida: %v", validation.Errors)
+		log.Printf("❌ Validación fallida 'Editar Concepto': %v", validation.Errors)
 		c.recargarEdicionConErrores(w, r, sessionData, validation.Errors, validation.CleanData)
 		return
 	}
