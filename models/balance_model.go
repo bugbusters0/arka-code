@@ -4,7 +4,7 @@ import (
 	"arka-code/database"
 	"arka-code/entities"
 	"database/sql"
-	"fmt"
+	/*"fmt"*/
 	"log"
 	"strings"
 	"time"
@@ -37,48 +37,25 @@ func (m *BDBalance) ConsultarMovimientos(correoFamilia string, nombreUsuarios []
 		return make(map[string][]entities.Movimiento), nil
 	}
 
-	placeholders := make([]string, len(nombreUsuarios))
-	for i := range nombreUsuarios {
-		placeholders[i] = "?"
-	}
-	inClause := strings.Join(placeholders, ", ")
+	// Convertir array de usuarios a string separado por comas
+	usuariosStr := strings.Join(nombreUsuarios, ",")
+	
+	query := `CALL sp_consultar_movimientos(?, ?, ?)`
 
-	// 2. CONSTRUCCIÓN DE LA CONSULTA SQL
-	query := fmt.Sprintf(`
-        SELECT m.idMovimiento, m.fecha, m.monto, m.descripcion, m.nombreUsuario, 
-               m.nombreConcepto, m.correoFamilia, c.tipo
-        FROM movimiento m
-        INNER JOIN concepto c ON m.nombreConcepto = c.nombreConcepto 
-                              AND m.correoFamilia = c.correoFamilia
-        WHERE m.correoFamilia = ? 
-          AND DATE(m.fecha) = DATE(?) 
-          AND m.nombreUsuario IN (%s)
-          AND m.delete_at IS NULL
-        ORDER BY m.nombreUsuario ASC, m.fecha DESC`,
-		inClause)
-
-	// 3. PREPARACIÓN DE ARGUMENTOS
-	// Los argumentos deben ser: [correoFamilia, fecha, nombreUsuario1, nombreUsuario2, ...]
-	args := []interface{}{correoFamilia, fecha.Format("2006-01-02")}
-	for _, user := range nombreUsuarios {
-		args = append(args, user)
-	}
-
-	// 4. EJECUCIÓN DE LA CONSULTA
-	// Nota: Es crucial que database.DB esté inicializado
-	rows, err := database.DB.Query(query, args...)
+	rows, err := database.DB.Query(query, correoFamilia, fecha.Format("2006-01-02"), usuariosStr)
 	if err != nil {
-		log.Printf("❌ Error en consulta ConsultarMovimientos: %v", err)
+		log.Printf("❌ Error al ejecutar sp_consultar_movimientos: %v", err)
 		return nil, err
 	}
 	defer rows.Close()
-	// 5. PROCESAMIENTO Y AGRUPACIÓN DE RESULTADOS
+
 	movimientosPorUsuario := make(map[string][]entities.Movimiento)
 
 	for rows.Next() {
 		var movimiento entities.Movimiento
 		var monto float64
-		var descripcion sql.NullString // Usamos sql.NullString para campos TEXT/DEFAULT NULL
+		var descripcion sql.NullString
+		var tipoConcepto int8
 
 		err := rows.Scan(
 			&movimiento.IdMovimiento,
@@ -88,6 +65,7 @@ func (m *BDBalance) ConsultarMovimientos(correoFamilia string, nombreUsuarios []
 			&movimiento.NombreUsuario,
 			&movimiento.NombreConcepto,
 			&movimiento.CorreoFamilia,
+			&tipoConcepto,
 		)
 		if err != nil {
 			log.Printf("❌ Error escaneando movimiento: %v", err)
@@ -105,16 +83,26 @@ func (m *BDBalance) ConsultarMovimientos(correoFamilia string, nombreUsuarios []
 		movimientosPorUsuario[usuario] = append(movimientosPorUsuario[usuario], movimiento)
 	}
 
-	// 6. ASEGURAR QUE TODOS LOS USUARIOS ESTÉN EN EL MAPA (incluso si no tienen movimientos)
-	// Esto es opcional, pero asegura que el controlador siempre reciba una clave para cada usuario.
+	// Asegurar que todos los usuarios estén en el mapa (incluso si no tienen movimientos)
 	for _, user := range nombreUsuarios {
 		if _, exists := movimientosPorUsuario[user]; !exists {
 			movimientosPorUsuario[user] = []entities.Movimiento{}
 		}
 	}
 
-	log.Printf("📋 Consulta exitosa. Movimientos agrupados por %d usuarios.", len(movimientosPorUsuario))
+	log.Printf("📋 Consulta exitosa - Fecha: %s, Usuarios: %d, Total movimientos: %d", 
+		fecha.Format("2006-01-02"), len(nombreUsuarios), contarMovimientos(movimientosPorUsuario))
+	
 	return movimientosPorUsuario, nil
+}
+
+// Helper function para contar total de movimientos
+func contarMovimientos(movimientos map[string][]entities.Movimiento) int {
+	total := 0
+	for _, movs := range movimientos {
+		total += len(movs)
+	}
+	return total
 }
 
 // FindByFamiliaDateAndTipo busca movimientos de una familia filtrados por tipo y fecha
@@ -131,20 +119,11 @@ func (m *BDBalance) ConsultarMovimientos(correoFamilia string, nombreUsuarios []
 // Uso: Vista diaria de gastos/ingresos, reportes por tipo
 
 func (m *BDBalance) FindByFamiliaDateAndTipo(correoFamilia string, fecha time.Time, tipo int8) ([]entities.Movimiento, error) {
-	query := `SELECT m.idMovimiento, m.fecha, m.monto, m.descripcion, m.nombreUsuario, 
-	                 m.nombreConcepto, m.correoFamilia
-	          FROM movimiento m
-	          INNER JOIN concepto c ON m.nombreConcepto = c.nombreConcepto 
-	                                AND m.correoFamilia = c.correoFamilia
-	          WHERE m.correoFamilia = ? 
-	            AND DATE(m.fecha) = DATE(?) 
-	            AND c.tipo = ?
-	            AND m.delete_at IS NULL
-	          ORDER BY m.fecha DESC`
+	query := `CALL sp_find_movimientos_by_familia_date_tipo(?, ?, ?)`
 
-	rows, err := database.DB.Query(query, correoFamilia, fecha, tipo)
+	rows, err := database.DB.Query(query, correoFamilia, fecha.Format("2006-01-02"), tipo)
 	if err != nil {
-		log.Printf("❌ Error en consulta FindByFamiliaDateAndTipo: %v", err)
+		log.Printf("❌ Error al ejecutar sp_find_movimientos_by_familia_date_tipo: %v", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -152,12 +131,13 @@ func (m *BDBalance) FindByFamiliaDateAndTipo(correoFamilia string, fecha time.Ti
 	movimientos := []entities.Movimiento{}
 	for rows.Next() {
 		var movimiento entities.Movimiento
+		var descripcion sql.NullString
 
 		err := rows.Scan(
 			&movimiento.IdMovimiento,
 			&movimiento.Fecha,
 			&movimiento.Monto,
-			&movimiento.Descripcion,
+			&descripcion,
 			&movimiento.NombreUsuario,
 			&movimiento.NombreConcepto,
 			&movimiento.CorreoFamilia,
@@ -166,6 +146,12 @@ func (m *BDBalance) FindByFamiliaDateAndTipo(correoFamilia string, fecha time.Ti
 			log.Printf("❌ Error escaneando movimiento: %v", err)
 			continue
 		}
+
+		// Manejar descripción NULL
+		if descripcion.Valid {
+			movimiento.Descripcion = &descripcion.String
+		}
+
 		movimientos = append(movimientos, movimiento)
 	}
 
@@ -173,7 +159,9 @@ func (m *BDBalance) FindByFamiliaDateAndTipo(correoFamilia string, fecha time.Ti
 	if tipo == 1 {
 		tipoStr = "ingresos"
 	}
-	log.Printf("📋 %s encontrados: %d para fecha %s", tipoStr, len(movimientos), fecha.Format("2006-01-02"))
+	log.Printf("📋 %s encontrados: %d para fecha %s (familia: %s)", 
+		tipoStr, len(movimientos), fecha.Format("2006-01-02"), correoFamilia)
+	
 	return movimientos, nil
 }
 
@@ -188,17 +176,16 @@ func (m *BDBalance) FindByFamiliaDateAndTipo(correoFamilia string, fecha time.Ti
 // Uso: Edición de movimientos, verificación de existencia, operaciones CRUD
 
 func (m *BDBalance) FindByID(idMovimiento int) (*entities.Movimiento, error) {
-	query := `SELECT idMovimiento, fecha, monto, descripcion, nombreUsuario, 
-	                 nombreConcepto, correoFamilia, delete_at
-	          FROM movimiento 
-	          WHERE idMovimiento = ? AND delete_at IS NULL`
+	query := `CALL sp_find_movimiento_by_id(?)`
 
 	movimiento := &entities.Movimiento{}
+	var descripcion sql.NullString
+	
 	err := database.DB.QueryRow(query, idMovimiento).Scan(
 		&movimiento.IdMovimiento,
 		&movimiento.Fecha,
 		&movimiento.Monto,
-		&movimiento.Descripcion,
+		&descripcion,
 		&movimiento.NombreUsuario,
 		&movimiento.NombreConcepto,
 		&movimiento.CorreoFamilia,
@@ -206,13 +193,22 @@ func (m *BDBalance) FindByID(idMovimiento int) (*entities.Movimiento, error) {
 	)
 
 	if err == sql.ErrNoRows {
+		log.Printf("ℹ️ Movimiento no encontrado - ID: %d", idMovimiento)
 		return nil, nil
 	}
 
 	if err != nil {
-		log.Printf("❌ Error buscando movimiento ID %d: %v", idMovimiento, err)
+		log.Printf("❌ Error al ejecutar sp_find_movimiento_by_id - ID: %d, Error: %v", idMovimiento, err)
 		return nil, err
 	}
+
+	// Manejar descripción NULL
+	if descripcion.Valid {
+		movimiento.Descripcion = &descripcion.String
+	}
+
+	log.Printf("✅ Movimiento encontrado - ID: %d, Usuario: %s, Concepto: %s", 
+		idMovimiento, movimiento.NombreUsuario, movimiento.NombreConcepto)
 
 	return movimiento, nil
 }
@@ -228,27 +224,32 @@ func (m *BDBalance) FindByID(idMovimiento int) (*entities.Movimiento, error) {
 // Uso: Modificación de movimientos existentes, corrección de datos
 
 func (m *BDBalance) Update(movimiento *entities.Movimiento) error {
-	query := `UPDATE movimiento 
-	          SET fecha = ?, monto = ?, descripcion = ?, nombreConcepto = ?
-	          WHERE idMovimiento = ? AND delete_at IS NULL`
+	query := `CALL sp_update_movimiento(?, ?, ?, ?, ?)`
 
-	result, err := database.DB.Exec(query,
+	var rowsAffected int64
+
+	err := database.DB.QueryRow(query,
+		movimiento.IdMovimiento,
 		movimiento.Fecha,
 		movimiento.Monto,
 		movimiento.Descripcion,
-		movimiento.NombreConcepto,
-		movimiento.IdMovimiento)
+		movimiento.NombreConcepto).Scan(&rowsAffected)
 
 	if err != nil {
-		log.Printf("❌ Error actualizando movimiento: %v", err)
+		log.Printf("❌ Error al ejecutar sp_update_movimiento - ID: %d, Error: %v", 
+			movimiento.IdMovimiento, err)
 		return err
 	}
 
-	rowsAffected, _ := result.RowsAffected()
-	log.Printf("✅ Movimiento actualizado - ID: %d, Filas afectadas: %d", movimiento.IdMovimiento, rowsAffected)
+	if rowsAffected == 0 {
+		log.Printf("⚠️ Movimiento no encontrado o ya eliminado - ID: %d", movimiento.IdMovimiento)
+	} else {
+		log.Printf("✅ Movimiento actualizado - ID: %d, Concepto: %s, Monto: %.2f, Filas: %d", 
+			movimiento.IdMovimiento, movimiento.NombreConcepto, movimiento.Monto, rowsAffected)
+	}
+
 	return nil
 }
-
 // Delete realiza una eliminación lógica (soft delete) de un movimiento
 // Parámetros:
 // - idMovimiento: Identificador único del movimiento a eliminar
@@ -259,16 +260,24 @@ func (m *BDBalance) Update(movimiento *entities.Movimiento) error {
 // - Permite recuperación de datos si es necesario
 // Uso: Eliminación segura de movimientos, mantenimiento de historial
 func (m *BDBalance) Delete(idMovimiento int) error {
-	query := `UPDATE movimiento SET delete_at = NOW() WHERE idMovimiento = ?`
+	query := `CALL sp_delete_movimiento(?)`
 
-	result, err := database.DB.Exec(query, idMovimiento)
+	var rowsAffected int64
+	var deletedAt time.Time
+
+	err := database.DB.QueryRow(query, idMovimiento).Scan(&rowsAffected, &deletedAt)
 	if err != nil {
-		log.Printf("❌ Error eliminando movimiento: %v", err)
+		log.Printf("❌ Error al ejecutar sp_delete_movimiento - ID: %d, Error: %v", idMovimiento, err)
 		return err
 	}
 
-	rowsAffected, _ := result.RowsAffected()
-	log.Printf("✅ Movimiento eliminado - ID: %d, Filas afectadas: %d", idMovimiento, rowsAffected)
+	if rowsAffected == 0 {
+		log.Printf("⚠️ Movimiento no encontrado o ya eliminado - ID: %d", idMovimiento)
+	} else {
+		log.Printf("✅ Movimiento eliminado (soft delete) - ID: %d, Fecha eliminación: %s", 
+			idMovimiento, deletedAt.Format("2006-01-02 15:04:05"))
+	}
+
 	return nil
 }
 
@@ -283,33 +292,22 @@ func (m *BDBalance) Delete(idMovimiento int) error {
 // - Maneja valores nulos con sql.NullFloat64
 // Uso: Resumen diario, cálculo de balance, dashboards
 func (m *BDBalance) GetTotalesByFamiliaAndDate(correoFamilia string, fecha time.Time) (float64, float64, error) {
-	query := `SELECT 
-	          SUM(CASE WHEN c.tipo = 0 THEN m.monto ELSE 0 END) as totalGastos,
-	          SUM(CASE WHEN c.tipo = 1 THEN m.monto ELSE 0 END) as totalIngresos
-	          FROM movimiento m
-	          INNER JOIN concepto c ON m.nombreConcepto = c.nombreConcepto 
-	                                AND m.correoFamilia = c.correoFamilia
-	          WHERE m.correoFamilia = ? 
-	            AND DATE(m.fecha) = DATE(?)
-	            AND m.delete_at IS NULL`
+	query := `CALL sp_get_totales_by_familia_date(?, ?)`
 
-	var totalGastos, totalIngresos sql.NullFloat64
-	err := database.DB.QueryRow(query, correoFamilia, fecha).Scan(&totalGastos, &totalIngresos)
+	var totalGastos, totalIngresos, balance float64
+	var totalMovimientos int
+
+	err := database.DB.QueryRow(query, correoFamilia, fecha.Format("2006-01-02")).
+		Scan(&totalGastos, &totalIngresos, &balance, &totalMovimientos)
+	
 	if err != nil {
-		log.Printf("❌ Error obteniendo totales: %v", err)
+		log.Printf("❌ Error al ejecutar sp_get_totales_by_familia_date - Familia: %s, Fecha: %s, Error: %v", 
+			correoFamilia, fecha.Format("2006-01-02"), err)
 		return 0, 0, err
 	}
 
-	gastos := 0.0
-	if totalGastos.Valid {
-		gastos = totalGastos.Float64
-	}
-
-	ingresos := 0.0
-	if totalIngresos.Valid {
-		ingresos = totalIngresos.Float64
-	}
-
-	log.Printf("💰 Totales - Gastos: %.2f, Ingresos: %.2f", gastos, ingresos)
-	return gastos, ingresos, nil
+	log.Printf("💰 Totales del día %s - Gastos: %.2f, Ingresos: %.2f, Balance: %.2f, Movimientos: %d", 
+		fecha.Format("2006-01-02"), totalGastos, totalIngresos, balance, totalMovimientos)
+	
+	return totalGastos, totalIngresos, nil
 }

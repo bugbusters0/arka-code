@@ -724,3 +724,182 @@ BEGIN
 END$$
 
 DELIMITER ;
+
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS sp_consultar_movimientos$$
+
+CREATE PROCEDURE sp_consultar_movimientos(
+    IN p_correoFamilia VARCHAR(255),
+    IN p_fecha DATE,
+    IN p_nombreUsuarios TEXT  -- Lista separada por comas: "user1,user2,user3"
+)
+BEGIN
+    -- Crear tabla temporal para los usuarios
+    DROP TEMPORARY TABLE IF EXISTS temp_usuarios;
+    CREATE TEMPORARY TABLE temp_usuarios (
+        nombreUsuario VARCHAR(255)
+    );
+    
+    -- Insertar usuarios desde la lista separada por comas
+    -- Esto requiere que p_nombreUsuarios venga como: "user1,user2,user3"
+    SET @sql = CONCAT(
+        'INSERT INTO temp_usuarios (nombreUsuario) VALUES ',
+        REPLACE(REPLACE(p_nombreUsuarios, ',', '"),("'), ',', '("'),
+        '")'
+    );
+    
+    PREPARE stmt FROM @sql;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+    
+    -- Consultar movimientos usando la tabla temporal
+    SELECT 
+        m.idMovimiento, 
+        m.fecha, 
+        m.monto, 
+        m.descripcion, 
+        m.nombreUsuario, 
+        m.nombreConcepto, 
+        m.correoFamilia, 
+        c.tipo
+    FROM movimiento m
+    INNER JOIN concepto c 
+        ON m.nombreConcepto = c.nombreConcepto 
+        AND m.correoFamilia = c.correoFamilia
+    INNER JOIN temp_usuarios tu
+        ON m.nombreUsuario = tu.nombreUsuario
+    WHERE m.correoFamilia = p_correoFamilia 
+        AND DATE(m.fecha) = p_fecha 
+        AND m.delete_at IS NULL
+    ORDER BY m.nombreUsuario ASC, m.fecha DESC;
+    
+    -- Limpiar tabla temporal
+    DROP TEMPORARY TABLE IF EXISTS temp_usuarios;
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS sp_find_movimientos_by_familia_date_tipo$$
+
+CREATE PROCEDURE sp_find_movimientos_by_familia_date_tipo(
+    IN p_correoFamilia VARCHAR(255),
+    IN p_fecha DATE,
+    IN p_tipo TINYINT
+)
+BEGIN
+    SELECT 
+        m.idMovimiento, 
+        m.fecha, 
+        m.monto, 
+        m.descripcion, 
+        m.nombreUsuario, 
+        m.nombreConcepto, 
+        m.correoFamilia
+    FROM movimiento m
+    INNER JOIN concepto c 
+        ON m.nombreConcepto = c.nombreConcepto 
+        AND m.correoFamilia = c.correoFamilia
+    WHERE m.correoFamilia = p_correoFamilia 
+        AND DATE(m.fecha) = p_fecha 
+        AND c.tipo = p_tipo
+        AND m.delete_at IS NULL
+    ORDER BY m.fecha DESC;
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS sp_find_movimiento_by_id$$
+
+CREATE PROCEDURE sp_find_movimiento_by_id(
+    IN p_idMovimiento INT
+)
+BEGIN
+    SELECT 
+        idMovimiento, 
+        fecha, 
+        monto, 
+        descripcion, 
+        nombreUsuario, 
+        nombreConcepto, 
+        correoFamilia, 
+        delete_at
+    FROM movimiento 
+    WHERE idMovimiento = p_idMovimiento 
+        AND delete_at IS NULL;
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS sp_update_movimiento$$
+
+CREATE PROCEDURE sp_update_movimiento(
+    IN p_idMovimiento INT,
+    IN p_fecha DATETIME,
+    IN p_monto DECIMAL(10,2),
+    IN p_descripcion TEXT,
+    IN p_nombreConcepto VARCHAR(255)
+)
+BEGIN
+    UPDATE movimiento 
+    SET fecha = p_fecha, 
+        monto = p_monto, 
+        descripcion = p_descripcion, 
+        nombreConcepto = p_nombreConcepto
+    WHERE idMovimiento = p_idMovimiento 
+        AND delete_at IS NULL;
+    
+    SELECT ROW_COUNT() AS rows_affected;
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS sp_delete_movimiento$$
+
+CREATE PROCEDURE sp_delete_movimiento(
+    IN p_idMovimiento INT
+)
+BEGIN
+    UPDATE movimiento 
+    SET delete_at = NOW() 
+    WHERE idMovimiento = p_idMovimiento 
+        AND delete_at IS NULL;
+    
+    SELECT ROW_COUNT() AS rows_affected, NOW() AS deleted_at;
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS sp_get_totales_by_familia_date$$
+
+CREATE PROCEDURE sp_get_totales_by_familia_date(
+    IN p_correoFamilia VARCHAR(255),
+    IN p_fecha DATE
+)
+BEGIN
+    SELECT 
+        COALESCE(SUM(CASE WHEN c.tipo = 0 THEN m.monto ELSE 0 END), 0) AS totalGastos,
+        COALESCE(SUM(CASE WHEN c.tipo = 1 THEN m.monto ELSE 0 END), 0) AS totalIngresos,
+        COALESCE(SUM(CASE WHEN c.tipo = 1 THEN m.monto ELSE 0 END), 0) - 
+        COALESCE(SUM(CASE WHEN c.tipo = 0 THEN m.monto ELSE 0 END), 0) AS balance,
+        COUNT(*) AS total_movimientos
+    FROM movimiento m
+    INNER JOIN concepto c 
+        ON m.nombreConcepto = c.nombreConcepto 
+        AND m.correoFamilia = c.correoFamilia
+    WHERE m.correoFamilia = p_correoFamilia 
+        AND DATE(m.fecha) = p_fecha
+        AND m.delete_at IS NULL;
+END$$
+
+DELIMITER ;
