@@ -405,7 +405,16 @@ func RequireUsuarioAuth(next http.HandlerFunc) http.HandlerFunc {
 
 ```go
 type MovimientoController struct{}
-
+/************************************/
+/*       FNCtrl_Movimiento_Index    */
+/************************************/
+// Index muestra el dashboard de movimientos diarios para la familia y usuario activo.
+// Propósito: Servir la página principal de gestión, mostrando la entrada diaria de movimientos (gastos/ingresos)
+//            y los conceptos disponibles para la familia.
+// Parámetros:
+// - w: http.ResponseWriter para escribir la respuesta HTTP.
+// - r: *http.Request que contiene la solicitud y parámetros de URL (query params).
+// Retorno: Renderiza una plantilla HTML (dashboard/movimientos/index) o redirige si no hay sesión.
 func (c *MovimientoController) Index(w http.ResponseWriter, r *http.Request) {
     // 1. Obtener datos de sesión
     sessionData, ok := utils.GetSessionData(r)
@@ -512,6 +521,15 @@ func (m *MovimientoModel) Create(movimiento *entities.Movimiento) error {
 type MovimientoValidator struct {
     *ValidatorBase
 }
+
+// FNValidator_Movimiento
+// Validate procesa y valida los datos de un formulario HTTP para la creación/edición de un movimiento.
+// Propósito: Garantizar que los campos `monto`, `nombreConcepto` y `fecha` cumplan con los requisitos de negocio y formato
+//            antes de ser procesados por el modelo.
+// Parámetros:
+// - r: *http.Request que contiene los datos del formulario (r.FormValue).
+// Retorno: Un objeto `ValidationResult` que contiene el estado de la validación (`Success`),
+//          los mensajes de error (`Errors`) y los datos limpios y convertidos (`CleanData`).
 
 func (v *MovimientoValidator) Validate(r *http.Request) ValidationResult {
     result := NewValidationResult()
