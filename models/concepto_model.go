@@ -8,10 +8,13 @@ import (
 	"log"
 )
 
+// CU-004
+// BD.3 ConceptoBD
 type ConceptoModel struct{}
 
 var ConceptoModelInstance = &ConceptoModel{}
 
+// FNBD-Index
 // Create crea un nuevo concepto en la base de datos
 // Parámetros:
 // - concepto: Estructura con los datos del concepto a crear
@@ -44,6 +47,7 @@ func (m *ConceptoModel) Create(concepto *entities.Concepto) error {
 	return nil
 }
 
+// FNBD-FindByFamilia
 // FindByFamilia busca todos los conceptos de una familia filtrados por tipo
 // Parámetros:
 // - correoFamilia: Identificador de la familia
@@ -104,6 +108,7 @@ func (m *ConceptoModel) FindByFamilia(correoFamilia string, tipo string) ([]enti
 	return conceptos, nil
 }
 
+// FNBD-UpdateIconoColor
 // UpdateIconoColor actualiza solo el ícono y color de un concepto existente
 // Parámetros:
 // - concepto: Estructura con los nuevos valores de ícono y color
@@ -134,6 +139,7 @@ func (m *ConceptoModel) UpdateIconoColor(concepto *entities.Concepto) error {
 	return nil
 }
 
+// FNBD-FindAllByFamilia
 // FindAllByFamilia busca todos los conceptos de una familia sin filtrar por tipo
 // Parámetros:
 // - correoFamilia: Identificador de la familia
@@ -176,6 +182,7 @@ func (m *ConceptoModel) FindAllByFamilia(correoFamilia string) ([]entities.Conce
 	return conceptos, nil
 }
 
+// FNBD-FindByNombre
 // FindByNombre busca un concepto específico por nombre y familia
 // Parámetros:
 // - nombreConcepto: Nombre del concepto a buscar
@@ -209,6 +216,7 @@ func (m *ConceptoModel) FindByNombre(nombreConcepto, correoFamilia string) (*ent
 	return concepto, err
 }
 
+// FNBD-Exists
 // Exists verifica si un concepto ya existe para una familia específica
 // Parámetros:
 // - nombreConcepto: Nombre del concepto a verificar
@@ -231,6 +239,7 @@ func (m *ConceptoModel) Exists(nombreConcepto, correoFamilia string) (bool, erro
 	return count > 0, nil
 }
 
+// FNBD-CreatePersonalizacion
 // CreatePersonalizacion crea una configuración personalizada para un usuario y concepto
 // Parámetros:
 // - personalizacion: Mapa con todos los campos de personalización
@@ -273,6 +282,7 @@ func (m *ConceptoModel) CreatePersonalizacion(personalizacion map[string]interfa
 	return nil
 }
 
+// FNBD-GetUsuariosByFamilia
 // GetUsuariosByFamilia obtiene todos los usuarios activos de una familia
 // Parámetros:
 // - correoFamilia: Identificador de la familia
@@ -314,6 +324,7 @@ func (m *ConceptoModel) GetUsuariosByFamilia(correoFamilia string) ([]entities.U
 	return usuarios, nil
 }
 
+// FNBD-CreatePersonalizacionesForAllUsuarios
 // CreatePersonalizacionesForAllUsuarios crea personalizaciones para todos los usuarios de una familia
 // Parámetros:
 // - nombreConcepto: Concepto a personalizar

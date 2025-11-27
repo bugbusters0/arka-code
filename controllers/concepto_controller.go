@@ -9,11 +9,28 @@ import (
 	"net/http"
 )
 
+/*
+CU-004 Gestionar Conceptos
+CTRL.5 Gestor Conceptos
+*/
+
 type ConceptoController struct{}
 
 var ConceptoControllerInstance = &ConceptoController{}
 
-// Index muestra los conceptos filtrados por tipo
+// FNConcepto-Index
+// Index muestra la página principal de conceptos filtrados por tipo (gasto/ingreso)
+// Parámetros:
+// - w: ResponseWriter para enviar respuesta HTTP
+// - r: Request HTTP con parámetros de filtrado
+// Flujo:
+// 1. Verifica autenticación del usuario
+// 2. Obtiene tipo de concepto desde URL (gasto/ingreso)
+// 3. Carga conceptos de la familia según tipo
+// 4. Prepara lista de íconos disponibles
+// 5. Maneja mensajes de éxito/error desde URL
+// 6. Renderiza plantilla con todos los datos
+// Uso: Vista principal de gestión de conceptos
 func (c *ConceptoController) Index(w http.ResponseWriter, r *http.Request) {
 	log.Printf("🔍 ConceptoController.Index llamado - Método: %s", r.Method)
 
@@ -77,7 +94,19 @@ func (c *ConceptoController) Index(w http.ResponseWriter, r *http.Request) {
 	utils.RenderTemplate(w, "dashboard", "concepto/conceptos", data)
 }
 
-// Crear maneja la creación de un nuevo concepto
+// FNConcepto-Crear
+// Crear maneja la creación de un nuevo concepto en el sistema
+// Parámetros:
+// - w: ResponseWriter para enviar respuesta HTTP
+// - r: Request HTTP con datos del formulario
+// Flujo:
+// 1. Verifica método POST y autenticación
+// 2. Parsea y valida datos del formulario
+// 3. Verifica que el concepto no exista
+// 4. Crea el concepto en la base de datos
+// 5. Crea personalizaciones para todos los usuarios de la familia
+// 6. Redirige con mensaje de éxito o error
+// Uso: Creación de nuevos conceptos desde formulario
 func (c *ConceptoController) Crear(w http.ResponseWriter, r *http.Request) {
 	log.Printf("🚀 ConceptoController.Crear llamado - Método: %s", r.Method)
 
@@ -243,6 +272,20 @@ func (c *ConceptoController) Crear(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/conceptos?success=concepto_creado&tipo="+validation.CleanData["tipo"].(string), http.StatusSeeOther)
 }
 
+// FNConcepto-Editar
+// Editar maneja la edición de conceptos existentes (solo ícono y color)
+// Parámetros:
+// - w: ResponseWriter para enviar respuesta HTTP
+// - r: Request HTTP con datos de edición
+// Flujo GET:
+// 1. Muestra formulario de edición con datos actuales del concepto
+// 2. Verifica permisos del usuario sobre el concepto
+// Flujo POST:
+// 1. Valida datos del formulario de edición
+// 2. Verifica que el concepto exista y el usuario tenga permisos
+// 3. Actualiza ícono y color del concepto
+// 4. Redirige con mensaje de éxito
+// Uso: Modificación de aspectos visuales de conceptos existentes
 func (c *ConceptoController) Editar(w http.ResponseWriter, r *http.Request) {
 	log.Printf("✏️ ConceptoController.Editar llamado - Método: %s", r.Method)
 
@@ -367,7 +410,15 @@ func (c *ConceptoController) Editar(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/conceptos?tipo="+concepto.TipoNombre()+"&success=concepto_editado", http.StatusSeeOther)
 }
 
-// recargarEdicionConErrores recarga la página de edición con errores
+// FNConcepto-recargarEdicionConErrores
+// recargarEdicionConErrores recarga la página de edición mostrando errores de validación
+// Parámetros:
+// - w: ResponseWriter para enviar respuesta HTTP
+// - r: Request HTTP original
+// - sessionData: Datos de sesión del usuario
+// - errors: Mapa de errores de validación
+// - formData: Datos del formulario para repoblar campos
+// Uso: Reutilización de vista de edición cuando hay errores de validación
 func (c *ConceptoController) recargarEdicionConErrores(w http.ResponseWriter, r *http.Request, sessionData *entities.SessionData, errors map[string]string, formData map[string]interface{}) {
 	nombreConcepto := formData["nombre"].(string)
 
@@ -397,7 +448,15 @@ func (c *ConceptoController) recargarEdicionConErrores(w http.ResponseWriter, r 
 	utils.RenderTemplate(w, "dashboard", "concepto/conceptos", data)
 }
 
-// recargarPaginaConErrores recarga la página mostrando errores de validación
+// FNConcepto-recargarPaginaConErrores
+// recargarPaginaConErrores recarga la página principal de conceptos mostrando errores
+// Parámetros:
+// - w: ResponseWriter para enviar respuesta HTTP
+// - r: Request HTTP original
+// - sessionData: Datos de sesión del usuario
+// - errors: Mapa de errores de validación
+// - formData: Datos del formulario para repoblar campos
+// Uso: Reutilización de vista principal cuando hay errores en creación
 func (c *ConceptoController) recargarPaginaConErrores(w http.ResponseWriter, r *http.Request, sessionData *entities.SessionData, errors map[string]string, formData map[string]interface{}) {
 	log.Printf("🔄 Recargando página con errores: %v", errors)
 
@@ -425,7 +484,10 @@ func (c *ConceptoController) recargarPaginaConErrores(w http.ResponseWriter, r *
 	utils.RenderTemplate(w, "dashboard", "concepto/conceptos", data)
 }
 
-// getIconosDisponibles retorna la lista de íconos disponibles
+// FNConcepto-getIconosDisponibles
+// getIconosDisponibles retorna la lista completa de íconos disponibles en el sistema
+// Retorno: Slice de mapas con ID, Nombre y Path (clase FontAwesome) de cada ícono
+// Uso: Poblar selector de íconos en formularios de concepto
 func (c *ConceptoController) getIconosDisponibles() []map[string]interface{} {
 	return []map[string]interface{}{
 		{"ID": 1, "Nombre": "Casa", "Path": "fa-solid fa-house"},
@@ -463,7 +525,12 @@ func (c *ConceptoController) getIconosDisponibles() []map[string]interface{} {
 	}
 }
 
-// getIconoPorID retorna el path del ícono basado en el ID
+// FNConcepto-getIconoPorID
+// getIconoPorID busca y retorna el path de un ícono basado en su ID
+// Parámetros:
+// - id: Identificador numérico del ícono
+// Retorno: String con la clase FontAwesome del ícono, o "fa-solid fa-circle" por defecto
+// Uso: Conversión de ID seleccionado a clase CSS para renderizado
 func (c *ConceptoController) getIconoPorID(id int) string {
 	iconos := c.getIconosDisponibles()
 	for _, icono := range iconos {
@@ -474,7 +541,18 @@ func (c *ConceptoController) getIconoPorID(id int) string {
 	return "fa-solid fa-circle"
 }
 
+// FNConcepto-Deshabilitar
 // Deshabilitar maneja la deshabilitación de un concepto para el usuario actual
+// Parámetros:
+// - w: ResponseWriter para enviar respuesta HTTP
+// - r: Request HTTP con datos del concepto a deshabilitar
+// Flujo:
+// 1. Verifica método POST y autenticación
+// 2. Obtiene parámetros del formulario
+// 3. Verifica existencia del concepto
+// 4. Deshabilita el concepto para el usuario actual
+// 5. Redirige con mensaje de éxito
+// Uso: Desactivación individual de conceptos por usuario
 func (c *ConceptoController) Deshabilitar(w http.ResponseWriter, r *http.Request) {
 	log.Printf("🚫 ConceptoController.Deshabilitar llamado - Método: %s", r.Method)
 
@@ -536,7 +614,18 @@ func (c *ConceptoController) Deshabilitar(w http.ResponseWriter, r *http.Request
 	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
-// Habilitar maneja la habilitación de un concepto para el usuario actual
+// FNConcepto-Habilitar
+// Habilitar maneja la habilitación de un concepto previamente deshabilitado
+// Parámetros:
+// - w: ResponseWriter para enviar respuesta HTTP
+// - r: Request HTTP con datos del concepto a habilitar
+// Flujo:
+// 1. Verifica método POST y autenticación
+// 2. Obtiene parámetros del formulario
+// 3. Verifica existencia del concepto
+// 4. Habilita el concepto para el usuario actual
+// 5. Redirige con mensaje de éxito
+// Uso: Reactivación individual de conceptos por usuario
 func (c *ConceptoController) Habilitar(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)

@@ -18,6 +18,7 @@ type BDBalance struct{}
 
 var BalanceModelInstance = &BDBalance{}
 
+//FNBDBalance-ConsultarMovimientos
 // ConsultarMovimientos busca y agrupa movimientos por usuario para una familia y fecha específica
 // Parámetros:
 // - correoFamilia: Identificador de la familia
@@ -117,6 +118,7 @@ func (m *BDBalance) ConsultarMovimientos(correoFamilia string, nombreUsuarios []
 	return movimientosPorUsuario, nil
 }
 
+//FNBDBalance-FindByFamiliaDateAndTipo
 // FindByFamiliaDateAndTipo busca movimientos de una familia filtrados por tipo y fecha
 // Parámetros:
 // - correoFamilia: Identificador de la familia
@@ -177,6 +179,7 @@ func (m *BDBalance) FindByFamiliaDateAndTipo(correoFamilia string, fecha time.Ti
 	return movimientos, nil
 }
 
+//FNBDBalance-FindByID
 // FindByID busca un movimiento específico por su ID único
 // Parámetros:
 // - idMovimiento: Identificador único del movimiento
@@ -217,6 +220,7 @@ func (m *BDBalance) FindByID(idMovimiento int) (*entities.Movimiento, error) {
 	return movimiento, nil
 }
 
+//FNBDBalance-Update
 // Update actualiza un movimiento existente en la base de datos
 // Parámetros:
 // - movimiento: Estructura con los datos actualizados del movimiento
@@ -249,6 +253,7 @@ func (m *BDBalance) Update(movimiento *entities.Movimiento) error {
 	return nil
 }
 
+// FNBDBalance-Delete
 // Delete realiza una eliminación lógica (soft delete) de un movimiento
 // Parámetros:
 // - idMovimiento: Identificador único del movimiento a eliminar
@@ -272,6 +277,7 @@ func (m *BDBalance) Delete(idMovimiento int) error {
 	return nil
 }
 
+// FNBDBalance-GetTotalesByFamiliaAndDate
 // GetTotalesByFamiliaAndDate calcula los totales de ingresos y gastos de una familia en una fecha específica
 // Parámetros:
 // - correoFamilia: Identificador de la familia

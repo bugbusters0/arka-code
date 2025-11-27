@@ -9,11 +9,22 @@ import (
 	"time"
 )
 
+// CTRL.3 Gestor Balance
+// CU-003 Consultar Balance
 type BalanceController struct{}
 
 var BalanceControllerInstance = &BalanceController{}
 
-// BalanceUsuario estructura para mostrar balance de cada usuario
+// BalanceUsuario estructura para mostrar balance financiero de cada usuario
+// Campos:
+// - NombreUsuario: Identificador único del usuario
+// - NombrePersonal: Nombre real del usuario para mostrar
+// - BalanceMensual: Diferencia entre ingresos y gastos del mes
+// - BalanceAnual: Diferencia entre ingresos y gastos del año
+// - Movimientos: Lista de movimientos del usuario en el período
+// - TotalIngresos: Suma total de ingresos del usuario
+// - TotalGastos: Suma total de gastos del usuario
+// Uso: Presentación de balances individuales en vistas administrativas
 type BalanceUsuario struct {
 	NombreUsuario  string
 	NombrePersonal string
@@ -24,7 +35,13 @@ type BalanceUsuario struct {
 	TotalGastos    float64
 }
 
-// DatosGrafico estructura para datos de gráficos
+// DatosGrafico estructura para datos visualizables en gráficos
+// Campos:
+// - Etiqueta: Nombre a mostrar en el gráfico (concepto o usuario)
+// - Monto: Valor monetario representado
+// - Porcentaje: Porcentaje relativo al total del grupo
+// - Color: Color identificador para el elemento del gráfico
+// Uso: Generación de datos para gráficos de torta y barras
 type DatosGrafico struct {
 	Etiqueta   string
 	Monto      float64
@@ -32,7 +49,18 @@ type DatosGrafico struct {
 	Color      string
 }
 
-// Index muestra la página principal de Balance
+// FNBalance-Index
+// Index muestra la página principal de Balance con diferentes vistas y filtros
+// Parámetros:
+// - w: ResponseWriter para enviar respuesta HTTP
+// - r: Request HTTP con parámetros de filtrado
+// Flujo:
+// 1. Verifica autenticación del usuario
+// 2. Obtiene y procesa parámetros de URL (tipo, gráficos, fechas)
+// 3. Configura rangos de fecha según período seleccionado
+// 4. Carga datos según el tipo de vista (balance o gráficos)
+// 5. Renderiza la plantilla con los datos procesados
+// Uso: Punto de entrada principal para el módulo de balances
 func (c *BalanceController) Index(w http.ResponseWriter, r *http.Request) {
 	sessionData, ok := utils.GetSessionData(r)
 	if !ok {
@@ -138,7 +166,21 @@ func (c *BalanceController) Index(w http.ResponseWriter, r *http.Request) {
 	utils.RenderTemplate(w, "dashboard", "balance/index", data)
 }
 
-// cargarDatosBalance carga los datos para la vista de balance
+// FNBalance-cargarDatosBalance
+// cargarDatosBalance carga y procesa los datos para la vista de balance tabular
+// Parámetros:
+// - w: ResponseWriter para manejar errores HTTP
+// - r: Request HTTP (no utilizado actualmente)
+// - sessionData: Datos de sesión del usuario autenticado
+// - usuarioFiltro: Usuario específico a filtrar (opcional)
+// - inicioRango, finRango: Rango de fechas para el balance
+// - data: Mapa de datos que se populate con la información del balance
+// Flujo:
+// 1. Define rangos para balance mensual y anual
+// 2. Según el rol del usuario, carga balances individuales o familiares
+// 3. Calcula totales y balances generales
+// 4. Agrega datos al mapa para renderizado
+// Uso: Preparación de datos para vista tabular de balances
 func (c *BalanceController) cargarDatosBalance(w http.ResponseWriter, _ *http.Request, sessionData *entities.SessionData, usuarioFiltro string, inicioRango, finRango time.Time, data map[string]interface{}) {
 	// Usar inicioRango y finRango en lugar de fechas fijas
 	inicioMes := inicioRango
@@ -214,7 +256,19 @@ func (c *BalanceController) cargarDatosBalance(w http.ResponseWriter, _ *http.Re
 	data["BalanceAnual"] = totalIngresosAnual - totalGastosAnual
 }
 
-// cargarDatosGraficos carga los datos para la vista de gráficos
+// FNBalance-cargarDatosGraficos
+// cargarDatosGraficos carga los datos para la vista de gráficos estadísticos
+// Parámetros:
+// - sessionData: Datos de sesión del usuario autenticado
+// - usuarioFiltro: Usuario específico a filtrar (opcional)
+// - vistaGrafico: Tipo de vista ("concepto" o "miembro")
+// - inicioRango, finRango: Rango de fechas para los datos
+// - data: Mapa de datos que se populate con información de gráficos
+// Flujo:
+// - Según la vista seleccionada, carga datos agrupados por concepto o miembro
+// - Solo permite vista "miembro" para administradores
+// - Agrega datos de ingresos y gastos al mapa
+// Uso: Preparación de datos para vistas gráficas del balance
 func (c *BalanceController) cargarDatosGraficos(_ http.ResponseWriter, _ *http.Request, sessionData *entities.SessionData, usuarioFiltro, _, vistaGrafico string, inicioRango, finRango time.Time, data map[string]interface{}) {
 	// Usar inicioRango y finRango directamente
 	if vistaGrafico == "concepto" {
@@ -228,8 +282,20 @@ func (c *BalanceController) cargarDatosGraficos(_ http.ResponseWriter, _ *http.R
 	}
 }
 
-// calcularBalanceUsuarioCompleto calcula el balance completo de un usuario
-// calcularBalanceUsuarioCompleto calcula el balance completo de un usuario
+// FNBalance-calcularBalanceUsuarioCompleto
+// calcularBalanceUsuarioCompleto calcula el balance financiero completo de un usuario
+// Parámetros:
+// - nombreUsuario: Identificador del usuario
+// - correoFamilia: Familia a la que pertenece el usuario
+// - inicioMes, finMes: Rango para balance mensual
+// - inicioAnio, finAnio: Rango para balance anual
+// Retorno: Estructura BalanceUsuario con todos los datos calculados
+// Flujo:
+// 1. Obtiene nombre personal del usuario
+// 2. Calcula ingresos y gastos para el rango mensual
+// 3. Calcula ingresos y gastos para el año completo
+// 4. Obtiene movimientos detallados del período mensual
+// Uso: Cálculo completo de balance individual para reportes
 func (c *BalanceController) calcularBalanceUsuarioCompleto(nombreUsuario, correoFamilia string, inicioMes, finMes, inicioAnio, finAnio time.Time) BalanceUsuario {
 	balance := BalanceUsuario{
 		NombreUsuario: nombreUsuario,
@@ -264,7 +330,18 @@ func (c *BalanceController) calcularBalanceUsuarioCompleto(nombreUsuario, correo
 	return balance
 }
 
-// filtrarMovimientosPorTipo filtra movimientos por tipo (ingreso/gasto)
+// FNBalance-filtrarMovimientosPorTipo
+// filtrarMovimientosPorTipo filtra una lista de movimientos por tipo (ingreso/gasto)
+// Parámetros:
+// - movimientos: Lista de movimientos a filtrar
+// - tipo: Tipo de movimiento (0 = gasto, 1 = ingreso)
+// - correoFamilia: Familia para verificar el tipo de concepto
+// Retorno: Lista filtrada de movimientos del tipo especificado
+// Flujo:
+// - Itera sobre movimientos y verifica el tipo de concepto asociado
+// - Usa FindByNombre para obtener información completa del concepto
+// - Solo incluye movimientos cuyo concepto coincida con el tipo
+// Uso: Separación de movimientos para visualización por tipo
 func (c *BalanceController) filtrarMovimientosPorTipo(movimientos []entities.Movimiento, tipo int8, correoFamilia string) []entities.Movimiento {
 	var resultado []entities.Movimiento
 	for _, mov := range movimientos {
@@ -276,8 +353,19 @@ func (c *BalanceController) filtrarMovimientosPorTipo(movimientos []entities.Mov
 	return resultado
 }
 
-// obtenerDatosPorConcepto obtiene datos agrupados por concepto
-// obtenerDatosPorConcepto obtiene datos agrupados por concepto
+// FNBalance-obtenerDatosPorConcepto
+// obtenerDatosPorConcepto genera datos para gráficos agrupados por concepto
+// Parámetros:
+// - sessionData: Datos de sesión del usuario
+// - usuarioFiltro: Usuario específico para filtrar (opcional)
+// - inicio, fin: Rango de fechas para los datos
+// Retorno: Dos listas de DatosGrafico para ingresos y gastos
+// Flujo:
+// 1. Obtiene todos los conceptos de la familia
+// 2. Calcula totales por concepto en el período
+// 3. Calcula porcentajes relativos
+// 4. Asigna colores y prepara datos para gráficos
+// Uso: Generación de datos para gráficos de torta por categoría
 func (c *BalanceController) obtenerDatosPorConcepto(sessionData *entities.SessionData, usuarioFiltro string, inicio, fin time.Time) ([]DatosGrafico, []DatosGrafico) {
 	var datosIngresos []DatosGrafico
 	var datosGastos []DatosGrafico
@@ -372,7 +460,18 @@ func (c *BalanceController) obtenerDatosPorConcepto(sessionData *entities.Sessio
 	return datosIngresos, datosGastos
 }
 
-// obtenerDatosPorMiembro obtiene datos agrupados por miembro
+// FNBalance-obtenerDatosPorMiembro
+// obtenerDatosPorMiembro genera datos para gráficos agrupados por miembro familiar
+// Parámetros:
+// - sessionData: Datos de sesión del usuario (debe ser administrador)
+// - inicio, fin: Rango de fechas para los datos
+// Retorno: Dos listas de DatosGrafico para ingresos y gastos por miembro
+// Flujo:
+// 1. Obtiene todos los usuarios de la familia
+// 2. Calcula totales por usuario en el período
+// 3. Calcula porcentajes relativos
+// 4. Asigna colores únicos por usuario
+// Uso: Generación de datos para gráficos de distribución familiar
 func (c *BalanceController) obtenerDatosPorMiembro(sessionData *entities.SessionData, inicio, fin time.Time) ([]DatosGrafico, []DatosGrafico) {
 	var datosIngresos []DatosGrafico
 	var datosGastos []DatosGrafico

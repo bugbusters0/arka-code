@@ -11,10 +11,22 @@ type Scheduler struct {
 	ticker *time.Ticker
 }
 
+// NewScheduler crea una nueva instancia del planificador de tareas automáticas
+// Retorno: Puntero a Scheduler listo para usar
+// Uso: Inicialización del sistema de tareas programadas
 func NewScheduler() *Scheduler {
 	return &Scheduler{}
 }
 
+// Start inicia el scheduler que ejecuta tareas automáticas periódicamente
+// Parámetros:
+// - ctx: Contexto para controlar el ciclo de vida del scheduler
+// Flujo:
+// 1. Ejecuta tareas inmediatamente al iniciar
+// 2. Configura ticker para ejecución periódica (actualmente 2 segundos para testing)
+// 3. Escucha señales de cancelación del contexto
+// 4. Ejecuta en goroutine separada para no bloquear
+// Uso: Inicio del sistema de automatización al arrancar la aplicación
 func (s *Scheduler) Start(ctx context.Context) {
 	log.Println("🕐 Scheduler iniciado - Verificando movimientos automáticos cada hora")
 
@@ -22,6 +34,7 @@ func (s *Scheduler) Start(ctx context.Context) {
 	go s.ejecutarTareasAutomaticas()
 
 	// Configurar ticker cada hora (puedes ajustar según necesidades)
+	// NOTA: Actualmente está en 2 segundos para testing, cambiar a 1 hora en producción
 	s.ticker = time.NewTicker(2 * time.Second)
 
 	go func() {
@@ -38,6 +51,12 @@ func (s *Scheduler) Start(ctx context.Context) {
 	}()
 }
 
+// ejecutarTareasAutomaticas ejecuta todas las tareas programadas del sistema
+// Flujo:
+// 1. Ejecuta creación de movimientos para períodos diarios
+// 2. Ejecuta creación de movimientos para días específicos del mes
+// 3. Registra resultados y errores de cada tarea
+// Uso: Punto central de ejecución de todas las automatizaciones
 func (s *Scheduler) ejecutarTareasAutomaticas() {
 	log.Println("🔄 Ejecutando tareas automáticas...")
 
@@ -54,7 +73,18 @@ func (s *Scheduler) ejecutarTareasAutomaticas() {
 	log.Println("✅ Tareas automáticas completadas")
 }
 
-// crearMovimientosPeriodicos crea movimientos para períodos diarios
+// crearMovimientosPeriodicos crea movimientos automáticos para configuraciones con período diario
+// Retorno: Error si falla la consulta o creación de movimientos
+// Flujo:
+// 1. Obtiene personalizaciones configuradas para período diario
+// 2. Para cada personalización:
+//   - Verifica si ya existe movimiento hoy
+//   - Valida que tenga monto planificado
+//   - Crea movimiento automático si no existe
+//
+// 3. Registra estadísticas de ejecución
+// Uso: Automatización de gastos/ingresos recurrentes diarios
+
 func (s *Scheduler) crearMovimientosPeriodicos() error {
 	log.Println("📅 Creando movimientos para períodos diarios...")
 
@@ -124,7 +154,18 @@ func (s *Scheduler) crearMovimientosPeriodicos() error {
 	return nil
 }
 
-// crearMovimientosDiasEspecificos crea movimientos para días específicos del mes
+// crearMovimientosDiasEspecificos crea movimientos automáticos para días específicos del mes
+// Retorno: Error si falla la consulta o creación de movimientos
+// Flujo:
+// 1. Obtiene el día actual del mes
+// 2. Busca personalizaciones configuradas para ese día específico
+// 3. Para cada personalización:
+//   - Verifica si ya existe movimiento hoy
+//   - Valida que tenga monto planificado
+//   - Crea movimiento automático si no existe
+//
+// 4. Registra estadísticas de ejecución
+// Uso: Automatización de gastos/ingresos mensuales (ej: pagos de sueldo, rentas)
 func (s *Scheduler) crearMovimientosDiasEspecificos() error {
 	log.Println("📆 Creando movimientos para días específicos...")
 
@@ -197,6 +238,11 @@ func (s *Scheduler) crearMovimientosDiasEspecificos() error {
 	return nil
 }
 
+// Stop detiene el scheduler y libera recursos
+// Flujo:
+// - Detiene el ticker para evitar nuevas ejecuciones
+// - Registra el cierre del scheduler
+// Uso: Cierre graceful de la aplicación, mantenimiento del sistema
 func (s *Scheduler) Stop() {
 	log.Println("🛑 Deteniendo scheduler...")
 	if s.ticker != nil {
