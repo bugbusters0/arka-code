@@ -46,7 +46,7 @@ func (c *MovimientoController) Index(w http.ResponseWriter, r *http.Request) {
 	// Preparar datos base - INICIALIZAR ValidationErrors como mapa vacío
 	data := map[string]interface{}{
 		"Title":            "Entrada Diaria", // CORREGIDO: Cambié "Title" por consistencia
-		"CurrentPage":      "dashboard",
+		"CurrentPage":      "movimientos",
 		"SessionData":      sessionData,
 		"Tipo":             tipo,
 		"FechaActual":      fecha.Format("2006-01-02"),
