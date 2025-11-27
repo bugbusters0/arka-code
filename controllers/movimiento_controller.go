@@ -25,7 +25,8 @@ func (c *MovimientoController) Index(w http.ResponseWriter, r *http.Request) {
 
 	// Obtener tipo de vista (gastos, ingresos, resumen)
 	tipo := r.URL.Query().Get("tipo")
-	if tipo == "" {
+	log.Printf(" El tipo es:  "+ tipo)
+	if tipo == "" || tipo == "{{.Tipo}}"{
 		tipo = "gasto" // Por defecto mostrar gastos
 	}
 

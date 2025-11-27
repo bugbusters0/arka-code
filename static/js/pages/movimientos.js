@@ -2,7 +2,7 @@ const fechaInput = document.getElementById('fechaInput');
   const fechaTexto = document.getElementById('fechaTexto');
   const fechaFormTexto = document.getElementById('fechaFormTexto');
   const fechaHidden = document.getElementById('fechaHidden');
-  const tipoActual = '{{.Tipo}}';
+  const tipoActual = window.tipoActual;
 
   // Formatear fecha para mostrar
   function formatearFecha(fechaISO) {

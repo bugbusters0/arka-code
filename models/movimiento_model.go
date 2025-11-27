@@ -16,15 +16,6 @@ var MovimientoModelInstance = &MovimientoModel{}
 func (m *MovimientoModel) Create(movimiento *entities.Movimiento) error {
 	query := `CALL sp_create_movimiento(?, ?, ?, ?, ?, ?)`
 
-	// 🔍 LOG DE DIAGNÓSTICO
-	log.Printf("📋 Parámetros enviados al SP:")
-	log.Printf("  - Fecha: %v", movimiento.Fecha)
-	log.Printf("  - Monto: %v", movimiento.Monto)
-	log.Printf("  - Descripcion: %v (is nil: %v)", movimiento.Descripcion, movimiento.Descripcion == nil)
-	log.Printf("  - NombreUsuario: %v", movimiento.NombreUsuario)
-	log.Printf("  - NombreConcepto: %v", movimiento.NombreConcepto)
-	log.Printf("  - CorreoFamilia: %v", movimiento.CorreoFamilia)
-
 	var idMovimiento, rowsAffected int64
 
 	err := database.DB.QueryRow(query,
