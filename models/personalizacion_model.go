@@ -96,7 +96,7 @@ func (m *PersonalizacionModel) GetByID(id int) (*entities.PersonalizacionConcept
 		return nil, err
 	}
 
-	log.Printf("✅ Personalización ID %d obtenida: Usuario=%s, Concepto=%s", 
+	log.Printf("✅ Personalización ID %d obtenida: Usuario=%s, Concepto=%s",
 		id, p.NombreUsuario, p.NombreConcepto)
 	return p, nil
 }
@@ -127,8 +127,8 @@ func (m *PersonalizacionModel) Create(p *entities.PersonalizacionConcepto) error
 
 	p.IdPersonalizacion = int(idPersonalizacion)
 
-	log.Printf("✅ Personalización creada - ID: %d, Usuario: %s, Concepto: %s, Límite: %.2f",
-		idPersonalizacion, p.NombreUsuario, p.NombreConcepto, p.LimiteGasto)
+	// log.Printf("Personalización creada - ID: %d, Usuario: %s, Concepto: %s, Límite: %.2f",
+	// idPersonalizacion, p.NombreUsuario, p.NombreConcepto, p.LimiteGasto)
 	return nil
 }
 
@@ -271,6 +271,7 @@ func (m *PersonalizacionModel) FindByPeriodoDiario() ([]entities.Personalizacion
 	log.Printf("📋 Personalizaciones diarias encontradas: %d", len(personalizaciones))
 	return personalizaciones, nil
 }
+
 // FindByDiaPlanificado obtiene personalizaciones para un día específico (modificado)
 func (m *PersonalizacionModel) FindByDiaPlanificado(dia int8) ([]entities.PersonalizacionConcepto, error) {
 	query := `CALL sp_find_personalizaciones_by_dia_planificado(?)`
@@ -318,7 +319,7 @@ func (m *PersonalizacionModel) DeshabilitarParaUsuario(nombreConcepto, correoFam
 
 	var idPersonalizacion int64
 	var operacion string
-	
+
 	err := database.DB.QueryRow(query, nombreConcepto, correoFamilia, nombreUsuario).Scan(&idPersonalizacion, &operacion)
 	if err != nil {
 		log.Printf("❌ Error deshabilitando personalización: %v", err)
@@ -343,7 +344,7 @@ func (m *PersonalizacionModel) HabilitarParaUsuario(nombreConcepto, correoFamili
 
 	var idPersonalizacion int64
 	var operacion string
-	
+
 	err := database.DB.QueryRow(query, nombreConcepto, correoFamilia, nombreUsuario).Scan(&idPersonalizacion, &operacion)
 	if err != nil {
 		log.Printf("❌ Error habilitando personalización: %v", err)
@@ -370,11 +371,11 @@ func (m *PersonalizacionModel) ToggleActivoParaUsuario(nombreConcepto, correoFam
 	var operacion string
 	var nuevoEstado bool
 	var estadoAnterior bool
-	
+
 	err := database.DB.QueryRow(query, nombreConcepto, correoFamilia, nombreUsuario).Scan(
-		&idPersonalizacion, 
-		&operacion, 
-		&nuevoEstado, 
+		&idPersonalizacion,
+		&operacion,
+		&nuevoEstado,
 		&estadoAnterior,
 	)
 	if err != nil {
