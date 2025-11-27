@@ -55,13 +55,29 @@ func (v *MovimientoValidator) Validate(r *http.Request) ValidationResult {
 		result.Errors["fecha"] = "La fecha es obligatoria"
 		result.Success = false
 	} else {
-		fecha, err := time.Parse("2006-01-02", fechaStr)
+		// Parsear la fecha en la zona horaria de Perú (UTC-5)
+		loc, err := time.LoadLocation("America/Lima")
+		if err != nil {
+			// Fallback si no encuentra la zona horaria
+			loc = time.FixedZone("UTC-5", -5*60*60)
+		}
+		
+		// Parsear la fecha
+		fecha, err := time.ParseInLocation("2006-01-02", fechaStr, loc)
 		if err != nil {
 			result.Errors["fecha"] = "Formato de fecha inválido"
 			result.Success = false
 		} else {
-			// Verificar que la fecha no sea futura
-			if fecha.After(time.Now()) {
+			// Ajustar a las 12:00 del mediodía para evitar problemas de zona horaria
+			fecha = time.Date(fecha.Year(), fecha.Month(), fecha.Day(), 12, 0, 0, 0, loc)
+			
+			// Verificar que la FECHA (solo día) no sea futura
+			// Comparamos solo las fechas, ignorando las horas
+			now := time.Now().In(loc)
+			hoy := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
+			fechaSolo := time.Date(fecha.Year(), fecha.Month(), fecha.Day(), 0, 0, 0, 0, loc)
+			
+			if fechaSolo.After(hoy) {
 				result.Errors["fecha"] = "La fecha no puede ser futura"
 				result.Success = false
 			} else {
