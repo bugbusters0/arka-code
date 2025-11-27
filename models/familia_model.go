@@ -23,15 +23,26 @@ var FamiliaModelInstance = &FamiliaModel{}
 // - No maneja transacciones (creación simple)
 // Uso: Registro de nuevas familias en el sistema
 func (m *FamiliaModel) Create(familia *entities.Familia) error {
-	query := `INSERT INTO familia (correo, telefono, contraseña)
-	          VALUES (?, ?, ?)`
-
-	_, err := database.DB.Exec(query,
-		familia.Correo,
-		familia.Telefono,
-		familia.Contraseña)
-
-	return err
+    query := `CALL sp_familia_create(?, ?, ?, @id_familia)`
+    
+    // Ejecutar el stored procedure
+    _, err := database.DB.Exec(query,
+        familia.Correo,
+        familia.Telefono,
+        familia.Contraseña)
+    
+    if err != nil {
+        return err
+    }
+    
+    // Recuperar el ID generado
+    var idFamilia int
+    err = database.DB.QueryRow("SELECT @id_familia").Scan(&idFamilia)
+    if err != nil {
+        return err
+    }
+    
+    return nil
 }
 
 // FindByEmail busca una familia por su correo electrónico
@@ -44,22 +55,25 @@ func (m *FamiliaModel) Create(familia *entities.Familia) error {
 // - Retorna sql.ErrNoRows si no se encuentra
 // Uso: Verificación de existencia, login de familias
 func (m *FamiliaModel) FindByEmail(email string) (*entities.Familia, error) {
-	query := `SELECT correo, telefono, contraseña, delete_at
-	          FROM familia WHERE correo = ? AND delete_at IS NULL`
+    query := `CALL sp_familia_find_by_email(?)`
 
-	familia := &entities.Familia{}
-	err := database.DB.QueryRow(query, email).Scan(
-		&familia.Correo,
-		&familia.Telefono,
-		&familia.Contraseña,
-		&familia.DeleteAt,
-	)
+    familia := &entities.Familia{}
+    err := database.DB.QueryRow(query, email).Scan(
+        &familia.Correo,
+        &familia.Telefono,
+        &familia.Contraseña,
+        &familia.DeleteAt,
+    )
 
-	if err == sql.ErrNoRows {
-		return nil, nil
-	}
+    if err == sql.ErrNoRows {
+        return nil, nil
+    }
 
-	return familia, err
+    if err != nil {
+        return nil, err
+    }
+
+    return familia, nil
 }
 
 // GetAll obtiene todas las familias activas del sistema
@@ -70,33 +84,37 @@ func (m *FamiliaModel) FindByEmail(email string) (*entities.Familia, error) {
 // - NOTA: La consulta actual tiene un error (WHERE correo = ? sin parámetro)
 // - Debería ser: "SELECT * FROM familia WHERE delete_at IS NULL"
 // Uso: Administración del sistema, reportes globales
-func (m *FamiliaModel) GetAll() ([]entities.Familia, error) {
-	query := `SELECT * FROM familia WHERE correo = ? AND delete_at IS NULL`
+func (m *FamiliaModel) GetAll(correo string) ([]entities.Familia, error) {
+    query := `CALL sp_familia_get_all(?)`
 
-	rows, err := database.DB.Query(query)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
+    rows, err := database.DB.Query(query, correo)
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
 
-	familias := []entities.Familia{}
-	for rows.Next() {
-		var familia entities.Familia
-		err := rows.Scan(
-			&familia.Correo,
-			&familia.Telefono,
-			&familia.Contraseña,
-			&familia.DeleteAt,
-		)
-		if err != nil {
-			return nil, err
-		}
-		familias = append(familias, familia)
-	}
+    familias := []entities.Familia{}
+    for rows.Next() {
+        var familia entities.Familia
+        err := rows.Scan(
+            &familia.Correo,
+            &familia.Telefono,
+            &familia.Contraseña,
+            &familia.DeleteAt,
+        )
+        if err != nil {
+            return nil, err
+        }
+        familias = append(familias, familia)
+    }
 
-	return familias, nil
+    // Verificar errores durante la iteración
+    if err = rows.Err(); err != nil {
+        return nil, err
+    }
+
+    return familias, nil
 }
-
 // CheckPasswordFamilia verifica si la contraseña proporcionada coincide con la almacenada
 // Parámetros:
 // - correo: Correo de la familia a verificar
@@ -109,19 +127,31 @@ func (m *FamiliaModel) GetAll() ([]entities.Familia, error) {
 // 4. Retorna resultado de la verificación
 // Uso: Autenticación durante el login familiar
 func (m *FamiliaModel) CheckPasswordFamilia(correo, contrasena string) (bool, error) {
-	query := `SELECT contraseña FROM familia WHERE correo = ? AND delete_at IS NULL`
+	query := `CALL sp_get_password_familia(?)`
 
 	var hashedPassword string
 	err := database.DB.QueryRow(query, correo).Scan(&hashedPassword)
+	
 	if err == sql.ErrNoRows {
+		log.Printf("⚠️ Familia no encontrada - Correo: %s", correo)
 		return false, nil
 	}
+	
 	if err != nil {
+		log.Printf("❌ Error al ejecutar sp_get_password_familia: %v", err)
 		return false, err
 	}
 
-	// Aquí necesitas una función para verificar la contraseña
-	return utils.CheckPassword(contrasena, hashedPassword), nil
+	// Verificar la contraseña hasheada
+	passwordMatch := utils.CheckPassword(contrasena, hashedPassword)
+	
+	if passwordMatch {
+		log.Printf("✅ Autenticación exitosa - Correo: %s", correo)
+	} else {
+		log.Printf("⚠️ Contraseña incorrecta - Correo: %s", correo)
+	}
+
+	return passwordMatch, nil
 }
 
 // Delete elimina permanentemente una familia del sistema
@@ -134,12 +164,21 @@ func (m *FamiliaModel) CheckPasswordFamilia(correo, contrasena string) (bool, er
 // - ADVERTENCIA: Esta eliminación es permanente y puede romper integridad referencial
 // Uso: Eliminación administrativa de familias (uso con precaución)
 func (m *FamiliaModel) Delete(correo string) error {
-	query := `DELETE FROM familia WHERE correo = ?`
-	_, err := database.DB.Exec(query, correo)
+	query := `CALL sp_delete_familia(?)`
+
+	var rowsAffected int64
+
+	err := database.DB.QueryRow(query, correo).Scan(&rowsAffected)
 	if err != nil {
-		log.Printf("❌ Error eliminando familia: %v", err)
-	} else {
-		log.Printf("✅ Familia eliminada: %s", correo)
+		log.Printf("❌ Error al ejecutar sp_delete_familia: %v", err)
+		return err
 	}
-	return err
+
+	if rowsAffected == 0 {
+		log.Printf("⚠️ Familia no encontrada para eliminar - Correo: %s", correo)
+	} else {
+		log.Printf("✅ Familia eliminada - Correo: %s, Filas afectadas: %d", correo, rowsAffected)
+	}
+
+	return nil
 }

@@ -6,7 +6,6 @@ import (
 	"arka-code/utils"
 	"database/sql"
 	"log"
-	"time"
 )
 
 type UserModel struct{}
@@ -14,265 +13,273 @@ type UserModel struct{}
 var UserModelInstance = &UserModel{}
 
 func (m *UserModel) Create(user *entities.Usuario) error {
-	query := `INSERT INTO usuario (nombreUsuario, rol, contraseñaPersonal, nombrePersonal, correoFamilia)
-	          VALUES (?, ?, ?, ?, ?)`
+    query := `CALL sp_create_usuario(?, ?, ?, ?, ?)`
 
-	_, err := database.DB.Exec(query,
-		user.NombreUsuario,
-		user.Rol,
-		user.ContrasenaPersonal,
-		user.NombrePersonal,
-		user.CorreoFamilia)
+    var lastInsertID int64
+    err := database.DB.QueryRow(query,
+        user.NombreUsuario,
+        user.Rol,
+        user.ContrasenaPersonal,
+        user.NombrePersonal,
+        user.CorreoFamilia).Scan(&lastInsertID)
 
-	return err
+    if err != nil {
+        return err
+    }
+
+    return nil
 }
 
 func (m *UserModel) FindByEmail(email string) (*entities.Usuario, error) {
-	query := `SELECT nombreUsuario, rol, contraseñaPersonal, nombrePersonal, correoFamilia, delete_at
-	          FROM usuario WHERE correoFamilia = ? AND delete_at IS NULL`
+    query := `CALL sp_find_usuario_by_email(?)`
 
-	user := &entities.Usuario{}
-	err := database.DB.QueryRow(query, email).Scan(
-		&user.NombreUsuario,
-		&user.Rol,
-		&user.ContrasenaPersonal,
-		&user.NombrePersonal,
-		&user.CorreoFamilia,
-		&user.DeleteAt,
-	)
+    user := &entities.Usuario{}
+    err := database.DB.QueryRow(query, email).Scan(
+        &user.NombreUsuario,
+        &user.Rol,
+        &user.ContrasenaPersonal,
+        &user.NombrePersonal,
+        &user.CorreoFamilia,
+        &user.DeleteAt,
+    )
 
-	if err == sql.ErrNoRows {
-		return nil, nil
-	}
+    if err == sql.ErrNoRows {
+        return nil, nil
+    }
 
-	return user, err
+    if err != nil {
+        return nil, err
+    }
+
+    return user, nil
 }
 
 func (m *UserModel) FindByNombreUsuario(nombreUsuario string) (*entities.Usuario, error) {
-	query := `SELECT nombreUsuario, rol, contraseñaPersonal, nombrePersonal, correoFamilia, delete_at
-	          FROM usuario WHERE nombreUsuario = ? AND delete_at IS NULL`
+    query := `CALL sp_find_usuario_by_nombre(?)`
 
-	user := &entities.Usuario{}
-	err := database.DB.QueryRow(query, nombreUsuario).Scan(
-		&user.NombreUsuario,
-		&user.Rol,
-		&user.ContrasenaPersonal,
-		&user.NombrePersonal,
-		&user.CorreoFamilia,
-		&user.DeleteAt,
-	)
+    user := &entities.Usuario{}
+    err := database.DB.QueryRow(query, nombreUsuario).Scan(
+        &user.NombreUsuario,
+        &user.Rol,
+        &user.ContrasenaPersonal,
+        &user.NombrePersonal,
+        &user.CorreoFamilia,
+        &user.DeleteAt,
+    )
 
-	if err == sql.ErrNoRows {
-		return nil, nil
-	}
+    if err == sql.ErrNoRows {
+        return nil, nil
+    }
 
-	return user, err
+    if err != nil {
+        return nil, err
+    }
+
+    return user, nil
 }
 
 func (m *UserModel) FindByFamilia(correoFamilia string) ([]entities.Usuario, error) {
-	query := `SELECT nombreUsuario, rol, contraseñaPersonal, nombrePersonal, correoFamilia, delete_at
-	          FROM usuario 
-	          WHERE correoFamilia = ? AND delete_at IS NULL
-	          ORDER BY rol DESC, nombrePersonal ASC`
+    query := `CALL sp_find_usuarios_by_familia(?)`
 
-	rows, err := database.DB.Query(query, correoFamilia)
-	if err != nil {
-		log.Printf("❌ Error en consulta FindByFamilia: %v", err)
-		return nil, err
-	}
-	defer rows.Close()
+    rows, err := database.DB.Query(query, correoFamilia)
+    if err != nil {
+        log.Printf("❌ Error en consulta FindByFamilia: %v", err)
+        return nil, err
+    }
+    defer rows.Close()
 
-	usuarios := []entities.Usuario{}
-	for rows.Next() {
-		var usuario entities.Usuario
+    usuarios := []entities.Usuario{}
+    for rows.Next() {
+        var usuario entities.Usuario
 
-		err := rows.Scan(
-			&usuario.NombreUsuario,
-			&usuario.Rol,
-			&usuario.ContrasenaPersonal,
-			&usuario.NombrePersonal,
-			&usuario.CorreoFamilia,
-			&usuario.DeleteAt,
-		)
-		if err != nil {
-			log.Printf("❌ Error escaneando usuario: %v", err)
-			continue
-		}
-		usuarios = append(usuarios, usuario)
-	}
+        err := rows.Scan(
+            &usuario.NombreUsuario,
+            &usuario.Rol,
+            &usuario.ContrasenaPersonal,
+            &usuario.NombrePersonal,
+            &usuario.CorreoFamilia,
+            &usuario.DeleteAt,
+        )
+        if err != nil {
+            log.Printf("❌ Error escaneando usuario: %v", err)
+            continue
+        }
+        usuarios = append(usuarios, usuario)
+    }
 
-	log.Printf("👥 Usuarios encontrados: %d para familia %s", len(usuarios), correoFamilia)
-	return usuarios, nil
+    log.Printf("👥 Usuarios encontrados: %d para familia %s", len(usuarios), correoFamilia)
+    return usuarios, nil
 }
 
 func (m *UserModel) GetAllByFamilia(correoFamilia string) ([]entities.Usuario, error) {
-	query := `SELECT 
-    nombreUsuario, 
-    rol, 
-    contraseñaPersonal, 
-    nombrePersonal, 
-    correoFamilia, 
-    delete_at
-FROM 
-    usuario 
-WHERE 
-    correoFamilia = ? 
-    AND delete_at IS NULL
-ORDER BY 
-    nombrePersonal DESC;`
+    query := `CALL sp_get_all_usuarios_by_familia(?)`
 
-	rows, err := database.DB.Query(query, correoFamilia)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
+    rows, err := database.DB.Query(query, correoFamilia)
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
 
-	usuarios := []entities.Usuario{}
-	for rows.Next() {
-		var user entities.Usuario
-		err := rows.Scan(
-			&user.NombreUsuario,
-			&user.Rol,
-			&user.ContrasenaPersonal,
-			&user.NombrePersonal,
-			&user.CorreoFamilia,
-			&user.DeleteAt,
-		)
-		if err != nil {
-			return nil, err
-		}
-		usuarios = append(usuarios, user)
-	}
+    usuarios := []entities.Usuario{}
+    for rows.Next() {
+        var user entities.Usuario
+        err := rows.Scan(
+            &user.NombreUsuario,
+            &user.Rol,
+            &user.ContrasenaPersonal,
+            &user.NombrePersonal,
+            &user.CorreoFamilia,
+            &user.DeleteAt,
+        )
+        if err != nil {
+            return nil, err
+        }
+        usuarios = append(usuarios, user)
+    }
 
-	return usuarios, nil
+    return usuarios, nil
 }
 
 func (m *UserModel) UpdateRol(nombreUsuario string, rol int8) error {
-	query := `UPDATE usuario SET rol = ? WHERE nombreUsuario = ?`
-	result, err := database.DB.Exec(query, rol, nombreUsuario)
-	if err != nil {
-		log.Printf("❌ Error actualizando rol: %v", err)
-		return err
-	}
+    query := `CALL sp_update_usuario_rol(?, ?)`
+    
+    var rowsAffected int64
+    err := database.DB.QueryRow(query, nombreUsuario, rol).Scan(&rowsAffected)
+    if err != nil {
+        log.Printf("❌ Error actualizando rol: %v", err)
+        return err
+    }
 
-	rowsAffected, _ := result.RowsAffected()
-	log.Printf("✅ Rol actualizado - Usuario: %s, Filas afectadas: %d", nombreUsuario, rowsAffected)
-	return nil
+    log.Printf("✅ Rol actualizado - Usuario: %s, Filas afectadas: %d", nombreUsuario, rowsAffected)
+    return nil
 }
 
 func (m *UserModel) UpdateNombrePersonal(nombreUsuario string, nuevoNombre string) error {
-	query := `UPDATE usuario SET nombrePersonal = ? WHERE nombreUsuario = ?`
-	result, err := database.DB.Exec(query, nuevoNombre, nombreUsuario)
-	if err != nil {
-		log.Printf("❌ Error actualizando nombre: %v", err)
-		return err
-	}
+    query := `CALL sp_update_usuario_nombre_personal(?, ?)`
+    
+    var rowsAffected int64
+    err := database.DB.QueryRow(query, nombreUsuario, nuevoNombre).Scan(&rowsAffected)
+    if err != nil {
+        log.Printf("❌ Error actualizando nombre: %v", err)
+        return err
+    }
 
-	rowsAffected, _ := result.RowsAffected()
-	log.Printf("✅ Nombre actualizado - Usuario: %s, Filas afectadas: %d", nombreUsuario, rowsAffected)
-	return nil
+    log.Printf("✅ Nombre actualizado - Usuario: %s, Filas afectadas: %d", nombreUsuario, rowsAffected)
+    return nil
 }
 
 func (m *UserModel) UpdateNombreUsuario(viejoUsuario string, nuevoUsuario string) error {
-	query := `UPDATE usuario SET nombreUsuario = ? WHERE nombreUsuario = ?`
-	result, err := database.DB.Exec(query, nuevoUsuario, viejoUsuario)
-	if err != nil {
-		log.Printf("❌ Error actualizando nombre de usuario: %v", err)
-		return err
-	}
+    query := `CALL sp_update_usuario_nombre_usuario(?, ?)`
+    
+    var rowsAffected int64
+    err := database.DB.QueryRow(query, viejoUsuario, nuevoUsuario).Scan(&rowsAffected)
+    if err != nil {
+        log.Printf("❌ Error actualizando nombre de usuario: %v", err)
+        return err
+    }
 
-	rowsAffected, _ := result.RowsAffected()
-	log.Printf("✅ Nombre de usuario actualizado - De: %s a %s, Filas afectadas: %d", viejoUsuario, nuevoUsuario, rowsAffected)
-	return nil
+    log.Printf("✅ Nombre de usuario actualizado - De: %s a %s, Filas afectadas: %d", viejoUsuario, nuevoUsuario, rowsAffected)
+    return nil
 }
 
 func (m *UserModel) UpdatePassword(nombreUsuario string, nuevaPassword string) error {
-	hashedPassword, err := utils.HashPassword(nuevaPassword)
-	if err != nil {
-		log.Printf("❌ Error hasheando contraseña: %v", err)
-		return err
-	}
+    hashedPassword, err := utils.HashPassword(nuevaPassword)
+    if err != nil {
+        log.Printf("❌ Error hasheando contraseña: %v", err)
+        return err
+    }
 
-	query := `UPDATE usuario SET contraseñaPersonal = ? WHERE nombreUsuario = ?`
-	result, err := database.DB.Exec(query, hashedPassword, nombreUsuario)
-	if err != nil {
-		log.Printf("❌ Error actualizando contraseña: %v", err)
-		return err
-	}
+    query := `CALL sp_update_usuario_password(?, ?)`
+    
+    var rowsAffected int64
+    err = database.DB.QueryRow(query, nombreUsuario, hashedPassword).Scan(&rowsAffected)
+    if err != nil {
+        log.Printf("❌ Error actualizando contraseña: %v", err)
+        return err
+    }
 
-	rowsAffected, _ := result.RowsAffected()
-	log.Printf("✅ Contraseña actualizada - Usuario: %s, Filas afectadas: %d", nombreUsuario, rowsAffected)
-	return nil
+    log.Printf("✅ Contraseña actualizada - Usuario: %s, Filas afectadas: %d", nombreUsuario, rowsAffected)
+    return nil
 }
 
 // Update actualiza múltiples campos del usuario
 func (m *UserModel) Update(usuario *entities.Usuario) error {
-	query := `UPDATE usuario 
-	          SET nombrePersonal = ?, rol = ? 
-	          WHERE nombreUsuario = ?`
+    query := `CALL sp_update_usuario(?, ?, ?)`
 
-	result, err := database.DB.Exec(query,
-		usuario.NombrePersonal,
-		usuario.Rol,
-		usuario.NombreUsuario)
+    var rowsAffected int64
+    err := database.DB.QueryRow(query,
+        usuario.NombreUsuario,
+        usuario.NombrePersonal,
+        usuario.Rol).Scan(&rowsAffected)
 
-	if err != nil {
-		log.Printf("❌ Error actualizando usuario: %v", err)
-		return err
-	}
+    if err != nil {
+        log.Printf("❌ Error actualizando usuario: %v", err)
+        return err
+    }
 
-	rowsAffected, _ := result.RowsAffected()
-	log.Printf("✅ Usuario actualizado - Usuario: %s, Filas afectadas: %d", usuario.NombreUsuario, rowsAffected)
-	return nil
+    log.Printf("✅ Usuario actualizado - Usuario: %s, Filas afectadas: %d", usuario.NombreUsuario, rowsAffected)
+    return nil
 }
 
 func (m *UserModel) SoftDelete(nombreUsuario string) error {
-	query := `UPDATE usuario SET delete_at = ? WHERE nombreUsuario = ?`
-	result, err := database.DB.Exec(query, time.Now(), nombreUsuario)
-	if err != nil {
-		log.Printf("❌ Error deshabilitando usuario: %v", err)
-		return err
-	}
+    query := `CALL sp_soft_delete_usuario(?)`
+    
+    var rowsAffected int64
+    err := database.DB.QueryRow(query, nombreUsuario).Scan(&rowsAffected)
+    if err != nil {
+        log.Printf("❌ Error deshabilitando usuario: %v", err)
+        return err
+    }
 
-	rowsAffected, _ := result.RowsAffected()
-	log.Printf("✅ Usuario deshabilitado - Usuario: %s, Filas afectadas: %d", nombreUsuario, rowsAffected)
-	return nil
+    if rowsAffected == 0 {
+        log.Printf("⚠️ Usuario %s no encontrado o ya estaba deshabilitado", nombreUsuario)
+    }
+
+    log.Printf("✅ Usuario deshabilitado - Usuario: %s, Filas afectadas: %d", nombreUsuario, rowsAffected)
+    return nil
 }
 
 func (m *UserModel) CheckPasswordUser(nombreUsuario, contrasena string) (bool, error) {
-	query := `SELECT contraseñaPersonal FROM usuario WHERE nombreUsuario = ? AND delete_at IS NULL`
+    query := `CALL sp_get_usuario_password(?)`
 
-	var hashedPassword string
-	err := database.DB.QueryRow(query, nombreUsuario).Scan(&hashedPassword)
-	if err == sql.ErrNoRows {
-		return false, nil
-	}
-	if err != nil {
-		return false, err
-	}
+    var hashedPassword string
+    err := database.DB.QueryRow(query, nombreUsuario).Scan(&hashedPassword)
+    if err == sql.ErrNoRows {
+        return false, nil
+    }
+    if err != nil {
+        return false, err
+    }
 
-	return utils.CheckPassword(contrasena, hashedPassword), nil
+    return utils.CheckPassword(contrasena, hashedPassword), nil
 }
 
 // Exists verifica si un usuario existe
 func (m *UserModel) Exists(nombreUsuario string) (bool, error) {
-	query := `SELECT COUNT(*) FROM usuario WHERE nombreUsuario = ? AND delete_at IS NULL`
+    query := `CALL sp_usuario_exists(?)`
 
-	var count int
-	err := database.DB.QueryRow(query, nombreUsuario).Scan(&count)
-	if err != nil {
-		return false, err
-	}
+    var count int
+    err := database.DB.QueryRow(query, nombreUsuario).Scan(&count)
+    if err != nil {
+        return false, err
+    }
 
-	return count > 0, nil
+    return count > 0, nil
 }
 func (m *UserModel) Delete(nombreUsuario string) error {
-	query := `DELETE FROM usuario WHERE nombreUsuario = ?`
-	_, err := database.DB.Exec(query, nombreUsuario)
-	if err != nil {
-		log.Printf("❌ Error eliminando usuario: %v", err)
-	} else {
-		log.Printf("✅ Usuario eliminado: %s", nombreUsuario)
-	}
-	return err
+    query := `CALL sp_delete_usuario_permanently(?)`
+    
+    var rowsAffected int64
+    err := database.DB.QueryRow(query, nombreUsuario).Scan(&rowsAffected)
+    if err != nil {
+        log.Printf("❌ Error eliminando usuario: %v", err)
+        return err
+    }
+
+    if rowsAffected == 0 {
+        log.Printf("⚠️ Usuario %s no encontrado", nombreUsuario)
+    }
+
+    log.Printf("✅ Usuario eliminado permanentemente: %s", nombreUsuario)
+    return nil
 }

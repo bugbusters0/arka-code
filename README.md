@@ -459,55 +459,50 @@ func (c *MovimientoController) Index(w http.ResponseWriter, r *http.Request) {
 ```go
 type MovimientoModel struct{}
 
+
+/*****************************/
+/*       FnBD_Mov_Create    */
+/***************************/
+// @Title Create
+// @Description Inserta un nuevo movimiento en la base de datos a través de un Stored Procedure.
+// @Accept  application/json
+// @Param   movimiento  body  entities.Movimiento  true  "Objeto Movimiento a crear"
+// @Success 200 {object} error  null  "Movimiento creado exitosamente"
+// @Failure 500 {object} error  "Error al ejecutar el Stored Procedure o al escanear resultados"
+// @Router /movimiento [post]
 func (m *MovimientoModel) Create(movimiento *entities.Movimiento) error {
-    query := `INSERT INTO movimiento (fecha, monto, descripcion, nombreUsuario,
-                                     nombreConcepto, correoFamilia)
-              VALUES (?, ?, ?, ?, ?, ?)`
+	// Definición del Stored Procedure a llamar para crear un movimiento.
+	query := `CALL sp_create_movimiento(?, ?, ?, ?, ?, ?)`
 
-    result, err := database.DB.Exec(query,
-        movimiento.Fecha,
-        movimiento.Monto,
-        movimiento.Descripcion,
-        movimiento.NombreUsuario,
-        movimiento.NombreConcepto,
-        movimiento.CorreoFamilia)
+	// Variables para almacenar los resultados devueltos por el SP: el ID del movimiento
+	// recién creado y el número de filas afectadas (aunque solo se usa idMovimiento).
+	var idMovimiento, rowsAffected int64
 
-    if err != nil {
-        log.Printf("❌ Error creando movimiento: %v", err)
-        return err
-    }
+	// Ejecuta el Stored Procedure en la base de datos. Se utiliza QueryRow porque
+	// el SP devuelve valores (idMovimiento y rowsAffected).
+	err := database.DB.QueryRow(query,
+		movimiento.Fecha,                                            // Parámetro 1: Fecha del movimiento
+		movimiento.Monto,                                            // Parámetro 2: Monto del movimiento
+		movimiento.Descripcion,                                      // Parámetro 3: Descripción del movimiento
+		movimiento.NombreUsuario,                                    // Parámetro 4: Nombre del usuario
+		movimiento.NombreConcepto,                                   // Parámetro 5: Nombre del concepto
+		movimiento.CorreoFamilia).Scan(&idMovimiento, &rowsAffected) // Parámetro 6: Correo de la familia y escaneo de resultados
 
-    id, _ := result.LastInsertId()
-    movimiento.IdMovimiento = int(id)
+	// Verifica si ocurrió algún error durante la ejecución del QueryRow o el escaneo.
+	if err != nil {
+		// Registra el error en el log con un mensaje descriptivo.
+		log.Printf("❌ Error al ejecutar sp_create_movimiento: %v", err)
+		return err // Retorna el error.
+	}
 
-    log.Printf("✅ Movimiento creado - ID: %d", id)
-    return nil
-}
+	// Asigna el ID recién creado devuelto por el SP al objeto 'movimiento'.
+	movimiento.IdMovimiento = int(idMovimiento)
 
-func (m *MovimientoModel) FindByFamiliaAndDate(correoFamilia string, fecha time.Time) ([]entities.Movimiento, error) {
-    query := `SELECT m.idMovimiento, m.fecha, m.monto, m.descripcion,
-                     m.nombreUsuario, m.nombreConcepto, m.correoFamilia
-              FROM movimiento m
-              WHERE m.correoFamilia = ?
-                AND DATE(m.fecha) = DATE(?)
-                AND m.delete_at IS NULL
-              ORDER BY m.fecha DESC`
+	// Registra en el log la creación exitosa del movimiento.
+	log.Printf("✅ Movimiento creado - ID: %d", idMovimiento)
 
-    rows, err := database.DB.Query(query, correoFamilia, fecha)
-    if err != nil {
-        return nil, err
-    }
-    defer rows.Close()
-
-    movimientos := []entities.Movimiento{}
-    for rows.Next() {
-        var m entities.Movimiento
-        rows.Scan(&m.IdMovimiento, &m.Fecha, &m.Monto, &m.Descripcion,
-                 &m.NombreUsuario, &m.NombreConcepto, &m.CorreoFamilia)
-        movimientos = append(movimientos, m)
-    }
-
-    return movimientos, nil
+	// Retorna nil indicando que la operación fue exitosa.
+	return nil
 }
 ```
 

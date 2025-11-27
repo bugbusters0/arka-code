@@ -19,22 +19,18 @@ func Connect() {
 	var dsn string
 
 	if cfg.DBProtocol == "unix" && runtime.GOOS != "windows" {
-		// Conexión por socket Unix (Linux/Mac)
-		dsn = fmt.Sprintf("%s:%s@unix(%s)/%s?parseTime=true",
+		dsn = fmt.Sprintf("%s:%s@unix(%s)/%s?parseTime=true&collation=utf8mb4_unicode_ci",
 			cfg.DBUser,
 			cfg.DBPassword,
 			cfg.DBSocket,
 			cfg.DBName)
-		log.Printf("🔌 Conectando via socket Unix: %s", cfg.DBSocket)
 	} else {
-		// Conexión TCP (Windows o fallback)
-		dsn = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true",
+		dsn = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true&collation=utf8mb4_unicode_ci",
 			cfg.DBUser,
 			cfg.DBPassword,
 			cfg.DBHost,
 			cfg.DBPort,
 			cfg.DBName)
-		log.Printf("🔌 Conectando via TCP: %s:%s", cfg.DBHost, cfg.DBPort)
 	}
 
 	var err error

@@ -25,7 +25,8 @@ func (c *MovimientoController) Index(w http.ResponseWriter, r *http.Request) {
 
 	// Obtener tipo de vista (gastos, ingresos, resumen)
 	tipo := r.URL.Query().Get("tipo")
-	if tipo == "" {
+	log.Printf(" El tipo es:  "+ tipo)
+	if tipo == "" || tipo == "{{.Tipo}}"{
 		tipo = "gasto" // Por defecto mostrar gastos
 	}
 
@@ -46,7 +47,7 @@ func (c *MovimientoController) Index(w http.ResponseWriter, r *http.Request) {
 	// Preparar datos base - INICIALIZAR ValidationErrors como mapa vacío
 	data := map[string]interface{}{
 		"Title":            "Entrada Diaria", // CORREGIDO: Cambié "Title" por consistencia
-		"CurrentPage":      "dashboard",
+		"CurrentPage":      "movimientos",
 		"SessionData":      sessionData,
 		"Tipo":             tipo,
 		"FechaActual":      fecha.Format("2006-01-02"),
@@ -76,6 +77,7 @@ func (c *MovimientoController) Index(w http.ResponseWriter, r *http.Request) {
 	if tipo == "resumen" {
 		// Obtener todos los movimientos del día
 		movimientos, err = models.MovimientoModelInstance.FindByUsuarioAndDate(sessionData.NombreUsuario, sessionData.CorreoFamilia, fecha)
+
 		if err != nil {
 			log.Printf("❌ Error obteniendo movimientos: %v", err)
 			movimientos = []entities.Movimiento{}
@@ -157,23 +159,39 @@ func (c *MovimientoController) Index(w http.ResponseWriter, r *http.Request) {
 
 // Crear crea un nuevo movimiento
 func (c *MovimientoController) Crear(w http.ResponseWriter, r *http.Request) {
+	log.Println("🔵 Inicio de Crear movimiento")
+	
 	if r.Method != http.MethodPost {
+		log.Println("❌ Método no es POST")
 		http.Redirect(w, r, "/movimientos", http.StatusSeeOther)
 		return
 	}
 
+	log.Println("✅ Método POST verificado")
+
 	sessionData, ok := utils.GetSessionData(r)
 	if !ok {
+		log.Println("❌ No hay sesión activa")
 		http.Redirect(w, r, "/seleccionar-perfil", http.StatusSeeOther)
 		return
 	}
 
+	log.Printf("✅ Sesión verificada - Usuario: %s, Familia: %s", sessionData.NombreUsuario, sessionData.CorreoFamilia)
+
 	// Validar
+	log.Println("🔵 Iniciando validación...")
 	validation := validators.MovimientoValidatorInstance.Validate(r)
+	
+	log.Printf("📋 Resultado validación - Success: %v, Errors: %v", validation.Success, validation.Errors)
+	log.Printf("📋 CleanData: %+v", validation.CleanData)
+	
 	if !validation.Success {
+		log.Println("❌ Validación falló")
 		c.renderWithError(w, r, sessionData, validation.Errors, r.FormValue("tipo"))
 		return
 	}
+
+	log.Println("✅ Validación exitosa")
 
 	// Crear movimiento
 	var descripcion *string
@@ -181,7 +199,12 @@ func (c *MovimientoController) Crear(w http.ResponseWriter, r *http.Request) {
 		descStr := descVal.(string)
 		if descStr != "" {
 			descripcion = &descStr
+			log.Printf("✅ Descripción: %s", descStr)
+		} else {
+			log.Println("ℹ️ Descripción vacía")
 		}
+	} else {
+		log.Println("ℹ️ Sin descripción")
 	}
 
 	movimiento := &entities.Movimiento{
@@ -193,9 +216,7 @@ func (c *MovimientoController) Crear(w http.ResponseWriter, r *http.Request) {
 		CorreoFamilia:  sessionData.CorreoFamilia,
 	}
 
-	if descripcion == nil {
-		movimiento.Descripcion = nil
-	}
+	log.Printf("🔵 Intentando crear movimiento: %+v", movimiento)
 
 	err := models.MovimientoModelInstance.Create(movimiento)
 	if err != nil {
@@ -207,7 +228,6 @@ func (c *MovimientoController) Crear(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("✅ Movimiento creado exitosamente - ID: %d", movimiento.IdMovimiento)
 
-	// Redirigir con mensaje de éxito
 	tipo := r.FormValue("tipo")
 	fecha := r.FormValue("fecha")
 	http.Redirect(w, r, "/movimientos?tipo="+tipo+"&fecha="+fecha+"&success=created", http.StatusSeeOther)

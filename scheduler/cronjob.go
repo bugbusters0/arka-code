@@ -35,7 +35,7 @@ func (s *Scheduler) Start(ctx context.Context) {
 
 	// Configurar ticker cada hora (puedes ajustar según necesidades)
 	// NOTA: Actualmente está en 2 segundos para testing, cambiar a 1 hora en producción
-	s.ticker = time.NewTicker(2 * time.Second)
+	s.ticker = time.NewTicker(2 * time.Hour)
 
 	go func() {
 		for {

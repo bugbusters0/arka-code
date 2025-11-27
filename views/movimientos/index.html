@@ -289,5 +289,9 @@
 {{end}}
 
 {{define "page-js"}}
+<script>
+  window.tipoActual = "{{.Tipo}}";
+  window.fechaActual = "{{.FechaActual}}";
+</script>
 <script src="/static/js/pages/movimientos.js"></script>
 {{end}}

@@ -79,7 +79,8 @@ func (v *PerfilValidator) ValidateCrearMiembro(r *http.Request) ValidationResult
 			// Al menos 1 mayúscula, 1 número, 1 carácter especial
 			hasUpper := regexp.MustCompile(`[A-Z]`).MatchString(contrasena)
 			hasNumber := regexp.MustCompile(`[0-9]`).MatchString(contrasena)
-			hasSpecial := regexp.MustCompile(`[.,:\[\]+./#$%&/()=?¿¡!]`).MatchString(contrasena)
+			hasSpecial := regexp.MustCompile(`[^a-zA-Z0-9]`).MatchString(contrasena)
+
 
 			if !hasUpper {
 				result.Errors["contrasena"] = "La contraseña debe tener al menos una mayúscula"
@@ -169,7 +170,7 @@ func (v *PerfilValidator) ValidateEditarMiembro(r *http.Request) ValidationResul
 		} else {
 			hasUpper := regexp.MustCompile(`[A-Z]`).MatchString(contrasena)
 			hasNumber := regexp.MustCompile(`[0-9]`).MatchString(contrasena)
-			hasSpecial := regexp.MustCompile(`[.,:\[\]+./#$%&/()=?¿¡!]`).MatchString(contrasena)
+			hasSpecial := regexp.MustCompile(`[^a-zA-Z0-9]`).MatchString(contrasena)
 
 			if !hasUpper {
 				result.Errors["contrasena"] = "La contraseña debe tener al menos una mayúscula"

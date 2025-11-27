@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"net/url"
 )
 
 type PerfilController struct{}
@@ -247,8 +248,8 @@ func (c *PerfilController) Crear(w http.ResponseWriter, r *http.Request) {
 	// Validar datos
 	validation := validators.PerfilValidatorInstance.ValidateCrearMiembro(r)
 	if !validation.Success {
-		log.Printf("❌ Validación fallida: %+v", validation.Errors)
-		c.redirectWithError(w, validation.Errors)
+		log.Printf("❌ Validación fallida 'Crear perfil': %+v", validation.Errors)
+		c.redirectWithError(w,r, validation.Errors)
 		return
 	}
 
@@ -257,13 +258,13 @@ func (c *PerfilController) Crear(w http.ResponseWriter, r *http.Request) {
 	exists, err := models.UserModelInstance.Exists(nombreUsuario)
 	if err != nil {
 		log.Printf("❌ Error verificando existencia de usuario: %v", err)
-		c.redirectWithError(w, map[string]string{"general": "Error verificando usuario"})
+		c.redirectWithError(w,r, map[string]string{"general": "Error verificando usuario"})
 		return
 	}
 
 	if exists {
 		log.Printf("❌ Usuario ya existe: %s", nombreUsuario)
-		c.redirectWithError(w, map[string]string{"nombreUsuario": "El nombre de usuario ya existe"})
+		c.redirectWithError(w,r, map[string]string{"nombreUsuario": "El nombre de usuario ya existe"})
 		return
 	}
 
@@ -273,7 +274,7 @@ func (c *PerfilController) Crear(w http.ResponseWriter, r *http.Request) {
 		hashedPass, err := utils.HashPassword(contrasena)
 		if err != nil {
 			log.Printf("❌ Error hasheando contraseña: %v", err)
-			c.redirectWithError(w, map[string]string{"general": "Error procesando contraseña"})
+			c.redirectWithError(w,r, map[string]string{"general": "Error procesando contraseña"})
 			return
 		}
 		contrasenaHash = hashedPass
@@ -295,7 +296,7 @@ func (c *PerfilController) Crear(w http.ResponseWriter, r *http.Request) {
 	err = models.UserModelInstance.Create(usuario)
 	if err != nil {
 		log.Printf("❌ Error creando usuario: %v", err)
-		c.redirectWithError(w, map[string]string{"general": "Error al crear el usuario"})
+		c.redirectWithError(w,r, map[string]string{"general": "Error al crear el usuario"})
 		return
 	}
 
@@ -319,8 +320,8 @@ func (c *PerfilController) Editar(w http.ResponseWriter, r *http.Request) {
 	// Validar datos
 	validation := validators.PerfilValidatorInstance.ValidateEditarMiembro(r)
 	if !validation.Success {
-		log.Printf("❌ Validación fallida: %+v", validation.Errors)
-		c.redirectWithError(w, validation.Errors)
+		log.Printf("❌ Validación fallida 'Editar Perfil': %+v", validation.Errors)
+		c.redirectWithError(w,r, validation.Errors)
 		return
 	}
 
@@ -337,7 +338,7 @@ func (c *PerfilController) Editar(w http.ResponseWriter, r *http.Request) {
 	usuario, err := models.UserModelInstance.FindByNombreUsuario(nombreUsuarioActual)
 	if err != nil || usuario == nil {
 		log.Printf("❌ Usuario no encontrado: %s", nombreUsuarioActual)
-		c.redirectWithError(w, map[string]string{"general": "Usuario no encontrado"})
+		c.redirectWithError(w,r, map[string]string{"general": "Usuario no encontrado"})
 		return
 	}
 
@@ -347,7 +348,7 @@ func (c *PerfilController) Editar(w http.ResponseWriter, r *http.Request) {
 			err = models.UserModelInstance.UpdateNombrePersonal(nombreUsuarioActual, nombrePersonal)
 			if err != nil {
 				log.Printf("❌ Error actualizando nombre: %v", err)
-				c.redirectWithError(w, map[string]string{"general": "Error actualizando nombre"})
+				c.redirectWithError(w,r, map[string]string{"general": "Error actualizando nombre"})
 				return
 			}
 		}
@@ -360,14 +361,14 @@ func (c *PerfilController) Editar(w http.ResponseWriter, r *http.Request) {
 				// Verificar que el nuevo nombre no exista
 				exists, _ := models.UserModelInstance.Exists(nombreUsuarioNuevo)
 				if exists {
-					c.redirectWithError(w, map[string]string{"nombreUsuario": "El nombre de usuario ya existe"})
+					c.redirectWithError(w,r, map[string]string{"nombreUsuario": "El nombre de usuario ya existe"})
 					return
 				}
 
 				err = models.UserModelInstance.UpdateNombreUsuario(nombreUsuarioActual, nombreUsuarioNuevo)
 				if err != nil {
 					log.Printf("❌ Error actualizando nombre de usuario: %v", err)
-					c.redirectWithError(w, map[string]string{"general": "Error actualizando usuario"})
+					c.redirectWithError(w,r, map[string]string{"general": "Error actualizando usuario"})
 					return
 				}
 				nombreUsuarioActual = nombreUsuarioNuevo // Actualizar para siguientes operaciones
@@ -382,7 +383,7 @@ func (c *PerfilController) Editar(w http.ResponseWriter, r *http.Request) {
 				err = models.UserModelInstance.UpdateRol(nombreUsuarioActual, rol)
 				if err != nil {
 					log.Printf("❌ Error actualizando rol: %v", err)
-					c.redirectWithError(w, map[string]string{"general": "Error actualizando rol"})
+					c.redirectWithError(w,r, map[string]string{"general": "Error actualizando rol"})
 					return
 				}
 			}
@@ -394,7 +395,7 @@ func (c *PerfilController) Editar(w http.ResponseWriter, r *http.Request) {
 		err = models.UserModelInstance.UpdatePassword(nombreUsuarioActual, contrasena)
 		if err != nil {
 			log.Printf("❌ Error actualizando contraseña: %v", err)
-			c.redirectWithError(w, map[string]string{"general": "Error actualizando contraseña"})
+			c.redirectWithError(w,r, map[string]string{"general": "Error actualizando contraseña"})
 			return
 		}
 	}
@@ -418,20 +419,20 @@ func (c *PerfilController) Deshabilitar(w http.ResponseWriter, r *http.Request) 
 
 	nombreUsuario := r.FormValue("nombreUsuario")
 	if nombreUsuario == "" {
-		c.redirectWithError(w, map[string]string{"general": "Usuario no especificado"})
+		c.redirectWithError(w,r, map[string]string{"general": "Usuario no especificado"})
 		return
 	}
 
 	// No permitir que el admin se deshabilite a sí mismo
 	if nombreUsuario == sessionData.NombreUsuario {
-		c.redirectWithError(w, map[string]string{"general": "No puedes deshabilitarte a ti mismo"})
+		c.redirectWithError(w,r, map[string]string{"general": "No puedes deshabilitarte a ti mismo"})
 		return
 	}
 
 	err := models.UserModelInstance.SoftDelete(nombreUsuario)
 	if err != nil {
 		log.Printf("❌ Error deshabilitando usuario: %v", err)
-		c.redirectWithError(w, map[string]string{"general": "Error al deshabilitar usuario"})
+		c.redirectWithError(w,r, map[string]string{"general": "Error al deshabilitar usuario"})
 		return
 	}
 
@@ -456,7 +457,7 @@ func (c *PerfilController) CrearLimite(w http.ResponseWriter, r *http.Request) {
 	validation := validators.PerfilValidatorInstance.ValidateLimite(r)
 	if !validation.Success {
 		log.Printf("❌ Validación de límite fallida: %+v", validation.Errors)
-		c.redirectWithError(w, validation.Errors)
+		c.redirectWithError(w,r, validation.Errors)
 		return
 	}
 
@@ -486,7 +487,7 @@ func (c *PerfilController) CrearLimite(w http.ResponseWriter, r *http.Request) {
 	err := models.PersonalizacionModelInstance.Create(personalizacion)
 	if err != nil {
 		log.Printf("❌ Error creando límite: %v", err)
-		c.redirectWithError(w, map[string]string{"general": "Error al crear el límite"})
+		c.redirectWithError(w,r, map[string]string{"general": "Error al crear el límite"})
 		return
 	}
 
@@ -511,7 +512,7 @@ func (c *PerfilController) EditarLimite(w http.ResponseWriter, r *http.Request) 
 	idStr := r.FormValue("idPersonalizacion")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		c.redirectWithError(w, map[string]string{"general": "ID de límite inválido"})
+		c.redirectWithError(w,r, map[string]string{"general": "ID de límite inválido"})
 		return
 	}
 
@@ -519,7 +520,7 @@ func (c *PerfilController) EditarLimite(w http.ResponseWriter, r *http.Request) 
 	personalizacion, err := models.PersonalizacionModelInstance.GetByID(id)
 	if err != nil || personalizacion == nil {
 		log.Printf("❌ Límite no encontrado: %d", id)
-		c.redirectWithError(w, map[string]string{"general": "Límite no encontrado"})
+		c.redirectWithError(w,r, map[string]string{"general": "Límite no encontrado"})
 		return
 	}
 
@@ -546,7 +547,7 @@ func (c *PerfilController) EditarLimite(w http.ResponseWriter, r *http.Request) 
 	err = models.PersonalizacionModelInstance.Update(personalizacion)
 	if err != nil {
 		log.Printf("❌ Error actualizando límite: %v", err)
-		c.redirectWithError(w, map[string]string{"general": "Error al actualizar el límite"})
+		c.redirectWithError(w,r, map[string]string{"general": "Error al actualizar el límite"})
 		return
 	}
 
@@ -571,7 +572,7 @@ func (c *PerfilController) EliminarLimite(w http.ResponseWriter, r *http.Request
 	idStr := r.FormValue("idPersonalizacion")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		c.redirectWithError(w, map[string]string{"general": "ID de límite inválido"})
+		c.redirectWithError(w,r, map[string]string{"general": "ID de límite inválido"})
 		return
 	}
 
@@ -579,7 +580,7 @@ func (c *PerfilController) EliminarLimite(w http.ResponseWriter, r *http.Request
 	personalizacion, err := models.PersonalizacionModelInstance.GetByID(id)
 	if err != nil || personalizacion == nil {
 		log.Printf("❌ Límite no encontrado: %d", id)
-		c.redirectWithError(w, map[string]string{"general": "Límite no encontrado"})
+		c.redirectWithError(w,r, map[string]string{"general": "Límite no encontrado"})
 		return
 	}
 
@@ -592,7 +593,7 @@ func (c *PerfilController) EliminarLimite(w http.ResponseWriter, r *http.Request
 	err = models.PersonalizacionModelInstance.Delete(id)
 	if err != nil {
 		log.Printf("❌ Error eliminando límite: %v", err)
-		c.redirectWithError(w, map[string]string{"general": "Error al eliminar el límite"})
+		c.redirectWithError(w,r, map[string]string{"general": "Error al eliminar el límite"})
 		return
 	}
 
@@ -601,11 +602,27 @@ func (c *PerfilController) EliminarLimite(w http.ResponseWriter, r *http.Request
 }
 
 // Helper para redirigir con errores
-func (c *PerfilController) redirectWithError(w http.ResponseWriter, errors map[string]string) {
-	// Por simplicidad, solo redirigimos con el primer error
-	for _, msg := range errors {
-		http.Redirect(w, nil, "/perfiles?error="+msg, http.StatusSeeOther)
+func (c *PerfilController) redirectWithError(
+	w http.ResponseWriter,
+	r *http.Request,
+	errors map[string]string,
+) {
+	if r == nil {
+		log.Println("❌ request nil en redirectWithError")
+		http.Error(w, "Error interno", http.StatusInternalServerError)
 		return
 	}
-	http.Redirect(w, nil, "/perfiles?error=Error desconocido", http.StatusSeeOther)
+
+	msg := "Error desconocido"
+	for _, m := range errors {
+		msg = m
+		break
+	}
+
+	http.Redirect(
+		w,
+		r,
+		"/perfiles?error="+url.QueryEscape(msg),
+		http.StatusSeeOther,
+	)
 }
