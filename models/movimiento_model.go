@@ -12,31 +12,51 @@ type MovimientoModel struct{}
 
 var MovimientoModelInstance = &MovimientoModel{}
 
-// Create crea un nuevo movimiento
+/*****************************/
+/*       FnBD_Mov_Create    */
+/***************************/
+// @Title Create
+// @Description Inserta un nuevo movimiento en la base de datos a través de un Stored Procedure.
+// @Accept  application/json
+// @Param   movimiento  body  entities.Movimiento  true  "Objeto Movimiento a crear"
+// @Success 200 {object} error  null  "Movimiento creado exitosamente"
+// @Failure 500 {object} error  "Error al ejecutar el Stored Procedure o al escanear resultados"
+// @Router /movimiento [post]
 func (m *MovimientoModel) Create(movimiento *entities.Movimiento) error {
+	// Definición del Stored Procedure a llamar para crear un movimiento.
 	query := `CALL sp_create_movimiento(?, ?, ?, ?, ?, ?)`
 
+	// Variables para almacenar los resultados devueltos por el SP: el ID del movimiento
+	// recién creado y el número de filas afectadas (aunque solo se usa idMovimiento).
 	var idMovimiento, rowsAffected int64
 
+	// Ejecuta el Stored Procedure en la base de datos. Se utiliza QueryRow porque
+	// el SP devuelve valores (idMovimiento y rowsAffected).
 	err := database.DB.QueryRow(query,
-		movimiento.Fecha,
-		movimiento.Monto,
-		movimiento.Descripcion,
-		movimiento.NombreUsuario,
-		movimiento.NombreConcepto,
-		movimiento.CorreoFamilia).Scan(&idMovimiento, &rowsAffected)
+		movimiento.Fecha,                                            // Parámetro 1: Fecha del movimiento
+		movimiento.Monto,                                            // Parámetro 2: Monto del movimiento
+		movimiento.Descripcion,                                      // Parámetro 3: Descripción del movimiento
+		movimiento.NombreUsuario,                                    // Parámetro 4: Nombre del usuario
+		movimiento.NombreConcepto,                                   // Parámetro 5: Nombre del concepto
+		movimiento.CorreoFamilia).Scan(&idMovimiento, &rowsAffected) // Parámetro 6: Correo de la familia y escaneo de resultados
 
+	// Verifica si ocurrió algún error durante la ejecución del QueryRow o el escaneo.
 	if err != nil {
+		// Registra el error en el log con un mensaje descriptivo.
 		log.Printf("❌ Error al ejecutar sp_create_movimiento: %v", err)
-		return err
+		return err // Retorna el error.
 	}
 
+	// Asigna el ID recién creado devuelto por el SP al objeto 'movimiento'.
 	movimiento.IdMovimiento = int(idMovimiento)
 
+	// Registra en el log la creación exitosa del movimiento.
 	log.Printf("✅ Movimiento creado - ID: %d", idMovimiento)
-	
+
+	// Retorna nil indicando que la operación fue exitosa.
 	return nil
 }
+
 // FindByFamilia busca todos los conceptos de una familia por tipo
 func (m *MovimientoModel) FindByFamilia(correoFamilia string, tipo string) ([]entities.Concepto, error) {
 	var tipoInt int8
@@ -118,7 +138,7 @@ func (m *MovimientoModel) FindByFamiliaAndDate(nombreUsuario string, fecha time.
 		movimientos = append(movimientos, movimiento)
 	}
 
-	log.Printf("📋 Movimientos encontrados: %d para usuario %s en fecha %s", 
+	log.Printf("📋 Movimientos encontrados: %d para usuario %s en fecha %s",
 		len(movimientos), nombreUsuario, fecha.Format("2006-01-02"))
 	return movimientos, nil
 }
@@ -164,7 +184,7 @@ func (m *MovimientoModel) FindByFamiliaDateAndTipo(correoFamilia string, fecha t
 	if tipo == 1 {
 		tipoStr = "ingresos"
 	}
-	log.Printf("📋 %s encontrados: %d para fecha %s (familia: %s)", 
+	log.Printf("📋 %s encontrados: %d para fecha %s (familia: %s)",
 		tipoStr, len(movimientos), fecha.Format("2006-01-02"), correoFamilia)
 	return movimientos, nil
 }
@@ -175,7 +195,7 @@ func (m *MovimientoModel) FindByID(idMovimiento int) (*entities.Movimiento, erro
 
 	movimiento := &entities.Movimiento{}
 	var descripcion sql.NullString
-	
+
 	err := database.DB.QueryRow(query, idMovimiento).Scan(
 		&movimiento.IdMovimiento,
 		&movimiento.Fecha,
@@ -218,7 +238,7 @@ func (m *MovimientoModel) Update(movimiento *entities.Movimiento) error {
 		movimiento.NombreConcepto).Scan(&rowsAffected)
 
 	if err != nil {
-		log.Printf("❌ Error al ejecutar sp_update_movimiento - ID: %d, Error: %v", 
+		log.Printf("❌ Error al ejecutar sp_update_movimiento - ID: %d, Error: %v",
 			movimiento.IdMovimiento, err)
 		return err
 	}
@@ -226,12 +246,13 @@ func (m *MovimientoModel) Update(movimiento *entities.Movimiento) error {
 	if rowsAffected == 0 {
 		log.Printf("⚠️ Movimiento no encontrado o ya eliminado - ID: %d", movimiento.IdMovimiento)
 	} else {
-		log.Printf("✅ Movimiento actualizado - ID: %d, Filas afectadas: %d", 
+		log.Printf("✅ Movimiento actualizado - ID: %d, Filas afectadas: %d",
 			movimiento.IdMovimiento, rowsAffected)
 	}
 
 	return nil
 }
+
 // Delete realiza soft delete de un movimiento
 func (m *MovimientoModel) Delete(idMovimiento int) error {
 	query := `CALL sp_delete_movimiento(?)`
@@ -248,7 +269,7 @@ func (m *MovimientoModel) Delete(idMovimiento int) error {
 	if rowsAffected == 0 {
 		log.Printf("⚠️ Movimiento no encontrado o ya eliminado - ID: %d", idMovimiento)
 	} else {
-		log.Printf("✅ Movimiento eliminado (soft delete) - ID: %d, Fecha: %s", 
+		log.Printf("✅ Movimiento eliminado (soft delete) - ID: %d, Fecha: %s",
 			idMovimiento, deletedAt.Format("2006-01-02 15:04:05"))
 	}
 
@@ -277,7 +298,7 @@ func (m *MovimientoModel) GetTotalesByUsuarioAndPeriod(nombreUsuario, correoFami
 	query := `CALL sp_get_totales_by_usuario_and_period(?, ?, ?, ?)`
 
 	var totalGastos, totalIngresos float64
-	
+
 	err := database.DB.QueryRow(query, nombreUsuario, correoFamilia, inicio, fin).Scan(&totalGastos, &totalIngresos)
 	if err != nil {
 		log.Printf("❌ Error obteniendo totales por período: %v", err)
@@ -287,7 +308,7 @@ func (m *MovimientoModel) GetTotalesByUsuarioAndPeriod(nombreUsuario, correoFami
 
 	log.Printf("💰 Totales Usuario %s - Período %s a %s - Gastos: %.2f, Ingresos: %.2f",
 		nombreUsuario, inicio.Format("2006-01-02"), fin.Format("2006-01-02"), totalGastos, totalIngresos)
-	
+
 	return totalIngresos, totalGastos, nil
 }
 
@@ -408,7 +429,7 @@ func (m *MovimientoModel) ExisteMovimientoHoy(nombreUsuario, nombreConcepto, cor
 		return false, err
 	}
 
-	log.Printf("🔍 Movimiento hoy - Usuario: %s, Concepto: %s, Existe: %v", 
+	log.Printf("🔍 Movimiento hoy - Usuario: %s, Concepto: %s, Existe: %v",
 		nombreUsuario, nombreConcepto, existe)
 	return existe, nil
 }

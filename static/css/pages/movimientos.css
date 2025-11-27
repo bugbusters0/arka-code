@@ -300,7 +300,6 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 18px;
-  margin-bottom: 18px;
 }
 
 .resumen-column {
@@ -362,7 +361,6 @@
   padding: 18px;
   box-shadow: 0 2px 6px var(--shadow);
   text-align: center;
-  margin-top: 12px;
 }
 
 .balance-label {
