@@ -1,0 +1,79 @@
+{{define "content"}}
+<div class="auth-form">
+    <h2>Crear Usuario</h2>
+    <p class="text-muted">Familia: {{.CorreoFamilia}}</p>
+
+    <form action="/usuario/create/submit" method="POST">
+        <input type="hidden" name="correo_familia" value="{{.CorreoFamilia}}">
+
+        <div class="form-group">
+            <label for="nombre_usuario">Nombre de Usuario</label>
+            <input 
+                type="text" 
+                id="nombre_usuario" 
+                name="nombre_usuario" 
+                value="{{.NombreUsuario}}"
+                placeholder="usuario123"
+                required
+            >
+            {{if .Errors.nombre_usuario}}
+                <span class="error-message">{{.Errors.nombre_usuario}}</span>
+            {{end}}
+            <small>Solo letras, números, guiones y guión bajo (3-30 caracteres)</small>
+        </div>
+
+        <div class="form-group">
+            <label for="nombre_personal">Nombre Personal</label>
+            <input 
+                type="text" 
+                id="nombre_personal" 
+                name="nombre_personal" 
+                value="{{.NombrePersonal}}"
+                placeholder="Juan Pérez"
+                required
+            >
+            {{if .Errors.nombre_personal}}
+                <span class="error-message">{{.Errors.nombre_personal}}</span>
+            {{end}}
+        </div>
+
+        <div class="form-group">
+            <label for="contraseña_personal">Contraseña Personal</label>
+            <input 
+                type="password" 
+                id="contraseña_personal" 
+                name="contraseña_personal"
+                required
+            >
+            {{if .Errors.contraseña_personal}}
+                <span class="error-message">{{.Errors.contraseña_personal}}</span>
+            {{end}}
+        </div>
+
+        <div class="form-group">
+            <label for="confirmar_contraseña">Confirmar Contraseña</label>
+            <input 
+                type="password" 
+                id="confirmar_contraseña" 
+                name="confirmar_contraseña"
+                required
+            >
+            {{if .Errors.confirmar_contraseña}}
+                <span class="error-message">{{.Errors.confirmar_contraseña}}</span>
+            {{end}}
+        </div>
+
+        {{if .Errors.general}}
+            <div class="alert alert-error">{{.Errors.general}}</div>
+        {{end}}
+
+        <button type="submit" class="btn btn-primary btn-block">
+            Crear Usuario
+        </button>
+    </form>
+
+    <div class="auth-footer">
+        <p><a href="/usuario/select?familia={{.CorreoFamilia}}">← Volver</a></p>
+    </div>
+</div>
+{{end}}

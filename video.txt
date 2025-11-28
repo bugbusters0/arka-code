@@ -1,0 +1,20 @@
+todo el rpocedimiento de una transaccion
+
+1. Introducir las 50 transacciones
+flujo:
+iniciar sesion
+crear concepto
+mostrar entradas gastos - ignresos- resumen
+crear entrada diarai
+editar entrada diarai
+elimianr entrad adiarai
+
+
+relaciones:
+
+
+
+
+
+
+//blaance buscar pro fecha mensual

@@ -7,6 +7,9 @@
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
+CREATE DATABASE IF NOT EXISTS arka;
+USE arka;
+
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
 SET time_zone = "+00:00";
@@ -35,7 +38,7 @@ CREATE TABLE `concepto` (
   `color` char(7) DEFAULT NULL,
   `nombreUsuario` varchar(30) NOT NULL,
   `delete_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -48,7 +51,7 @@ CREATE TABLE `familia` (
   `telefono` char(9) DEFAULT NULL CHECK (`telefono` regexp '^[0-9]{9}$'),
   `contraseña` varchar(255) NOT NULL,
   `delete_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -65,7 +68,7 @@ CREATE TABLE `movimiento` (
   `nombreConcepto` varchar(40) NOT NULL,
   `correoFamilia` varchar(50) NOT NULL,
   `delete_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -75,18 +78,19 @@ CREATE TABLE `movimiento` (
 
 CREATE TABLE `personalizacionconcepto` (
   `idPersonalizacion` int(11) NOT NULL,
-  `limiteGasto` decimal(10,2) DEFAULT NULL,
-  `activo` tinyint(1) DEFAULT 1,
   `montoPlanificado` decimal(10,2) DEFAULT NULL,
   `tipoPeriodoPlanificado` varchar(15) DEFAULT NULL,
-  `tipoPeriodoLimite` varchar(15) DEFAULT NULL,
   `diaPeriodoPlanificado` tinyint(3) UNSIGNED DEFAULT NULL CHECK (`diaPeriodoPlanificado` between 1 and 31),
+  `limiteGasto` decimal(10,2) DEFAULT NULL,
+  `tipoPeriodoLimite` varchar(15) DEFAULT NULL,
+  `diaPeriodoLimite` tinyint(3) UNSIGNED DEFAULT NULL CHECK (`diaPeriodoLimite` between 1 and 31),
   `notificacion` tinyint(1) DEFAULT 0,
+  `activo` tinyint(1) DEFAULT 1,
   `nombreUsuario` varchar(30) NOT NULL,
   `nombreConcepto` varchar(40) NOT NULL,
   `correoFamilia` varchar(50) NOT NULL,
   `delete_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -101,7 +105,7 @@ CREATE TABLE `usuario` (
   `nombrePersonal` varchar(100) NOT NULL,
   `correoFamilia` varchar(50) NOT NULL,
   `delete_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Índices para tablas volcadas
@@ -195,3 +199,6 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+
+
+

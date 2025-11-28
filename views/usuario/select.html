@@ -1,0 +1,52 @@
+{{define "content"}}
+<div class="auth-form">
+    <h2>Selecciona tu usuario</h2>
+    <p class="text-muted">Familia: {{.CorreoFamilia}}</p>
+
+    {{if .Usuarios}}
+    <div class="user-list">
+        {{range .Usuarios}}
+        <div class="user-card">
+            <form action="/usuario/login" method="POST" class="user-form">
+                <input type="hidden" name="correo_familia" value="{{$.CorreoFamilia}}">
+                <input type="hidden" name="nombre_usuario" value="{{.NombreUsuario}}">
+                
+                <div class="user-info">
+                    <h3>{{.NombrePersonal}}</h3>
+                    <p>@{{.NombreUsuario}} 
+                        {{if eq .Rol 1}}
+                            <span class="badge badge-admin">Admin</span>
+                        {{else}}
+                            <span class="badge badge-member">Member</span>
+                        {{end}}
+                    </p>
+                </div>
+                
+                <div class="form-group">
+                    <input 
+                        type="password" 
+                        name="contraseña_personal" 
+                        placeholder="Contraseña personal"
+                        required
+                    >
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-block">
+                    Entrar
+                </button>
+            </form>
+        </div>
+        {{end}}
+    </div>
+    {{else}}
+        <div class="alert alert-info">
+            No hay usuarios en esta familia. ¡Crea el primero!
+        </div>
+    {{end}}
+
+    <div class="auth-footer">
+        <p><a href="/usuario/create?familia={{.CorreoFamilia}}">➕ Crear nuevo usuario</a></p>
+        <p><a href="/login">← Volver al login</a></p>
+    </div>
+</div>
+{{end}}

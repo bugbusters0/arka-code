@@ -1,0 +1,414 @@
+{{define "content"}}
+<div class="container-perfiles">
+  <h2>👥 Perfiles</h2>
+
+  {{if .Success}}
+  <div class="success-message">
+    {{if eq .Success "created"}}Usuario creado correctamente
+    {{else if eq .Success "updated"}}Usuario actualizado correctamente
+    {{else if eq .Success "disabled"}}Usuario deshabilitado correctamente
+    {{else if eq .Success "limit_created"}}Límite creado correctamente
+    {{else if eq .Success "limit_updated"}}Límite actualizado correctamente
+    {{else if eq .Success "limit_deleted"}}Límite eliminado correctamente
+    {{end}}
+  </div>
+  {{end}}
+
+  {{if .Error}}
+  <div class="error-message">{{.Error}}</div>
+  {{end}}
+
+  {{if .SessionData.IsAdmin}}
+  <a class="add-member" id="btnAddMember">
+    <i class="fa-solid fa-circle-plus"></i> Añadir miembro
+  </a>
+  {{end}}
+
+  {{range .Usuarios}}
+  <div class="perfil-card" data-username="{{.NombreUsuario}}" data-rol="{{.Rol}}">
+    <div class="perfil-header">
+      <div class="avatar">{{substr .NombrePersonal 0 1}}</div>
+      <div>
+        <div class="title">{{.NombrePersonal}}</div>
+        <div style="color:var(--muted); font-size:13px;">
+          @{{.NombreUsuario}}
+          {{if not .Activo}} · Inactivo{{end}}
+        </div>
+      </div>
+
+      {{if $.SessionData.IsAdmin}}
+        {{if ne .NombreUsuario $.SessionData.NombreUsuario}}
+        <div class="trash" title="Deshabilitar">
+          <i class="fa-regular fa-trash-can fa-lg" data-action="deshabilitar" data-usuario="{{.NombreUsuario}}"></i>
+        </div>
+        {{end}}
+      {{end}}
+    </div>
+
+    <div class="perfil-body">
+      <div class="form-grid">
+        <form method="POST" action="/perfiles/editar" class="form-editar-perfil">
+          <input type="hidden" name="nombreUsuarioActual" value="{{.NombreUsuario}}">
+
+          <div class="row">
+            <div class="field">
+              <label>Nombre</label>
+              <input type="text" name="nombrePersonal" class="field-nombre" value="{{.NombrePersonal}}"
+                     {{if and (not $.SessionData.IsAdmin) (ne .NombreUsuario $.SessionData.NombreUsuario)}}disabled{{end}}>
+            </div>
+
+            <div class="field">
+              <label>Usuario</label>
+              <input type="text" name="nombreUsuario" class="field-username" value="{{.NombreUsuario}}"
+                     {{if not $.SessionData.IsAdmin}}disabled{{end}}>
+            </div>
+
+            <div class="field" style="margin-left:auto;">
+              <label>Rol</label>
+              <select name="rol" class="field-rol" {{if not $.SessionData.IsAdmin}}disabled{{end}}>
+                <option value="0" {{if eq .Rol 0}}selected{{end}}>Miembro</option>
+                <option value="1" {{if eq .Rol 1}}selected{{end}}>Administrador</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="field">
+              <label>Contraseña</label>
+              {{if and $.SessionData.IsAdmin (ne .NombreUsuario $.SessionData.NombreUsuario)}}
+                <div class="password-placeholder">
+                  <span>********</span>
+                  <i class="fa-solid fa-eye-slash" title="No editable"></i>
+                </div>
+              {{else}}
+                <input type="password" name="contrasena" class="field-pass" placeholder="Dejar vacío para no cambiar">
+              {{end}}
+            </div>
+            <div style="flex:1;"></div>
+          </div>
+
+          <div class="limits-section">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <div class="limits-title">Límites de gasto</div>
+              <div>
+                {{if or $.SessionData.IsAdmin (eq .NombreUsuario $.SessionData.NombreUsuario)}}
+                <button type="button" class="btn btn-ghost btn-add-limit" 
+                        data-usuario="{{.NombreUsuario}}" title="Añadir límite">
+                  + Añadir nuevo límite
+                </button>
+                {{end}}
+              </div>
+            </div>
+
+            <div class="limits-list">
+              {{if not .Limites}}
+                <div style="color:var(--muted); padding:8px 0;">No hay límites definidos.</div>
+              {{end}}
+
+              {{range .Limites}}
+              <div class="limit-row" data-id="{{.IdPersonalizacion}}">
+                <div class="limit-icon" style="background-color: {{.Color}};">
+                  <i class="{{.Icon}}"></i>
+                </div>
+                <div class="limit-cat">{{.Categoria}}</div>
+                <div class="limit-period">
+                  <select class="input-period" data-id="{{.IdPersonalizacion}}"
+                          {{if and (not $.SessionData.IsAdmin) (ne $.NombreUsuario $.SessionData.NombreUsuario)}}disabled{{end}}>
+                    <option {{if eq .Periodo "diario"}}selected{{end}}>diario</option>
+                    <option {{if eq .Periodo "semanal"}}selected{{end}}>semanal</option>
+                    <option {{if eq .Periodo "mensual"}}selected{{end}}>mensual</option>
+                    <option {{if eq .Periodo "anual"}}selected{{end}}>anual</option>
+                  </select>
+                </div>
+                <div>
+                  <input class="limit-input input-limite" data-id="{{.IdPersonalizacion}}" 
+                         value="{{printf "%.2f" .Limite}}"
+                         {{if and (not $.SessionData.IsAdmin) (ne $.NombreUsuario $.SessionData.NombreUsuario)}}disabled{{end}}>
+                </div>
+                <div>
+                  {{if gt .Consumo .Limite}}
+                    <div class="consumo-exceed">
+                      S/ {{printf "%.2f" .Consumo}} 
+                      <i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;"></i>
+                    </div>
+                  {{else}}
+                    <div class="consumo-ok">S/ {{printf "%.2f" .Consumo}}</div>
+                  {{end}}
+                  <div style="font-size:13px;color:var(--muted);margin-top:6px;">{{.AsignadoPor}}</div>
+                </div>
+
+                <div class="limit-actions">
+                  {{if or $.SessionData.IsAdmin (eq $.NombreUsuario $.SessionData.NombreUsuario)}}
+                    <button type="button" class="icon-btn btn-edit-limit" 
+                            data-id="{{.IdPersonalizacion}}" title="Editar límite">
+                      <i class="fa-regular fa-pen-to-square"></i>
+                    </button>
+                    <button type="button" class="icon-btn btn-delete-limit" 
+                            data-id="{{.IdPersonalizacion}}" title="Eliminar límite">
+                      <i class="fa-regular fa-trash-can"></i>
+                    </button>
+                  {{end}}
+                </div>
+              </div>
+              {{end}}
+            </div>
+          </div>
+
+          <div class="card-actions">
+            {{if $.SessionData.IsAdmin}}
+              <button type="button" class="btn btn-ghost btn-cancel-edit">Cancelar</button>
+              <button type="submit" class="btn btn-primary">Guardar</button>
+            {{else}}
+              {{if eq .NombreUsuario $.SessionData.NombreUsuario}}
+                <button type="button" class="btn btn-ghost btn-cancel-edit">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Guardar</button>
+              {{end}}
+            {{end}}
+          </div>
+        </form>
+      </div>
+
+      <div>
+        <div style="background:var(--accent-blue); padding:18px; border-radius:12px;">
+          <div style="font-weight:700; font-size:16px;">{{.NombrePersonal}}</div>
+          <div style="color:var(--muted); margin-top:6px;">
+            @{{.NombreUsuario}} · {{if eq .Rol 1}}Administrador{{else}}Miembro{{end}}
+          </div>
+        </div>
+
+        <div style="margin-top:12px; padding:12px; background:white; border-radius:12px; border:1px solid var(--soft-border);">
+          <div style="font-size:13px; color:var(--muted); margin-bottom:8px;">Correo familia</div>
+          <div>{{.CorreoFamilia}}</div>
+          <div style="margin-top:10px; color:var(--muted); font-size:13px;">Estado</div>
+          <div>{{if .Activo}}Activo{{else}}Inactivo{{end}}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {{end}}
+
+  {{if .SessionData.IsAdmin}}
+  <div id="modalNuevo" style="display:none; position:fixed; inset:0; background:rgba(6,8,10,0.4); align-items:center; justify-content:center; z-index:9999;">
+    <div style="width:720px; background:white; padding:20px; border-radius:12px; box-shadow:0 10px 40px rgba(2,6,23,0.25);">
+      <h3>Crear nuevo miembro</h3>
+      <form id="formCrear" method="POST" action="/perfiles/crear">
+        <div style="display:flex; gap:12px; margin-top:12px;">
+          <div style="flex:1;">
+            <label>Nombre</label>
+            <input type="text" name="nombrePersonal" required style="width:100%;">
+          </div>
+          <div style="flex:1;">
+            <label>Usuario</label>
+            <input type="text" name="nombreUsuario" required style="width:100%;">
+          </div>
+          <div style="flex:1;">
+            <label>Rol</label>
+            <select name="rol" style="width:100%;">
+              <option value="0">Miembro</option>
+              <option value="1">Administrador</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;">
+          <label>Contraseña (opcional)</label>
+          <input type="password" name="contrasena" style="width:100%;" 
+                 placeholder="Si la dejas vacía se generará una temporal">
+        </div>
+
+        <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:14px;">
+          <button type="button" id="btnCerrarModal" class="btn btn-ghost">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Crear</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="modalLimite" style="display:none; position:fixed; inset:0; background:rgba(6,8,10,0.4); align-items:center; justify-content:center; z-index:9999;">
+    <div style="width:600px; background:white; padding:20px; border-radius:12px; box-shadow:0 10px 40px rgba(2,6,23,0.25);">
+      <h3>Añadir límite de gasto</h3>
+      <form id="formLimite" method="POST" action="/perfiles/limites/crear">
+        <input type="hidden" name="nombreUsuario" id="limiteNombreUsuario">
+
+        <div style="margin-top:12px;">
+          <label>Concepto</label>
+          <select name="nombreConcepto" required style="width:100%;">
+            <option value="">-- Seleccionar concepto --</option>
+            {{range .Conceptos}}
+            <option value="{{.NombreConcepto}}">{{.NombreConcepto}}</option>
+            {{end}}
+          </select>
+        </div>
+
+        <div style="display:flex; gap:12px; margin-top:12px;">
+          <div style="flex:1;">
+            <label>Periodo</label>
+            <select name="periodo" required style="width:100%;">
+              <option value="mensual">Mensual</option>
+              <option value="semanal">Semanal</option>
+              <option value="diario">Diario</option>
+              <option value="anual">Anual</option>
+            </select>
+          </div>
+          <div style="flex:1;">
+            <label>Límite (S/)</label>
+            <input type="number" name="limite" step="0.01" min="0" required style="width:100%;">
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:14px;">
+          <button type="button" id="btnCerrarModalLimite" class="btn btn-ghost">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Crear</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  {{end}}
+</div>
+
+<script>
+  const isAdmin = {{.SessionData.IsAdmin}};
+
+  // Deshabilitar usuario
+  document.querySelectorAll('[data-action="deshabilitar"]').forEach(icon => {
+    icon.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const usuario = e.target.dataset.usuario;
+      if (!confirm('¿Estás seguro de deshabilitar este miembro?')) return;
+
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/perfiles/deshabilitar';
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'nombreUsuario';
+      input.value = usuario;
+      form.appendChild(input);
+      document.body.appendChild(form);
+      form.submit();
+    });
+  });
+
+  // Modal crear usuario
+  const btnAdd = document.getElementById('btnAddMember');
+  if (btnAdd) {
+    btnAdd.addEventListener('click', () => {
+      document.getElementById('modalNuevo').style.display = 'flex';
+    });
+  }
+
+  const btnCerrarModal = document.getElementById('btnCerrarModal');
+  if (btnCerrarModal) {
+    btnCerrarModal.addEventListener('click', () => {
+      document.getElementById('modalNuevo').style.display = 'none';
+    });
+  }
+
+  // Modal añadir límite
+  const btnCerrarModalLimite = document.getElementById('btnCerrarModalLimite');
+  if (btnCerrarModalLimite) {
+    btnCerrarModalLimite.addEventListener('click', () => {
+      document.getElementById('modalLimite').style.display = 'none';
+    });
+  }
+
+  document.querySelectorAll('.btn-add-limit').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const usuario = e.target.dataset.usuario;
+      document.getElementById('limiteNombreUsuario').value = usuario;
+      document.getElementById('modalLimite').style.display = 'flex';
+    });
+  });
+
+  // Expandir/contraer tarjetas
+  document.querySelectorAll('.perfil-card .perfil-header').forEach(header => {
+    header.addEventListener('click', function(e) {
+      if (e.target.closest('.trash')) return;
+      const card = header.closest('.perfil-card');
+      if (card) card.classList.toggle('active');
+    });
+  });
+
+  // Editar límite
+  document.querySelectorAll('.btn-edit-limit').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = e.target.closest('.btn-edit-limit').dataset.id;
+      const row = e.target.closest('.limit-row');
+      const periodo = row.querySelector('.input-period').value;
+      const limite = row.querySelector('.input-limite').value;
+
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/perfiles/limites/editar';
+
+      const inputId = document.createElement('input');
+      inputId.type = 'hidden';
+      inputId.name = 'idPersonalizacion';
+      inputId.value = id;
+
+      const inputPeriodo = document.createElement('input');
+      inputPeriodo.type = 'hidden';
+      inputPeriodo.name = 'periodo';
+      inputPeriodo.value = periodo;
+
+      const inputLimite = document.createElement('input');
+      inputLimite.type = 'hidden';
+      inputLimite.name = 'limite';
+      inputLimite.value = limite;
+
+      form.appendChild(inputId);
+      form.appendChild(inputPeriodo);
+      form.appendChild(inputLimite);
+      document.body.appendChild(form);
+      form.submit();
+    });
+  });
+
+  // Eliminar límite
+  document.querySelectorAll('.btn-delete-limit').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      if (!confirm('¿Eliminar este límite?')) return;
+
+      const id = e.target.closest('.btn-delete-limit').dataset.id;
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/perfiles/limites/eliminar';
+
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'idPersonalizacion';
+      input.value = id;
+
+      form.appendChild(input);
+      document.body.appendChild(form);
+      form.submit();
+    });
+  });
+
+  // Cancelar edición
+  document.querySelectorAll('.btn-cancel-edit').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (confirm('¿Descartar cambios?')) location.reload();
+    });
+  });
+
+  // Auto-ocultar mensajes
+  setTimeout(() => {
+    const messages = document.querySelectorAll('.success-message, .error-message');
+    messages.forEach(msg => msg.style.display = 'none');
+  }, 3500);
+
+  // Helper para substring en template
+  function substr(str, start, length) {
+    return str.substring(start, start + length);
+  }
+</script>
+{{end}}
+
+{{define "page-css"}}
+<link rel="stylesheet" href="/static/css/pages/perfiles.css">
+{{end}}
+
+{{define "page-js"}}
+<script src="/static/js/pages/perfiles.js"></script>
+{{end}}

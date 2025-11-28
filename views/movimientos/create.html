@@ -1,0 +1,76 @@
+{{define "content"}}
+<div class="page-header">
+    <h1>Registrar Movimiento</h1>
+</div>
+
+<div class="card">
+    <form action="/movimientos/create/submit" method="POST">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="fecha">Fecha *</label>
+                <input 
+                    type="date" 
+                    id="fecha" 
+                    name="fecha" 
+                    value="{{.Fecha}}"
+                    required
+                >
+                {{if .Errors.fecha}}
+                    <span class="error-message">{{.Errors.fecha}}</span>
+                {{end}}
+            </div>
+
+            <div class="form-group">
+                <label for="monto">Monto (S/) *</label>
+                <input 
+                    type="number" 
+                    id="monto" 
+                    name="monto" 
+                    value="{{.Monto}}"
+                    step="0.01"
+                    min="0"
+                    required
+                >
+                {{if .Errors.monto}}
+                    <span class="error-message">{{.Errors.monto}}</span>
+                {{end}}
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="nombre_concepto">Concepto *</label>
+            <select id="nombre_concepto" name="nombre_concepto" required>
+                <option value="">Seleccionar concepto</option>
+                {{range .Conceptos}}
+                    <option value="{{.NombreConcepto}}" {{if eq $.Concepto .NombreConcepto}}selected{{end}}>
+                        {{if .Icono}}{{.Icono}}{{end}} {{.NombreConcepto}} 
+                        ({{if eq .Tipo 1}}Ingreso{{else}}Gasto{{end}})
+                    </option>
+                {{end}}
+            </select>
+            {{if .Errors.nombre_concepto}}
+                <span class="error-message">{{.Errors.nombre_concepto}}</span>
+            {{end}}
+        </div>
+
+        <div class="form-group">
+            <label for="descripcion">Descripción (opcional)</label>
+            <textarea 
+                id="descripcion" 
+                name="descripcion" 
+                rows="3"
+                placeholder="Descripción del movimiento..."
+            >{{.Descripcion}}</textarea>
+        </div>
+
+        {{if .Errors.general}}
+            <div class="alert alert-error">{{.Errors.general}}</div>
+        {{end}}
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Registrar Movimiento</button>
+            <a href="/movimientos" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{{end}}

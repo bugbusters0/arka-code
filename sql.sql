@@ -1,168 +1,202 @@
--- ===============================================
--- SCRIPT SQL CORREGIDO Y COMPATIBLE
--- ===============================================
+-- phpMyAdmin SQL Dump
+-- version 5.2.1
+-- https://www.phpmyadmin.net/
+--
+-- Servidor: 127.0.0.1
+-- Tiempo de generación: 24-10-2025 a las 11:11:10
+-- Versión del servidor: 10.4.32-MariaDB
+-- Versión de PHP: 8.2.12
 
--- Eliminar tablas si existen (para reiniciar sin errores)
-DROP TABLE IF EXISTS movimiento;
-DROP TABLE IF EXISTS concepto_usuarios;
-DROP TABLE IF EXISTS concepto;
-DROP TABLE IF EXISTS iconos;
-DROP TABLE IF EXISTS usuario;
-DROP TABLE IF EXISTS familia;
+CREATE DATABASE IF NOT EXISTS arka;
+USE arka;
 
--- ===============================================
--- Tabla: familia
--- ===============================================
-CREATE TABLE familia (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    correo VARCHAR(255) UNIQUE NOT NULL,
-    telefono VARCHAR(20),
-    contrasena VARCHAR(255) NOT NULL, 
-    create_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    update_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    delete_at TIMESTAMP NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+START TRANSACTION;
+SET time_zone = "+00:00";
 
 
--- ===============================================
--- Tabla: usuario
--- ===============================================
-CREATE TABLE usuario (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    id_familia INT NOT NULL,
-    nombre VARCHAR(255) NOT NULL,
-    fecha_nac DATE NOT NULL,
-    rol ENUM('admin', 'miembro') DEFAULT 'miembro',
-    contra_personal VARCHAR(255) NOT NULL, 
-    create_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    update_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    delete_at TIMESTAMP NULL DEFAULT NULL,
-    FOREIGN KEY (id_familia) REFERENCES familia(id) 
-        ON DELETE CASCADE 
-        ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
+
+--
+-- Base de datos: `arka`
+--
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `concepto`
+--
+
+CREATE TABLE `concepto` (
+  `nombreConcepto` varchar(40) NOT NULL,
+  `correoFamilia` varchar(50) NOT NULL,
+  `tipo` tinyint(1) NOT NULL,
+  `icono` varchar(100) DEFAULT NULL,
+  `color` char(7) DEFAULT NULL,
+  `nombreUsuario` varchar(30) NOT NULL,
+  `delete_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `familia`
+--
+
+CREATE TABLE `familia` (
+  `correo` varchar(50) NOT NULL,
+  `telefono` char(9) DEFAULT NULL CHECK (`telefono` regexp '^[0-9]{9}$'),
+  `contraseña` varchar(255) NOT NULL,
+  `delete_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `movimiento`
+--
+
+CREATE TABLE `movimiento` (
+  `idMovimiento` int(11) NOT NULL,
+  `fecha` date NOT NULL,
+  `monto` decimal(10,2) NOT NULL,
+  `descripcion` text DEFAULT NULL,
+  `nombreUsuario` varchar(30) NOT NULL,
+  `nombreConcepto` varchar(40) NOT NULL,
+  `correoFamilia` varchar(50) NOT NULL,
+  `delete_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `personalizacionconcepto`
+--
+
+CREATE TABLE `personalizacionconcepto` (
+  `idPersonalizacion` int(11) NOT NULL,
+  `limiteGasto` decimal(10,2) DEFAULT NULL,
+  `activo` tinyint(1) DEFAULT 1,
+  `montoPlanificado` decimal(10,2) DEFAULT NULL,
+  `tipoPeriodoPlanificado` varchar(15) DEFAULT NULL,
+  `tipoPeriodoLimite` varchar(15) DEFAULT NULL,
+  `diaPeriodoPlanificado` tinyint(3) UNSIGNED DEFAULT NULL CHECK (`diaPeriodoPlanificado` between 1 and 31),
+  `notificacion` tinyint(1) DEFAULT 0,
+  `nombreUsuario` varchar(30) NOT NULL,
+  `nombreConcepto` varchar(40) NOT NULL,
+  `correoFamilia` varchar(50) NOT NULL,
+  `delete_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `usuario`
+--
+
+CREATE TABLE `usuario` (
+  `nombreUsuario` varchar(30) NOT NULL,
+  `rol` tinyint(1) NOT NULL DEFAULT 0,
+  `contraseñaPersonal` varchar(255) NOT NULL,
+  `nombrePersonal` varchar(100) NOT NULL,
+  `correoFamilia` varchar(50) NOT NULL,
+  `delete_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Índices para tablas volcadas
+--
+
+--
+-- Indices de la tabla `concepto`
+--
+ALTER TABLE `concepto`
+  ADD PRIMARY KEY (`nombreConcepto`,`correoFamilia`),
+  ADD KEY `correoFamilia` (`correoFamilia`),
+  ADD KEY `nombreUsuario` (`nombreUsuario`);
+
+--
+-- Indices de la tabla `familia`
+--
+ALTER TABLE `familia`
+  ADD PRIMARY KEY (`correo`);
+
+--
+-- Indices de la tabla `movimiento`
+--
+ALTER TABLE `movimiento`
+  ADD PRIMARY KEY (`idMovimiento`),
+  ADD KEY `nombreUsuario` (`nombreUsuario`),
+  ADD KEY `nombreConcepto` (`nombreConcepto`,`correoFamilia`);
+
+--
+-- Indices de la tabla `personalizacionconcepto`
+--
+ALTER TABLE `personalizacionconcepto`
+  ADD PRIMARY KEY (`idPersonalizacion`),
+  ADD KEY `nombreUsuario` (`nombreUsuario`),
+  ADD KEY `nombreConcepto` (`nombreConcepto`,`correoFamilia`);
+
+--
+-- Indices de la tabla `usuario`
+--
+ALTER TABLE `usuario`
+  ADD PRIMARY KEY (`nombreUsuario`),
+  ADD KEY `correoFamilia` (`correoFamilia`);
+
+--
+-- AUTO_INCREMENT de las tablas volcadas
+--
+
+--
+-- AUTO_INCREMENT de la tabla `movimiento`
+--
+ALTER TABLE `movimiento`
+  MODIFY `idMovimiento` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT de la tabla `personalizacionconcepto`
+--
+ALTER TABLE `personalizacionconcepto`
+  MODIFY `idPersonalizacion` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- Restricciones para tablas volcadas
+--
+
+--
+-- Filtros para la tabla `concepto`
+--
+ALTER TABLE `concepto`
+  ADD CONSTRAINT `concepto_ibfk_1` FOREIGN KEY (`correoFamilia`) REFERENCES `familia` (`correo`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `concepto_ibfk_2` FOREIGN KEY (`nombreUsuario`) REFERENCES `usuario` (`nombreUsuario`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Filtros para la tabla `movimiento`
+--
+ALTER TABLE `movimiento`
+  ADD CONSTRAINT `movimiento_ibfk_1` FOREIGN KEY (`nombreUsuario`) REFERENCES `usuario` (`nombreUsuario`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `movimiento_ibfk_2` FOREIGN KEY (`nombreConcepto`,`correoFamilia`) REFERENCES `concepto` (`nombreConcepto`, `correoFamilia`) ON UPDATE CASCADE;
+
+--
+-- Filtros para la tabla `personalizacionconcepto`
+--
+ALTER TABLE `personalizacionconcepto`
+  ADD CONSTRAINT `personalizacionconcepto_ibfk_1` FOREIGN KEY (`nombreUsuario`) REFERENCES `usuario` (`nombreUsuario`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `personalizacionconcepto_ibfk_2` FOREIGN KEY (`nombreConcepto`,`correoFamilia`) REFERENCES `concepto` (`nombreConcepto`, `correoFamilia`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Filtros para la tabla `usuario`
+--
+ALTER TABLE `usuario`
+  ADD CONSTRAINT `usuario_ibfk_1` FOREIGN KEY (`correoFamilia`) REFERENCES `familia` (`correo`) ON DELETE CASCADE ON UPDATE CASCADE;
+COMMIT;
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 
 
--- ===============================================
--- Tabla: iconos
--- ===============================================
-CREATE TABLE iconos (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    path VARCHAR(500) NOT NULL,  
-    nombre VARCHAR(255) NOT NULL,
-    size INT DEFAULT NULL, 
-    type VARCHAR(50) NOT NULL, 
-    create_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    update_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    delete_at TIMESTAMP NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-
--- ===============================================
--- Tabla: concepto
--- ===============================================
-CREATE TABLE concepto (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    id_icono INT NOT NULL,
-    nombre VARCHAR(255) NOT NULL,
-    color VARCHAR(7) DEFAULT NULL,  -- Ejemplo: '#FF0000'
-    tipo ENUM('ingreso', 'gasto') NOT NULL,
-    create_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    update_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    delete_at TIMESTAMP NULL DEFAULT NULL, 
-    FOREIGN KEY (id_icono) REFERENCES iconos(id) 
-        ON DELETE RESTRICT 
-        ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-
--- ===============================================
--- Tabla: concepto_usuarios
--- ===============================================
-CREATE TABLE concepto_usuarios (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    id_usuario INT NOT NULL,
-    id_concepto INT NOT NULL,
-    desembolso_planejado DECIMAL(10, 2) NOT NULL,
-    periodo_desembolso DATETIME DEFAULT NULL,
-    periodo_tipo ENUM('mensual', 'quincenal', 'semanal', 'diario') DEFAULT NULL,
-    periodo_dia ENUM('lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo') DEFAULT NULL,
-    limite_monto DECIMAL(10, 2) NOT NULL,
-    limite_tipo ENUM('mensual', 'quincenal', 'semanal', 'diario') DEFAULT NULL,
-    limite_fecha DATETIME DEFAULT NULL,
-    has_notificacion TINYINT(1) DEFAULT 0,
-    visible TINYINT(1) DEFAULT 1,
-    create_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    update_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    delete_at TIMESTAMP NULL DEFAULT NULL, 
-    UNIQUE KEY unique_usuario_concepto (id_usuario, id_concepto),
-    FOREIGN KEY (id_usuario) REFERENCES usuario(id) 
-        ON DELETE CASCADE 
-        ON UPDATE CASCADE,
-    FOREIGN KEY (id_concepto) REFERENCES concepto(id) 
-        ON DELETE CASCADE 
-        ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-
--- ===============================================
--- Tabla: movimiento
--- ===============================================
-CREATE TABLE movimiento (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    id_concepto INT NOT NULL,
-    monto DECIMAL(10, 2) NOT NULL,
-    fecha DATETIME NOT NULL,
-    descripcion TEXT DEFAULT NULL,
-    create_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    update_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    delete_at TIMESTAMP NULL DEFAULT NULL,
-    FOREIGN KEY (id_concepto) REFERENCES concepto(id) 
-        ON DELETE RESTRICT 
-        ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-
--- ===============================================
--- Índices recomendados
--- ===============================================
-CREATE INDEX idx_usuario_familia ON usuario(id_familia);
-CREATE INDEX idx_concepto_tipo ON concepto(tipo);
-CREATE INDEX idx_movimiento_concepto ON movimiento(id_concepto);
-CREATE INDEX idx_movimiento_fecha ON movimiento(fecha);
-
-ALTER TABLE concepto_usuarios 
-MODIFY COLUMN desembolso_planejado DECIMAL(10, 2) NULL,
-MODIFY COLUMN limite_monto DECIMAL(10, 2) NULL;
-
-INSERT INTO `iconos` (`id`, `path`, `nombre`, `size`, `type`, `create_at`, `update_at`, `delete_at`) VALUES
-(3, 'fa-solid fa-burger', 'Hamburguesa', NULL, 'font-awesome', '2025-10-10 03:31:09', '2025-10-10 03:31:09', NULL),
-(4, 'fa-solid fa-spa', 'Spa', NULL, 'font-awesome', '2025-10-10 03:31:09', '2025-10-10 03:31:09', NULL),
-(5, 'fa-solid fa-car', 'Auto', NULL, 'font-awesome', '2025-10-10 03:31:09', '2025-10-10 03:31:09', NULL),
-(6, 'fa-solid fa-heart-pulse', 'Salud', NULL, 'font-awesome', '2025-10-10 03:31:09', '2025-10-10 03:31:09', NULL),
-(7, 'fa-solid fa-graduation-cap', 'Educación', NULL, 'font-awesome', '2025-10-10 03:31:09', '2025-10-10 03:31:09', NULL),
-(8, 'fa-solid fa-basket-shopping', 'Canasta de Compras', NULL, 'font-awesome', '2025-10-10 03:31:09', '2025-10-10 03:31:09', NULL),
-(9, 'fa-solid fa-utensils', 'Utensilios', NULL, 'font-awesome', '2025-10-10 03:31:09', '2025-10-10 03:31:09', NULL),
-(10, 'fa-solid fa-lightbulb', 'Bombilla', NULL, 'font-awesome', '2025-10-10 03:31:09', '2025-10-10 03:31:09', NULL),
-(11, 'fa-solid fa-shirt', 'Camisa', NULL, 'font-awesome', '2025-10-10 03:31:09', '2025-10-10 03:31:09', NULL);
-
--- ===============================================
--- Ejemplo de inserción de datos de prueba (opcional)
--- ===============================================
--- INSERT INTO familia (correo, telefono, contrasena) 
--- VALUES ('test@familia.com', '123456789', '$2y$10$hashedpassword');
-
--- INSERT INTO iconos (path, nombre, size, type) 
--- VALUES ('/icons/gasto.svg', 'Gasto General', 24, 'svg');
-
--- INSERT INTO concepto (id_icono, nombre, color, tipo) 
--- VALUES (1, 'Comida', '#FF6B6B', 'gasto');
-
--- INSERT INTO usuario (id_familia, nombre, fecha_nac, rol, contra_personal) 
--- VALUES (1, 'Juan Pérez', '1990-01-01', 'admin', '$2y$10$hashedpassword');
-
--- INSERT INTO concepto_usuarios (id_usuario, id_concepto, desembolso_planejado, limite_monto) 
--- VALUES (1, 1, 500.00, 600.00);
-
--- INSERT INTO movimiento (id_concepto, monto, fecha, descripcion) 
--- VALUES (1, -50.00, NOW(), 'Compra de almuerzo');

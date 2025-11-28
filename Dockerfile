@@ -1,30 +1,30 @@
-FROM php:8.2-apache
+FROM golang:1.25-alpine
 
-# Instalar MySQL correctamente
-RUN apt-get update && apt-get install -y \
-    default-mysql-server \
-    default-mysql-client \
-    && rm -rf /var/lib/apt/lists/*
+# Instalar MySQL y configurar inicialización
+RUN apk add --no-cache \
+    mariadb \
+    mariadb-client \
+    bash
 
-# Extensiones PHP
-RUN docker-php-ext-install mysqli pdo pdo_mysql
+# Crear directorio de trabajo
+WORKDIR /app
 
-# Habilitar mod_rewrite
-RUN a2enmod rewrite
+# Copiar go mod y descargar dependencias
+COPY go.mod go.sum ./
+RUN go mod download
 
-# Copiar configuración Apache
-COPY apache-config/000-default.conf /etc/apache2/sites-available/000-default.conf
+# Copiar código fuente
+COPY . .
 
-# Script de inicio
+# Compilar la aplicación Go
+RUN go build -o main .
+
+# Script de inicio mejorado
 COPY start.sh /start.sh
 RUN chmod +x /start.sh
 
-# Copiar aplicación
-COPY . /var/www/html/
+# Inicializar base de datos MySQL
+RUN mysql_install_db --user=mysql --datadir=/var/lib/mysql
 
-# Permisos
-RUN chown -R www-data:www-data /var/www/html
-RUN chmod -R 755 /var/www/html
-
-EXPOSE 80
+EXPOSE 8080
 CMD ["/start.sh"]

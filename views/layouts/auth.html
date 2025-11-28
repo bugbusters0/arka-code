@@ -1,0 +1,28 @@
+{{define "auth"}}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} - Arka</title>
+    
+    <!-- CSS Global -->
+    <link rel="stylesheet" href="/static/css/global.css">
+    
+    <!-- CSS del Layout -->
+    <link rel="stylesheet" href="/static/css/auth.css">
+    
+    <!-- CSS Específico de la Página -->
+    {{block "page-css" .}}{{end}}
+</head>
+<body class="auth-layout">
+    {{template "content" .}}
+    
+    <!-- JS Global -->
+    <script src="/static/js/global.js"></script>
+    
+    <!-- JS Específico de la Página -->
+    {{block "page-js" .}}{{end}}
+</body>
+</html>
+{{end}}

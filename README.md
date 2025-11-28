@@ -1,26 +1,30 @@
-# Arka Code - Sistema de Gestión Financiera
+# Arka Code - Sistema de Gestión Financiera Familiar
 
 ## 📋 Descripción
 
-Arka Code es una aplicación web desarrollada en PHP puro para la gestión de conceptos financieros, gastos e ingresos. La aplicación incluye autenticación de usuarios, gestión de perfiles familiares y un sistema completo de categorización de movimientos financieros.
+Arka Code es una aplicación web desarrollada en **Go (Golang)** para la gestión financiera familiar. Permite administrar conceptos de gastos e ingresos, registrar movimientos diarios, establecer límites de gasto por usuario y gestionar perfiles familiares con roles diferenciados.
 
 ## 🚀 Características
 
-- **Autenticación de usuarios** con múltiples perfiles familiares
-- **Gestión de conceptos** para gastos e ingresos
+- **Autenticación multinivel** con perfiles familiares y usuarios individuales
+- **Gestión de conceptos** personalizables para gastos e ingresos
+- **Registro de movimientos** diarios con categorización automática
+- **Sistema de límites de gasto** por usuario y concepto
+- **Roles diferenciados** (Administrador y Miembro)
 - **Interfaz responsive** con diseño moderno
-- **Base de datos MySQL** para persistencia de datos
-- **Arquitectura MVC** personalizada
-- **Sistema de validación** de formularios
-- **Middleware de autenticación**
+- **Arquitectura MVC** limpia y escalable
+- **Base de datos MySQL/MariaDB** con soft deletes
+- **Validación robusta** de formularios server-side
 
 ## 🛠️ Tecnologías
 
-- **Backend**: PHP 8.2, MySQL
-- **Frontend**: HTML5, CSS3, JavaScript vanilla
-- **Servidor**: Apache HTTP Server
-- **Contenedores**: Docker
-- **Deploy**: Fly.io
+- **Backend**: Go 1.21+
+- **Base de datos**: MySQL 8.0 / MariaDB 10.6+
+- **Frontend**: HTML5, CSS3, JavaScript Vanilla
+- **Template Engine**: Go HTML Templates
+- **Sesiones**: Gorilla Sessions
+- **Router**: http.ServeMux (Go estándar)
+- **Deploy**: Compatible con cualquier servidor que soporte Go
 
 ---
 
@@ -28,32 +32,66 @@ Arka Code es una aplicación web desarrollada en PHP puro para la gestión de co
 
 ```
 arka-code/
-├── backend/
-│   ├── config/
-│   │   ├── app.php          # Configuración de la aplicación
-│   │   └── db.php           # Configuración de base de datos
-│   ├── controllers/         # Controladores MVC
-│   │   ├── AuthController.php
-│   │   ├── ConceptoController.php
-│   │   └── PerfilController.php
-│   ├── models/              # Modelos de datos
-│   ├── validator/           # Validadores de formularios
-│   └── commons/             # Utilidades comunes
-├── frontend/
-│   └── views/               # Vistas y layouts
-│   └── assets/
-│       ├── css/             # Estilos de la aplicación
-│       ├── js/              # Scripts JavaScript
-│       └── img/             # Imágenes y recursos
-├── public/
-│   ├── index.php           # Punto de entrada de la aplicación
-│   └── .htaccess           # Configuración de URLs amigables
-├── apache-config/
-│   └── 000-default.conf    # Configuración de Apache
-├── sql.sql                 # Estructura inicial de la base de datos
-├── Dockerfile              # Configuración para Docker
-├── docker-compose.yml      # Orquestación de contenedores
-└── start.sh               # Script de inicio para producción
+├── config/
+│   └── config.go              # Configuración de la aplicación
+├── controllers/
+│   ├── auth_controller.go     # Autenticación y registro
+│   ├── perfil_controller.go   # Selección de perfil
+│   ├── concepto_controller.go # Gestión de conceptos
+│   ├── movimiento_controller.go # Entrada diaria de movimientos
+│   └── perfil_controller.go   # Gestión de usuarios/perfiles
+├── database/
+│   └── connection.go          # Conexión a MySQL
+├── entities/
+│   ├── familia.go             # Entidad Familia
+│   ├── usuario.go             # Entidad Usuario
+│   ├── concepto.go            # Entidad Concepto
+│   ├── movimiento.go          # Entidad Movimiento
+│   ├── personalizacion_concepto.go # Entidad Límites
+│   └── session_data.go        # Datos de sesión
+├── middleware/
+│   ├── auth.go                # Middleware de autenticación
+│   └── role.go                # Middleware de roles
+├── models/
+│   ├── familia_model.go       # CRUD de familias
+│   ├── user_model.go          # CRUD de usuarios
+│   ├── concepto_model.go      # CRUD de conceptos
+│   ├── movimiento_model.go    # CRUD de movimientos
+│   └── personalizacion_model.go # CRUD de límites
+├── routes/
+│   └── routes.go              # Definición de rutas
+├── static/
+│   ├── css/                   # Estilos CSS
+│   ├── js/                    # Scripts JavaScript
+│   └── img/                   # Imágenes y recursos
+├── utils/
+│   ├── hash.go                # Hash de contraseñas (bcrypt)
+│   ├── render.go              # Renderizado de templates
+│   └── session.go             # Manejo de sesiones
+├── validators/
+│   ├── validator_base.go      # Validador base
+│   ├── register_validator.go  # Validación de registro
+│   ├── login_validator.go     # Validación de login
+│   ├── concepto_validator.go  # Validación de conceptos
+│   ├── movimiento_validator.go # Validación de movimientos
+│   └── perfil_validator.go    # Validación de perfiles
+├── views/
+│   ├── layouts/
+│   │   ├── auth.html          # Layout para auth
+│   │   └── dashboard.html     # Layout principal
+│   ├── auth/
+│   │   ├── login.html         # Vista de login
+│   │   └── registro.html      # Vista de registro
+│   ├── perfiles/
+│   │   ├── seleccionar.html   # Selección de perfil
+│   │   └── index.html         # Gestión de perfiles
+│   ├── conceptos/
+│   │   └── index.html         # Gestión de conceptos
+│   └── movimientos/
+│       └── index.html         # Entrada diaria
+├── main.go                    # Punto de entrada
+├── go.mod                     # Dependencias Go
+└── go.sum                     # Checksums de dependencias
 ```
 
 ---
@@ -62,12 +100,11 @@ arka-code/
 
 ### Prerrequisitos
 
-- PHP 8.2 o superior
-- Apache HTTP Server
-- MySQL 8.0 o MariaDB
-- Git
+- **Go 1.21 o superior**
+- **MySQL 8.0 / MariaDB 10.6+**
+- **Git**
 
-### Instalación Local
+### Instalación
 
 1. **Clonar el repositorio**
 
@@ -76,7 +113,13 @@ git clone https://github.com/bugbusters0/arka-code.git
 cd arka-code
 ```
 
-2. **Configurar base de datos**
+2. **Instalar dependencias de Go**
+
+```bash
+go mod download
+```
+
+3. **Configurar base de datos**
 
 ```bash
 # Conectar a MySQL
@@ -85,525 +128,760 @@ mysql -u root -p
 # Crear base de datos y usuario
 CREATE DATABASE arka;
 CREATE USER 'arka_user'@'localhost' IDENTIFIED BY 'arka_password';
-GRANT ALL PRIVILEGES ON arka_code.* TO 'arka_user'@'localhost';
+GRANT ALL PRIVILEGES ON arka.* TO 'arka_user'@'localhost';
 FLUSH PRIVILEGES;
 EXIT;
 
-# Importar estructura inicial
-mysql -u root -p arka_code < sql.sql
+# Importar estructura
+mysql -u root -p arka < tablas_SQL_Arka.sql
 ```
 
-3. **Configurar Apache**
+4. **Configurar variables de entorno**
 
-```apache
-# En /etc/httpd/conf/httpd.conf o virtual host
-DocumentRoot "/ruta/a/arka-code/public"
+Crear archivo `.env` en la raíz del proyecto:
 
-<Directory "/ruta/a/arka-code/public">
-    AllowOverride All
-    Require all granted
-</Directory>
+```env
+APP_NAME=Arka
+APP_PORT=8080
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=arka
+DB_USER=arka_user
+DB_PASSWORD=arka_password
+SESSION_KEY=tu-clave-secreta-aqui-cambiar-en-produccion
 ```
 
-4. **Iniciar servidores**
+5. **Ejecutar la aplicación**
 
 ```bash
-# Reiniciar Apache
-sudo systemctl restart httpd
+# Modo desarrollo
+go run main.go
 
-# O usar servidor PHP built-in
-php -S localhost:8000 -t public
+# O compilar y ejecutar
+go build -o arka-code
+./arka-code
 ```
 
-5. **Acceder a la aplicación**
+6. **Acceder a la aplicación**
 
 ```
-http://localhost/arka-code
+http://localhost:8080
 ```
-
-## ☁️ Despliegue en Producción (Fly.io)
-
-### Prerrequisitos
-
-- Cuenta en [Fly.io](https://fly.io)
-- Fly CLI instalado
-
-### Comandos de despliegue
-
-```bash
-# Login en Fly.io
-fly auth login
-
-# Inicializar aplicación (primera vez)
-fly launch
-
-# Desplegar aplicación
-fly deploy
-
-# Ver logs
-fly logs
-
-# Conectar a la base de datos
-fly ssh console
-mysql -u arka_user -p arka_code
-```
-
-### URLs de producción
-
-- **Aplicación**: https://arka-code.fly.dev
-- **Dashboard**: https://fly.io/apps/arka-code
 
 ---
 
 ## 🔧 Configuración
 
-### Variables de Entorno
+### Variables de Entorno - `config/config.go`
 
-La aplicación detecta automáticamente el entorno:
+```go
+type Config struct {
+    AppName     string
+    Port        string
+    DBHost      string
+    DBPort      string
+    DBName      string
+    DBUser      string
+    DBPassword  string
+    SessionKey  string
+}
 
-**Desarrollo Local:**
-
-```php
-URLROOT = 'http://localhost/arka-code'
-DB_HOST = 'localhost'
-```
-
-**Producción (Fly.io):**
-
-```php
-URLROOT = 'https://arka-code.fly.dev'
-DB_HOST = 'localhost' (con socket)
-```
-
-### Archivos de Configuración
-
-#### `backend/config/app.php`
-
-```php
-// Configuración general de la aplicación
-define('URLROOT', 'http://localhost');
-define('APP_NAME', 'Arka App');
-date_default_timezone_set('America/Lima');
-```
-
-#### `backend/config/db.php`
-
-```php
-// Configuración de conexión a base de datos
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'arka_code');
-define('DB_USER', 'arka_user');
-define('DB_PASS', 'arka_password');
+func LoadConfig() {
+    // Carga variables desde .env o valores por defecto
+    AppConfig = Config{
+        AppName:    getEnv("APP_NAME", "Arka"),
+        Port:       getEnv("APP_PORT", "8080"),
+        DBHost:     getEnv("DB_HOST", "localhost"),
+        DBPort:     getEnv("DB_PORT", "3306"),
+        DBName:     getEnv("DB_NAME", "arka"),
+        DBUser:     getEnv("DB_USER", "arka_user"),
+        DBPassword: getEnv("DB_PASSWORD", "arka_password"),
+        SessionKey: getEnv("SESSION_KEY", "default-key-change-in-prod"),
+    }
+}
 ```
 
 ---
 
 ## 🔄 Flujo de la Aplicación
 
-### 1. Punto de Entrada - `public/index.php`
+### 1. Punto de Entrada - `main.go`
 
-```php
-<?php
-require_once '../backend/config/init.php';
+```go
+package main
 
-// Procesamiento de rutas
-$uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-$uri = str_replace('/arka-code', '', $uri);
-$uri = trim($uri, '/');
+import (
+    "arka-code/config"
+    "arka-code/database"
+    "arka-code/routes"
+    "log"
+    "net/http"
+)
 
-// Sistema de enrutamiento manual
-switch ($uri) {
-    case 'login':
-        // 1. Verifica si el usuario NO está autenticado
-        AuthMiddleware::guest();
+func main() {
+    // 1. Cargar configuración
+    config.LoadConfig()
 
-        // 2. Si es POST, valida y procesa login
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $validation = LoginValidator::validate($_POST);
-            if (!$validation['success']) {
-                // Guarda errores en sesión y redirige
-                $_SESSION['validation_errors'] = $validation['errors'];
-                header('Location: ' . URLROOT . '/login');
-                exit;
-            }
+    // 2. Conectar base de datos
+    database.Connect()
+    defer database.Close()
 
-            // Combina datos limpios
-            $_POST = array_merge($_POST, $validation['cleanData']);
-        }
+    // 3. Configurar rutas
+    router := routes.SetupRoutes()
 
-        // 3. Crea controlador y ejecuta acción
-        require_once ROOT . '/backend/controllers/AuthController.php';
-        $controller = new AuthController();
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $controller->enviarCredenciales(); // Procesa login
+    // 4. Iniciar servidor
+    log.Printf("🚀 Servidor iniciado en http://localhost:%s", config.AppConfig.Port)
+    log.Fatal(http.ListenAndServe(":"+config.AppConfig.Port, router))
+}
+```
+
+### 2. Sistema de Rutas - `routes/routes.go`
+
+```go
+func SetupRoutes() *http.ServeMux {
+    utils.InitSession()
+    mux := http.NewServeMux()
+
+    // Archivos estáticos
+    fs := http.FileServer(http.Dir("./static"))
+    mux.Handle("/static/", http.StripPrefix("/static/", fs))
+
+    // ========================================
+    // RUTAS PÚBLICAS
+    // ========================================
+    mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+        if utils.IsAuthenticated(r) {
+            http.Redirect(w, r, "/movimientos", http.StatusSeeOther)
         } else {
-            $controller->showLogin(); // Muestra formulario
+            http.Redirect(w, r, "/login", http.StatusSeeOther)
         }
-        break;
+    })
 
-    // ... más rutas
+    // ========================================
+    // AUTENTICACIÓN DE FAMILIA
+    // ========================================
+    mux.HandleFunc("/registro", middleware.RequireGuest(
+        controllers.AuthControllerInstance.ShowRegister,
+    ))
+
+    mux.HandleFunc("/registro/submit", middleware.RequireGuest(
+        controllers.AuthControllerInstance.Register,
+    ))
+
+    mux.HandleFunc("/login", middleware.RequireGuest(
+        controllers.AuthControllerInstance.ShowLogin,
+    ))
+
+    mux.HandleFunc("/login/submit", middleware.RequireGuest(
+        controllers.AuthControllerInstance.Login,
+    ))
+
+    // ========================================
+    // SELECCIÓN DE PERFIL
+    // ========================================
+    mux.HandleFunc("/seleccionar-perfil", middleware.RequireFamiliaAuth(
+        controllers.PerfilControllerInstance.ShowSeleccionarPerfil,
+    ))
+
+    mux.HandleFunc("/seleccionar-perfil/submit", middleware.RequireFamiliaAuth(
+        controllers.PerfilControllerInstance.SeleccionarPerfil,
+    ))
+
+    // ========================================
+    // ÁREA PROTEGIDA (REQUIERE USUARIO)
+    // ========================================
+
+    // Conceptos
+    mux.HandleFunc("/conceptos", middleware.RequireUsuarioAuth(
+        controllers.ConceptoControllerInstance.Index,
+    ))
+
+    mux.HandleFunc("/conceptos/crear", middleware.RequireUsuarioAuth(
+        controllers.ConceptoControllerInstance.Crear,
+    ))
+
+    // Movimientos (Entrada Diaria)
+    mux.HandleFunc("/movimientos", middleware.RequireUsuarioAuth(
+        controllers.MovimientoControllerInstance.Index,
+    ))
+
+    mux.HandleFunc("/movimientos/crear", middleware.RequireUsuarioAuth(
+        controllers.MovimientoControllerInstance.Crear,
+    ))
+
+    mux.HandleFunc("/movimientos/editar", middleware.RequireUsuarioAuth(
+        controllers.MovimientoControllerInstance.Editar,
+    ))
+
+    mux.HandleFunc("/movimientos/eliminar", middleware.RequireUsuarioAuth(
+        controllers.MovimientoControllerInstance.Eliminar,
+    ))
+
+    // Perfiles (Solo Admin para crear/deshabilitar)
+    mux.HandleFunc("/perfiles", middleware.RequireUsuarioAuth(
+        controllers.PerfilControllerInstance.Index,
+    ))
+
+    mux.HandleFunc("/perfiles/crear", middleware.RequireUsuarioAuth(
+        middleware.RequireAdmin(
+            controllers.PerfilControllerInstance.Crear,
+        ),
+    ))
+
+    mux.HandleFunc("/perfiles/editar", middleware.RequireUsuarioAuth(
+        controllers.PerfilControllerInstance.Editar,
+    ))
+
+    mux.HandleFunc("/perfiles/deshabilitar", middleware.RequireUsuarioAuth(
+        middleware.RequireAdmin(
+            controllers.PerfilControllerInstance.Deshabilitar,
+        ),
+    ))
+
+    // Límites de Gasto
+    mux.HandleFunc("/perfiles/limites/crear", middleware.RequireUsuarioAuth(
+        controllers.PerfilControllerInstance.CrearLimite,
+    ))
+
+    mux.HandleFunc("/perfiles/limites/editar", middleware.RequireUsuarioAuth(
+        controllers.PerfilControllerInstance.EditarLimite,
+    ))
+
+    mux.HandleFunc("/perfiles/limites/eliminar", middleware.RequireUsuarioAuth(
+        controllers.PerfilControllerInstance.EliminarLimite,
+    ))
+
+    // Logout
+    mux.HandleFunc("/logout-familia", middleware.RequireFamiliaAuth(
+        controllers.AuthControllerInstance.LogoutFamilia,
+    ))
+
+    mux.HandleFunc("/logout-usuario", middleware.RequireUsuarioAuth(
+        controllers.AuthControllerInstance.LogoutUsuario,
+    ))
+
+    return mux
 }
-?>
 ```
 
-**Explicación del flujo:**
+### 3. Middleware de Autenticación - `middleware/auth.go`
 
-1. **Inicialización**: Carga configuración y sesiones
-2. **Parseo de URI**: Limpia y normaliza la ruta solicitada
-3. **Middleware**: Verifica permisos (guest, auth, familyOnly)
-4. **Validación**: Para POST, valida datos del formulario
-5. **Controlador**: Ejecuta la lógica correspondiente
-6. **Vista**: Renderiza la interfaz al usuario
+```go
+// RequireGuest - Solo permite acceso a usuarios no autenticados
+func RequireGuest(next http.HandlerFunc) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        if utils.IsAuthenticated(r) {
+            http.Redirect(w, r, "/seleccionar-perfil", http.StatusSeeOther)
+            return
+        }
+        next(w, r)
+    }
+}
 
-### 2. Controladores - `backend/controllers/AuthController.php`
+// RequireFamiliaAuth - Requiere autenticación de familia
+func RequireFamiliaAuth(next http.HandlerFunc) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        if !utils.IsFamiliaAuthenticated(r) {
+            http.Redirect(w, r, "/login", http.StatusSeeOther)
+            return
+        }
+        next(w, r)
+    }
+}
 
-```php
-class AuthController extends BaseController
-{
-    public function enviarCredenciales()
-    {
-        $email = $_POST['email'] ?? '';
-        $contrasena = $_POST['contrasena'] ?? '';
+// RequireUsuarioAuth - Requiere usuario seleccionado
+func RequireUsuarioAuth(next http.HandlerFunc) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        if !utils.IsUsuarioAuthenticated(r) {
+            http.Redirect(w, r, "/seleccionar-perfil", http.StatusSeeOther)
+            return
+        }
+        next(w, r)
+    }
+}
+```
 
-        // Verifica credenciales con el modelo
-        $userEntity = $this->userModel->verificarUsuario($email, $contrasena);
+### 4. Controlador de Ejemplo - `controllers/movimiento_controller.go`
 
-        if ($userEntity) {
-            // Establece sesión
-            $_SESSION['user_id'] = $userEntity->getIdFamilia();
-            $_SESSION['user_email'] = $userEntity->getEmail();
+```go
+type MovimientoController struct{}
+/************************************/
+/*       FNCtrl_Movimiento_Index    */
+/************************************/
+// Index muestra el dashboard de movimientos diarios para la familia y usuario activo.
+// Propósito: Servir la página principal de gestión, mostrando la entrada diaria de movimientos (gastos/ingresos)
+//            y los conceptos disponibles para la familia.
+// Parámetros:
+// - w: http.ResponseWriter para escribir la respuesta HTTP.
+// - r: *http.Request que contiene la solicitud y parámetros de URL (query params).
+// Retorno: Renderiza una plantilla HTML (dashboard/movimientos/index) o redirige si no hay sesión.
+func (c *MovimientoController) Index(w http.ResponseWriter, r *http.Request) {
+    // 1. Obtener datos de sesión
+    sessionData, ok := utils.GetSessionData(r)
+    if !ok {
+        http.Redirect(w, r, "/seleccionar-perfil", http.StatusSeeOther)
+        return
+    }
 
-            // Redirige a selección de perfil
-            header('Location: ' . URLROOT . '/seleccionar-perfil');
-            exit;
+    // 2. Obtener parámetros de la URL
+    tipo := r.URL.Query().Get("tipo")
+    if tipo == "" {
+        tipo = "gasto" // Por defecto
+    }
+
+    fechaStr := r.URL.Query().Get("fecha")
+    fecha, _ := time.Parse("2006-01-02", fechaStr)
+    if fechaStr == "" {
+        fecha = time.Now()
+    }
+
+    // 3. Obtener conceptos y movimientos desde el modelo
+    conceptos, _ := models.ConceptoModelInstance.FindByFamilia(
+        sessionData.CorreoFamilia,
+        tipo,
+    )
+
+    movimientos, _ := models.MovimientoModelInstance.FindByFamiliaDateAndTipo(
+        sessionData.CorreoFamilia,
+        fecha,
+        int8(0), // 0 = gasto
+    )
+
+    // 4. Preparar datos para la vista
+    data := map[string]interface{}{
+        "Title":       "Entrada Diaria",
+        "CurrentPage": "dashboard",
+        "SessionData": sessionData,
+        "Tipo":        tipo,
+        "Conceptos":   conceptos,
+        "Movimientos": movimientos,
+        "FechaActual": fecha.Format("2006-01-02"),
+    }
+
+    // 5. Renderizar template
+    utils.RenderTemplate(w, "dashboard", "movimientos/index", data)
+}
+```
+
+### 5. Modelo de Ejemplo - `models/movimiento_model.go`
+
+```go
+type MovimientoModel struct{}
+
+
+/*****************************/
+/*       FnBD_Mov_Create    */
+/***************************/
+// @Title Create
+// @Description Inserta un nuevo movimiento en la base de datos a través de un Stored Procedure.
+// @Accept  application/json
+// @Param   movimiento  body  entities.Movimiento  true  "Objeto Movimiento a crear"
+// @Success 200 {object} error  null  "Movimiento creado exitosamente"
+// @Failure 500 {object} error  "Error al ejecutar el Stored Procedure o al escanear resultados"
+// @Router /movimiento [post]
+func (m *MovimientoModel) Create(movimiento *entities.Movimiento) error {
+	// Definición del Stored Procedure a llamar para crear un movimiento.
+	query := `CALL sp_create_movimiento(?, ?, ?, ?, ?, ?)`
+
+	// Variables para almacenar los resultados devueltos por el SP: el ID del movimiento
+	// recién creado y el número de filas afectadas (aunque solo se usa idMovimiento).
+	var idMovimiento, rowsAffected int64
+
+	// Ejecuta el Stored Procedure en la base de datos. Se utiliza QueryRow porque
+	// el SP devuelve valores (idMovimiento y rowsAffected).
+	err := database.DB.QueryRow(query,
+		movimiento.Fecha,                                            // Parámetro 1: Fecha del movimiento
+		movimiento.Monto,                                            // Parámetro 2: Monto del movimiento
+		movimiento.Descripcion,                                      // Parámetro 3: Descripción del movimiento
+		movimiento.NombreUsuario,                                    // Parámetro 4: Nombre del usuario
+		movimiento.NombreConcepto,                                   // Parámetro 5: Nombre del concepto
+		movimiento.CorreoFamilia).Scan(&idMovimiento, &rowsAffected) // Parámetro 6: Correo de la familia y escaneo de resultados
+
+	// Verifica si ocurrió algún error durante la ejecución del QueryRow o el escaneo.
+	if err != nil {
+		// Registra el error en el log con un mensaje descriptivo.
+		log.Printf("❌ Error al ejecutar sp_create_movimiento: %v", err)
+		return err // Retorna el error.
+	}
+
+	// Asigna el ID recién creado devuelto por el SP al objeto 'movimiento'.
+	movimiento.IdMovimiento = int(idMovimiento)
+
+	// Registra en el log la creación exitosa del movimiento.
+	log.Printf("✅ Movimiento creado - ID: %d", idMovimiento)
+
+	// Retorna nil indicando que la operación fue exitosa.
+	return nil
+}
+```
+
+### 6. Validador - `validators/movimiento_validator.go`
+
+```go
+type MovimientoValidator struct {
+    *ValidatorBase
+}
+
+// FNValidator_Movimiento
+// Validate procesa y valida los datos de un formulario HTTP para la creación/edición de un movimiento.
+// Propósito: Garantizar que los campos `monto`, `nombreConcepto` y `fecha` cumplan con los requisitos de negocio y formato
+//            antes de ser procesados por el modelo.
+// Parámetros:
+// - r: *http.Request que contiene los datos del formulario (r.FormValue).
+// Retorno: Un objeto `ValidationResult` que contiene el estado de la validación (`Success`),
+//          los mensajes de error (`Errors`) y los datos limpios y convertidos (`CleanData`).
+
+func (v *MovimientoValidator) Validate(r *http.Request) ValidationResult {
+    result := NewValidationResult()
+
+    // Validar monto
+    montoStr := strings.TrimSpace(r.FormValue("monto"))
+    if montoStr == "" {
+        result.Errors["monto"] = "El monto es obligatorio"
+        result.Success = false
+    } else {
+        monto, err := strconv.ParseFloat(montoStr, 64)
+        if err != nil || monto <= 0 {
+            result.Errors["monto"] = "El monto debe ser mayor a 0"
+            result.Success = false
         } else {
-            // Muestra error en la vista
-            $data['error'] = 'Credenciales inválidas';
-            $this->view('auth/login', $data);
+            result.CleanData["monto"] = monto
         }
     }
 
-    public function processRegister()
-    {
-        try {
-            // 1. Verifica si el email/teléfono ya existen
-            $existsUser = $this->userModel->consultarExisteciaCredenciales(
-                $_POST["email"],
-                $_POST["telefono"]
-            );
+    // Validar concepto
+    concepto := strings.TrimSpace(r.FormValue("nombreConcepto"))
+    if concepto == "" {
+        result.Errors["nombreConcepto"] = "Debe seleccionar un concepto"
+        result.Success = false
+    } else {
+        result.CleanData["nombreConcepto"] = concepto
+    }
 
-            if ($existsUser) {
-                throw new Exception("{$existsUser} ya existe");
-            }
-
-            // 2. Crea la familia (usuario principal)
-            $userId = $this->userModel->crearUsuario(
-                $_POST['email'],
-                $_POST['telefono'],
-                $_POST['password']
-            );
-
-            // 3. Crea el administrador de la familia
-            $adminId = $this->userModel->crearUsuarioAdmin(
-                $userId,
-                $_POST['adminNombre'],
-                $_POST['adminNacimiento'],
-                $_POST['contraPersonal']
-            );
-
-            // 4. Crea miembros adicionales si existen
-            if (!empty($_POST['miembroNombre'])) {
-                foreach ($_POST['miembroNombre'] as $index => $nombre) {
-                    if (!empty(trim($nombre))) {
-                        $this->userModel->crearUsuarioMiembro(
-                            $userId,
-                            $nombre,
-                            $_POST['miembroNacimiento'][$index] ?? null,
-                            $_POST['miembroContra'][$index] ?? '',
-                            $_POST['miembroRol'][$index] ?? 'miembro'
-                        );
-                    }
-                }
-            }
-
-            // Éxito - redirige al login
-            $_SESSION['success_message'] = 'Cuenta creada exitosamente';
-            header('Location: ' . URLROOT . '/login');
-            exit;
-
-        } catch (Exception $e) {
-            // Error - muestra en formulario
-            $data['error'] = $e->getMessage();
-            $this->view('auth/registrar', $data);
+    // Validar fecha
+    fechaStr := strings.TrimSpace(r.FormValue("fecha"))
+    if fechaStr == "" {
+        result.Errors["fecha"] = "La fecha es obligatoria"
+        result.Success = false
+    } else {
+        fecha, err := time.Parse("2006-01-02", fechaStr)
+        if err != nil {
+            result.Errors["fecha"] = "Formato de fecha inválido"
+            result.Success = false
+        } else {
+            result.CleanData["fecha"] = fecha
         }
     }
+
+    return result
 }
 ```
 
-### 3. Modelos - `backend/models/UserModel.php`
+### 7. Template - `views/movimientos/index.html`
 
-```php
-class UserModel extends BaseModel
-{
-    public function verificarUsuario($email, $password)
-    {
-        // 1. Busca la familia por email
-        $sqlFamilia = "SELECT id, contrasena FROM familia WHERE correo = ?";
-        $familia = $this->executeQuery($sqlFamilia, [$email]);
+```html
+{{define "content"}}
+<div class="container">
+  <div class="topbar">
+    <div class="fecha-display" id="fechaDisplay">
+      <i id="fechaTexto">{{.FechaActual}}</i>
+      <input type="date" id="fechaInput" value="{{.FechaActual}}" style="display:none;">
+    </div>
 
-        if (empty($familia)) {
-            return false;
-        }
+    <div class="tabs">
+      <a href="/movimientos?tipo=gasto&fecha={{.FechaActual}}"
+         class="tab {{if eq .Tipo "gasto"}}active{{end}}">Gastos</a>
+      <a href="/movimientos?tipo=ingreso&fecha={{.FechaActual}}"
+         class="tab {{if eq .Tipo "ingreso"}}active{{end}}">Ingresos</a>
+    </div>
+  </div>
 
-        $familiaData = $familia[0];
+  <div class="main">
+    <form method="POST" action="/movimientos/crear">
+      <input type="hidden" name="tipo" value="{{.Tipo}}">
+      <input type="hidden" name="fecha" value="{{.FechaActual}}">
 
-        // 2. Verifica contraseña hasheada
-        if (!password_verify($password, $familiaData['contrasena'])) {
-            return false;
-        }
+      <div class="form-group">
+        <label>Concepto *</label>
+        <div class="concepts-strip">
+          {{range .Conceptos}}
+          <div class="concept-item" onclick="selectConcept('{{.NombreConcepto}}')">
+            <div class="concept-circle" style="background-color: {{.Color}};">
+              <i class="{{.Icono}}"></i>
+            </div>
+            <div class="concept-label">{{.NombreConcepto}}</div>
+          </div>
+          {{end}}
+        </div>
+        <input type="hidden" name="nombreConcepto" id="nombreConcepto">
+      </div>
 
-        // 3. Obtiene el usuario administrador
-        $sqlUsuario = "SELECT id, nombre, rol FROM usuario
-                      WHERE id_familia = ? AND rol = 'admin'";
-        $usuario = $this->executeQuery($sqlUsuario, [$familiaData['id']]);
+      <div class="form-group">
+        <label>Monto (S/) *</label>
+        <input type="number" step="0.01" name="monto" required>
+      </div>
 
-        if (!empty($usuario)) {
-            $userData = $usuario[0];
-            return new EntityUser(
-                $userData['id'],
-                $email,
-                $familiaData['contrasena'],
-                $userData['nombre'],
-                $familiaData['id']
-            );
-        }
+      <button type="submit" class="btn btn-primary">Guardar</button>
+    </form>
 
-        return false;
-    }
-}
+    <div class="movements">
+      {{range .Movimientos}}
+      <div class="movement-card">
+        <div class="movement-title">{{.NombreConcepto}}</div>
+        <div class="movement-amount">S/ {{printf "%.2f" .Monto}}</div>
+      </div>
+      {{end}}
+    </div>
+  </div>
+</div>
+{{end}}
 ```
 
-### 4. Entidades - `backend/entities/EntityUser.php`
-
-```php
-class EntityUser {
-    private $id;
-    private $email;
-    private $password;
-    private $nombre;
-    private $idFamilia;
-
-    // Representa un usuario del sistema con sus datos básicos
-    // Se usa para transferir datos entre capas de forma tipada
-}
-```
-
-### 5. Validadores - `backend/validators/RegisterValidator.php`
-
-```php
-class RegisterValidator extends ValidatorBase {
-    public static function validate($postData): array {
-        $validator = new self($postData);
-        $errors = [];
-        $cleanData = [];
-
-        // Validación de campos de familia
-        $result = $validator->validateFields([
-            'email' => $postData['email'] ?? '',
-            'telefono' => $postData['telefono'] ?? ''
-        ]);
-
-        $errors = array_merge($errors, $result['errors']);
-        $cleanData = array_merge($cleanData, $result['cleanData']);
-
-        // Validación de contraseñas
-        if (!$validator->isValidContrasena($postData['password'] ?? '')) {
-            $errors['password'] = $validator->getErrorMessage('contrasena');
-        }
-
-        if (!$validator->passwordsMatch(
-            $postData['password'] ?? '',
-            $postData['confirmPassword'] ?? ''
-        )) {
-            $errors['confirmPassword'] = 'Las contraseñas no coinciden';
-        }
-
-        // Validación de administrador
-        if (!$validator->isValidNombre($postData['adminNombre'] ?? '')) {
-            $errors['adminNombre'] = $validator->getErrorMessage('nombre');
-        }
-
-        // ... más validaciones
-
-        return [
-            'success' => empty($errors),
-            'errors' => $errors,
-            'cleanData' => $cleanData
-        ];
-    }
-}
-```
-
-### 6. Vistas - `frontend/views/auth/login.php`
-
-```php
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title><?php echo htmlspecialchars($title ?? 'Login - Arka'); ?></title>
-  <link rel="stylesheet" href="<?php echo URLROOT; ?>/frontend/assets/css/auth.css">
-</head>
-<body>
-  <form method="POST" action="<?php echo URLROOT; ?>/login">
-      <img src="<?php echo URLROOT; ?>/frontend/assets/img/arka_logo.png" alt="Logo Arka">
-      <h2>Iniciar sesión</h2>
-
-      <!-- Muestra errores de validación -->
-      <?php if (!empty($validation_errors)): ?>
-          <ul class="errors">
-              <?php foreach ($validation_errors as $field => $msg): ?>
-                  <li style="color: red;"><?php echo htmlspecialchars($msg); ?></li>
-              <?php endforeach; ?>
-          </ul>
-      <?php endif; ?>
-
-      <!-- Muestra errores generales -->
-      <?php if (!empty($error)): ?>
-          <p style="color:red"><?php echo htmlspecialchars($error); ?></p>
-      <?php endif; ?>
-
-      <input type="email" name="email" placeholder="Email" required>
-      <input type="password" name="contrasena" placeholder="Contraseña" required>
-
-      <button type="submit" class="btn btn-oscuro">Entrar</button>
-
-      <p>¿No tienes una cuenta?
-         <a href="<?php echo URLROOT; ?>/registro">Crea una nueva aquí!</a>
-      </p>
-  </form>
-</body>
-</html>
-```
+---
 
 ## 🗃️ Estructura de Base de Datos
 
 ### Tablas Principales:
 
-- **familia**: Familias/grupos (email, teléfono, contraseña)
-- **usuario**: Miembros de cada familia (nombre, rol, contraseña personal)
-- **concepto**: Categorías de gastos/ingresos
-- **concepto_usuarios**: Configuración personal por usuario
-- **movimiento**: Registros financieros
-- **iconos**: Íconos para categorías
+```sql
+-- Familia (grupo familiar)
+CREATE TABLE `familia` (
+  `correo` VARCHAR(50) PRIMARY KEY,
+  `telefono` CHAR(9),
+  `contraseña` VARCHAR(255) NOT NULL,
+  `delete_at` TIMESTAMP NULL
+);
+
+-- Usuarios (miembros de la familia)
+CREATE TABLE `usuario` (
+  `nombreUsuario` VARCHAR(30) PRIMARY KEY,
+  `rol` TINYINT(1) NOT NULL DEFAULT 0,  -- 0=miembro, 1=admin
+  `contraseñaPersonal` VARCHAR(255) NOT NULL,
+  `nombrePersonal` VARCHAR(100) NOT NULL,
+  `correoFamilia` VARCHAR(50) NOT NULL,
+  `delete_at` TIMESTAMP NULL,
+  FOREIGN KEY (`correoFamilia`) REFERENCES `familia`(`correo`)
+);
+
+-- Conceptos (categorías de gastos/ingresos)
+CREATE TABLE `concepto` (
+  `nombreConcepto` VARCHAR(40),
+  `correoFamilia` VARCHAR(50),
+  `tipo` TINYINT(1) NOT NULL,  -- 0=gasto, 1=ingreso
+  `icono` VARCHAR(100),
+  `color` CHAR(7),
+  `nombreUsuario` VARCHAR(30) NOT NULL,
+  `delete_at` TIMESTAMP NULL,
+  PRIMARY KEY (`nombreConcepto`, `correoFamilia`)
+);
+
+-- Movimientos (registros financieros)
+CREATE TABLE `movimiento` (
+  `idMovimiento` INT AUTO_INCREMENT PRIMARY KEY,
+  `fecha` DATE NOT NULL,
+  `monto` DECIMAL(10,2) NOT NULL,
+  `descripcion` TEXT,
+  `nombreUsuario` VARCHAR(30) NOT NULL,
+  `nombreConcepto` VARCHAR(40) NOT NULL,
+  `correoFamilia` VARCHAR(50) NOT NULL,
+  `delete_at` TIMESTAMP NULL
+);
+
+-- Límites de gasto personalizados
+CREATE TABLE `personalizacionconcepto` (
+  `idPersonalizacion` INT AUTO_INCREMENT PRIMARY KEY,
+  `limiteGasto` DECIMAL(10,2),
+  `activo` TINYINT(1) DEFAULT 1,
+  `montoPlanificado` DECIMAL(10,2),
+  `tipoPeriodoPlanificado` VARCHAR(15),
+  `tipoPeriodoLimite` VARCHAR(15),
+  `nombreUsuario` VARCHAR(30) NOT NULL,
+  `nombreConcepto` VARCHAR(40) NOT NULL,
+  `correoFamilia` VARCHAR(50) NOT NULL,
+  `delete_at` TIMESTAMP NULL
+);
+```
+
+---
 
 ## 🔐 Sistema de Autenticación
 
 ### Niveles de Acceso:
 
-1. **Guest**: Solo puede acceder a login/registro
-2. **Authenticated**: Usuario logueado pero sin perfil seleccionado
-3. **Family Member**: Usuario con perfil familiar seleccionado
+1. **Guest** (No autenticado)
 
-### Middleware:
+   - Puede acceder a `/login` y `/registro`
+   - Middleware: `RequireGuest`
 
-```php
-class AuthMiddleware {
-    public static function guest() {
-        if (isset($_SESSION['user_id'])) {
-            header('Location: ' . URLROOT . '/dashboard');
-            exit;
-        }
-    }
+2. **Familia Autenticada** (Familia logueada)
 
-    public static function auth() {
-        if (!isset($_SESSION['user_id'])) {
-            header('Location: ' . URLROOT . '/login');
-            exit;
-        }
-    }
+   - Puede acceder a `/seleccionar-perfil`
+   - Middleware: `RequireFamiliaAuth`
 
-    public static function familyOnly() {
-        if (!isset($_SESSION['user_id']) || !isset($_SESSION['miembro_id'])) {
-            header('Location: ' . URLROOT . '/login');
-            exit;
-        }
-    }
-}
+3. **Usuario Autenticado** (Perfil seleccionado)
+
+   - Puede acceder a todas las rutas protegidas
+   - Middleware: `RequireUsuarioAuth`
+
+4. **Administrador** (Usuario con rol=1)
+   - Puede gestionar todos los perfiles
+   - Middleware: `RequireAdmin`
+
+### Flujo de Autenticación:
+
+```
+1. Usuario → /login
+2. Validar credenciales → Crear sesión familia
+3. Redirigir → /seleccionar-perfil
+4. Seleccionar perfil → Crear sesión usuario
+5. Redirigir → /movimientos (dashboard)
 ```
 
 ---
 
-## 🎯 Funcionalidades
+## 🎯 Funcionalidades por Módulo
 
-### Autenticación
+### 📝 Autenticación (`auth_controller.go`)
 
-- Registro de nuevos usuarios
-- Login con email y contraseña
-- Selección de perfiles familiares
-- Middleware de protección de rutas
+- Registro de familias con múltiples usuarios
+- Login con email y contraseña (bcrypt)
+- Selección de perfil individual
+- Logout de familia y usuario
 
-### Gestión de Conceptos
+### 👥 Perfiles (`perfil_controller.go`)
 
-- Crear los conceptos
-- Asignar tipos (gasto/ingreso)
-- Asociar íconos y colores
-- Gestión de estado (activo/inactivo)
+- Crear nuevo miembro (admin)
+- Editar perfil propio o de otros (admin)
+- Deshabilitar miembro (admin, soft delete)
+- Gestión de límites de gasto por usuario
+
+### 📊 Conceptos (`concepto_controller.go`)
+
+- Crear conceptos de gasto/ingreso
+- Asignar íconos Font Awesome y colores
+- Configuración personal por usuario
+- Activar/desactivar conceptos
+
+### 💰 Movimientos (`movimiento_controller.go`)
+
+- Registro diario de gastos/ingresos
+- Vista por tipo (Gastos/Ingresos/Resumen)
+- Filtrado por fecha
+- Editar/eliminar movimientos
+- Cálculo automático de totales
 
 ---
 
 ## 🔒 Seguridad
 
-- Validación de formularios en backend
-- Protección contra SQL Injection con PDO
-- Sanitización de datos de entrada
-- Middleware de autenticación
-- Manejo seguro de sesiones
+- **Contraseñas**: Hash bcrypt (factor 10)
+- **SQL Injection**: Prepared statements con `database/sql`
+- **XSS**: Auto-escape en Go templates
+- **CSRF**: Gorilla Sessions con cookies seguras
+- **Validación**: Server-side en todos los formularios
+- **Soft Delete**: Registros nunca se eliminan físicamente
 
 ---
 
 ## 🐛 Troubleshooting
 
-### Problemas Comunes
+### Error de conexión a base de datos
 
-**Error de conexión a MySQL:**
+```bash
+# Verificar que MySQL esté corriendo
+sudo systemctl status mysql
 
-- Verificar credenciales en `db.php`
-- Asegurar que MySQL esté corriendo
-- Verificar permisos de usuario
+# Verificar credenciales en .env
+mysql -u arka_user -p
+```
 
-**Assets no cargan:**
+### Templates no cargan
 
-- Verificar rutas en templates
-- Revisar configuración de Apache
-- Verificar permisos de archivos
+```bash
+# Verificar estructura de carpetas
+ls -R views/
 
-**Error 404 en rutas:**
+# Verificar rutas en render.go
+```
 
-- Verificar mod_rewrite habilitado
-- Revisar configuración de .htaccess
-- Confirmar DocumentRoot correcto
+### Sesiones no persisten
+
+```bash
+# Verificar SESSION_KEY en .env
+# Verificar que gorilla/sessions esté instalado
+go get github.com/gorilla/sessions
+```
+
+---
+
+## 📦 Dependencias
+
+```go
+require (
+    github.com/go-sql-driver/mysql v1.7.1
+    github.com/gorilla/sessions v1.2.2
+    golang.org/x/crypto v0.17.0
+)
+```
+
+Instalar con:
+
+```bash
+go mod tidy
+```
+
+---
+
+## 🚀 Deploy en Producción
+
+### Build
+
+```bash
+# Compilar para Linux
+GOOS=linux GOARCH=amd64 go build -o arka-code
+
+# Compilar para Windows
+GOOS=windows GOARCH=amd64 go build -o arka-code.exe
+```
+
+### Variables de Entorno en Producción
+
+```bash
+export APP_PORT=8080
+export DB_HOST=tu-servidor-mysql.com
+export DB_NAME=arka
+export DB_USER=usuario_prod
+export DB_PASSWORD=contraseña_segura
+export SESSION_KEY=clave-aleatoria-muy-segura-64-caracteres-minimo
+```
 
 ---
 
 ## 📄 Licencia
 
-Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](https://github.com/bugbusters0/arka-code/blob/main/LICENSE.md) para detalles.
+Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE.md) para detalles.
 
 ---
 
 ## 👥 Autores
 
-- **Ana Concha Castro** - _Desarrolladora backend_ - [usuario](https://github.com/usuario)
-- **Jose Cornejo Castro** - _Desarrollador backend_ - [GebUCSP](https://github.com/GebUCSP)
-- **Pamela Villar Ticona** - _Desarrolladora frontend_ - [PamelaVillar](https://github.com/pamelavillar)
-- **Rodrigo Silva Murillo** - _Desarrollador backend_ - [GbTechh](https://github.com/gbTechh)
-- **Jose Valdivia Castillo** - _Desarrollador frontend_ - [Pochano](https://github.com/Pochano)
+- **Ana Concha Castro** - _Desarrolladora Backend_ - [AnaConcha](https://github.com/AnaConcha)
+- **Jose Cornejo Castro** - _Desarrollador Backend_ - [GebUCSP](https://github.com/GebUCSP)
+- **Pamela Villar Ticona** - _Desarrolladora Frontend_ - [PamelaVillar](https://github.com/pamelavillar)
+- **Rodrigo Silva Murillo** - _Desarrollador Backend_ - [GbTechh](https://github.com/gbTechh)
+- **Jose Valdivia Castillo** - _Desarrollador Frontend_ - [Pochano](https://github.com/Pochano)
+
+---
 
 ## 🙏 Agradecimientos
 
-- Equipo de desarrollo
-- Comunidad de PHP
-- Documentación de Fly.io
+- Equipo de desarrollo Bugbusters
+- Comunidad de Go (Golang)
+- Gorilla Toolkit por las librerías de sesiones
 
 ---
+
+## 📞 Soporte
+
+Para reportar bugs o solicitar features, abrir un issue en:
+https://github.com/bugbusters0/arka-code/issues
