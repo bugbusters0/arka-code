@@ -25,8 +25,8 @@ func (c *MovimientoController) Index(w http.ResponseWriter, r *http.Request) {
 
 	// Obtener tipo de vista (gastos, ingresos, resumen)
 	tipo := r.URL.Query().Get("tipo")
-	log.Printf(" El tipo es:  "+ tipo)
-	if tipo == "" || tipo == "{{.Tipo}}"{
+	log.Printf(" El tipo es:  " + tipo)
+	if tipo == "" || tipo == "{{.Tipo}}" {
 		tipo = "gasto" // Por defecto mostrar gastos
 	}
 
@@ -157,56 +157,85 @@ func (c *MovimientoController) Index(w http.ResponseWriter, r *http.Request) {
 	utils.RenderTemplate(w, "dashboard", "movimientos/index", data)
 }
 
-// Crear crea un nuevo movimiento
+// FNCtrl_Movimiento_Crear
+// Crear maneja la lógica para insertar un nuevo movimiento en el sistema a través de un formulario POST.
+// Parámetros:
+// - w: http.ResponseWriter para manejar la respuesta HTTP (redirecciones o renderizado de error).
+// - r: *http.Request que contiene la solicitud, el método y los datos del formulario POST.
+// Retorno: Redirecciona al dashboard con la nueva información o renderiza la vista de entrada con errores.
+// Flujo:
+// 1. **Verificación de Método:** Asegura que la solicitud sea **POST**. Si no, redirecciona a `/movimientos`.
+// 2. **Verificación de Sesión:** Obtiene y valida los datos de sesión. Si falla, redirecciona a `/seleccionar-perfil`.
+// 3. **Validación de Datos:**
+//   - Llama al `MovimientoValidator` para procesar y validar los campos del formulario.
+//   - Si la validación falla, registra el error y usa `renderWithError` para mostrar los mensajes de error al usuario.
+//
+// 4. **Construcción de Entidad:** Prepara la entidad `Movimiento` con los datos limpios y convertidos, incluyendo los datos de usuario y familia de la sesión.
+// 5. **Persistencia:** Llama al método `Create` del `MovimientoModel` para guardar el registro en la base de datos.
+//   - Si la creación falla, registra el error y usa `renderWithError`.
+//
+// 6. **Éxito:** Redirecciona al dashboard (`/movimientos`) con un indicador de éxito.
 func (c *MovimientoController) Crear(w http.ResponseWriter, r *http.Request) {
-	log.Println("🔵 Inicio de Crear movimiento")
-	
+	// Muestra el inicio del proceso en el log.
+	log.Println("Inicio de Crear movimiento")
+
+	// 1. Verificación de Método
 	if r.Method != http.MethodPost {
-		log.Println("❌ Método no es POST")
+		// Si el método no es POST, se registra el error y se redirige al dashboard.
+		log.Println("Método no es POST")
 		http.Redirect(w, r, "/movimientos", http.StatusSeeOther)
 		return
 	}
 
-	log.Println("✅ Método POST verificado")
+	log.Println("Método POST verificado")
 
+	// 2. Verificación de Sesión
 	sessionData, ok := utils.GetSessionData(r)
 	if !ok {
+		// Si no hay datos de sesión, se registra y se redirige a la selección de perfil.
 		log.Println("❌ No hay sesión activa")
 		http.Redirect(w, r, "/seleccionar-perfil", http.StatusSeeOther)
 		return
 	}
 
-	log.Printf("✅ Sesión verificada - Usuario: %s, Familia: %s", sessionData.NombreUsuario, sessionData.CorreoFamilia)
+	// Se confirma la sesión activa y los datos de usuario/familia.
+	log.Printf("Sesión verificada - Usuario: %s, Familia: %s", sessionData.NombreUsuario, sessionData.CorreoFamilia)
 
-	// Validar
-	log.Println("🔵 Iniciando validación...")
+	// 3. Validación de Datos
+	log.Println("Iniciando validación...")
+	// Se invoca el validador para procesar los datos del formulario (r).
 	validation := validators.MovimientoValidatorInstance.Validate(r)
-	
-	log.Printf("📋 Resultado validación - Success: %v, Errors: %v", validation.Success, validation.Errors)
-	log.Printf("📋 CleanData: %+v", validation.CleanData)
-	
+
+	// Se registran los resultados de la validación.
+	log.Printf("Resultado validación - Success: %v, Errors: %v", validation.Success, validation.Errors)
+	log.Printf("CleanData: %+v", validation.CleanData)
+
 	if !validation.Success {
-		log.Println("❌ Validación falló")
+		// Si la validación falló, se registra y se renderiza la vista con los errores.
+		log.Println("Validación falló")
+		// c.renderWithError es una función auxiliar para renderizar la vista con errores.
 		c.renderWithError(w, r, sessionData, validation.Errors, r.FormValue("tipo"))
 		return
 	}
 
-	log.Println("✅ Validación exitosa")
+	log.Println("Validación exitosa")
 
-	// Crear movimiento
+	// 4. Construcción de Entidad
 	var descripcion *string
+	// Se verifica y procesa el campo opcional 'descripcion' de los datos limpios.
 	if descVal, ok := validation.CleanData["descripcion"]; ok && descVal != nil {
 		descStr := descVal.(string)
 		if descStr != "" {
-			descripcion = &descStr
-			log.Printf("✅ Descripción: %s", descStr)
+			descripcion = &descStr // Asigna un puntero a la descripción si no está vacía.
+			log.Printf("Descripción: %s", descStr)
 		} else {
-			log.Println("ℹ️ Descripción vacía")
+			log.Println("Descripción vacía")
 		}
 	} else {
-		log.Println("ℹ️ Sin descripción")
+		log.Println("Sin descripción")
 	}
 
+	// Se construye el objeto Movimiento con los datos limpios y los datos de sesión.
 	movimiento := &entities.Movimiento{
 		Fecha:          validation.CleanData["fecha"].(time.Time),
 		Monto:          validation.CleanData["monto"].(float64),
@@ -216,30 +245,54 @@ func (c *MovimientoController) Crear(w http.ResponseWriter, r *http.Request) {
 		CorreoFamilia:  sessionData.CorreoFamilia,
 	}
 
-	log.Printf("🔵 Intentando crear movimiento: %+v", movimiento)
+	log.Printf("Intentando crear movimiento: %+v", movimiento)
 
+	// 5. Persistencia
+	// Se llama al modelo para crear el registro en la base de datos.
 	err := models.MovimientoModelInstance.Create(movimiento)
 	if err != nil {
-		log.Printf("❌ Error creando movimiento: %v", err)
+		// Si hay un error de base de datos/modelo, se registra.
+		log.Printf("Error creando movimiento: %v", err)
+		// Se añade un error general y se renderiza la vista con el error.
 		validation.Errors["general"] = "Error al crear el movimiento"
 		c.renderWithError(w, r, sessionData, validation.Errors, r.FormValue("tipo"))
 		return
 	}
 
-	log.Printf("✅ Movimiento creado exitosamente - ID: %d", movimiento.IdMovimiento)
+	log.Printf("Movimiento creado exitosamente - ID: %d", movimiento.IdMovimiento)
 
+	// 6. Éxito
+	// Se obtienen los parámetros de filtro del formulario para la redirección.
 	tipo := r.FormValue("tipo")
 	fecha := r.FormValue("fecha")
+	// Redirección exitosa al dashboard, manteniendo los filtros de fecha y tipo, e indicando la creación.
 	http.Redirect(w, r, "/movimientos?tipo="+tipo+"&fecha="+fecha+"&success=created", http.StatusSeeOther)
 }
 
-// Editar actualiza un movimiento existente
+// FNCtrl_Movimiento_editar
+// Editar maneja la lógica para actualizar un movimiento existente en el sistema a través de un formulario POST.
+// Parámetros:
+// - w: http.ResponseWriter para manejar la respuesta HTTP (redirecciones, error 403, o renderizado de error).
+// - r: *http.Request que contiene la solicitud, el método y los datos del formulario POST (incluyendo el ID).
+// Retorno: Redirecciona al dashboard con mensaje de éxito o renderiza la vista de entrada con errores.
+// Flujo:
+// 1. **Verificación de Método y Sesión:** Asegura que la solicitud sea POST y que la sesión esté activa.
+// 2. **Validación de Datos:** Llama al `MovimientoValidator` (usando `ValidateUpdate`) para validar los campos, incluyendo el ID del movimiento. Si falla, renderiza errores.
+// 3. **Verificación de Existencia y Permisos:**
+//   - Usa `FindByID` para verificar que el movimiento exista.
+//   - Comprueba que el `CorreoFamilia` del movimiento coincida con el de la sesión. Si no, retorna error 403 (No Autorizado).
+//
+// 4. **Construcción de Entidad:** Crea una entidad `Movimiento` con los datos limpios y el ID, manteniendo los campos fijos como `NombreUsuario` y `CorreoFamilia` del movimiento existente.
+// 5. **Persistencia:** Llama al método `Update` del `MovimientoModel` para actualizar el registro. Si falla, renderiza errores.
+// 6. **Éxito:** Redirecciona al dashboard (`/movimientos`) con los parámetros de filtro y un indicador de éxito.
 func (c *MovimientoController) Editar(w http.ResponseWriter, r *http.Request) {
+	// Asegura que la solicitud sea POST; si no, redirige al dashboard.
 	if r.Method != http.MethodPost {
 		http.Redirect(w, r, "/movimientos", http.StatusSeeOther)
 		return
 	}
 
+	// Verifica y obtiene los datos de sesión. Si falla, redirige al selector de perfil.
 	sessionData, ok := utils.GetSessionData(r)
 	if !ok {
 		http.Redirect(w, r, "/seleccionar-perfil", http.StatusSeeOther)
@@ -247,47 +300,61 @@ func (c *MovimientoController) Editar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validar
+	// 2. Validación de Datos (incluye ID de movimiento)
 	validation := validators.MovimientoValidatorInstance.ValidateUpdate(r)
 	if !validation.Success {
+		// Si la validación falla, renderiza la vista con los errores.
 		c.renderWithError(w, r, sessionData, validation.Errors, r.FormValue("tipo"))
 		return
 	}
 
+	// Obtiene el ID validado del movimiento a actualizar.
 	idMovimiento := validation.CleanData["idMovimiento"].(int)
 
-	// Verificar que el movimiento existe y pertenece a la familia
+	// 3. Verificación de Existencia y Permisos
+	// Busca el movimiento en la DB para verificar su existencia y permisos.
 	movimientoExistente, err := models.MovimientoModelInstance.FindByID(idMovimiento)
 	if err != nil || movimientoExistente == nil {
+		// Si no se encuentra o hay error en DB, se registra y se notifica al usuario.
 		log.Printf("❌ Movimiento no encontrado: %d", idMovimiento)
 		validation.Errors["general"] = "Movimiento no encontrado"
 		c.renderWithError(w, r, sessionData, validation.Errors, r.FormValue("tipo"))
 		return
 	}
 
+	// Verifica que el movimiento pertenezca a la familia del usuario activo.
 	if movimientoExistente.CorreoFamilia != sessionData.CorreoFamilia {
+		// Si no tiene permiso, registra y retorna error 403 (Forbidden).
 		log.Printf("❌ Intento de editar movimiento de otra familia")
 		http.Error(w, "No autorizado", http.StatusForbidden)
 		return
 	}
 
-	// Actualizar movimiento
+	// 4. Construcción de Entidad
+	// Obtiene la descripción (ya validada).
 	descripcion := validation.CleanData["descripcion"].(string)
+	// Construye la entidad Movimiento con los nuevos datos y el ID existente.
 	movimiento := &entities.Movimiento{
 		IdMovimiento:   idMovimiento,
 		Fecha:          validation.CleanData["fecha"].(time.Time),
 		Monto:          validation.CleanData["monto"].(float64),
 		Descripcion:    &descripcion,
 		NombreConcepto: validation.CleanData["nombreConcepto"].(string),
-		NombreUsuario:  movimientoExistente.NombreUsuario, // Mantener usuario original
-		CorreoFamilia:  movimientoExistente.CorreoFamilia,
+		// Mantiene el usuario y familia originales, ya que estos campos no se modifican en la edición.
+		NombreUsuario: movimientoExistente.NombreUsuario,
+		CorreoFamilia: movimientoExistente.CorreoFamilia,
 	}
 
+	// Maneja el caso de descripción vacía (se debe guardar como NULL en la DB).
 	if descripcion == "" {
 		movimiento.Descripcion = nil
 	}
 
+	// 5. Persistencia
+	// Llama al modelo para ejecutar la actualización.
 	err = models.MovimientoModelInstance.Update(movimiento)
 	if err != nil {
+		// Si falla la actualización en DB, registra el error y notifica al usuario.
 		log.Printf("❌ Error actualizando movimiento: %v", err)
 		validation.Errors["general"] = "Error al actualizar el movimiento"
 		c.renderWithError(w, r, sessionData, validation.Errors, r.FormValue("tipo"))
@@ -296,9 +363,11 @@ func (c *MovimientoController) Editar(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("✅ Movimiento actualizado exitosamente - ID: %d", idMovimiento)
 
-	// Redirigir con mensaje de éxito
+	// 6. Éxito
+	// Obtiene los parámetros de filtro del formulario.
 	tipo := r.FormValue("tipo")
 	fecha := r.FormValue("fecha")
+	// Redirige al dashboard, indicando el éxito de la actualización.
 	http.Redirect(w, r, "/movimientos?tipo="+tipo+"&fecha="+fecha+"&success=updated", http.StatusSeeOther)
 }
 

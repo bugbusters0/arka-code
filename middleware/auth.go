@@ -43,7 +43,7 @@ func RequireUsuarioAuth(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !utils.IsUsuarioAuthenticated(r) {
 			log.Printf("🔐 Usuario no autenticado, redirigiendo a seleccionar-perfil")
-			http.Redirect(w, r, "/seleccionar-perfil", http.StatusSeeOther)
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return
 		}
 		next(w, r)

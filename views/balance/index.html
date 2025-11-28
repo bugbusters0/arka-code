@@ -112,6 +112,19 @@
           <h3 class="column-title">Balance</h3>
         </div>
         
+        <div class="balance-total-card">
+          <div class="total-label">Balance Mensual Total</div>
+          <div class="total-value {{if ge .BalanceMensual 0.0}}positivo{{else}}negativo{{end}}">
+            S/ {{printf "%.2f" .BalanceMensual}}
+          </div>
+        </div>
+
+        <div class="balance-total-card">
+          <div class="total-label">Balance Anual Total</div>
+          <div class="total-value {{if ge .BalanceAnual 0.0}}positivo{{else}}negativo{{end}}">
+            S/ {{printf "%.2f" .BalanceAnual}}
+          </div>
+        </div>
         <div class="balance-cards">
           {{range .Balances}}
           <div class="balance-user-card">
@@ -142,19 +155,6 @@
           {{end}}
         </div>
 
-        <div class="balance-total-card">
-          <div class="total-label">Balance Mensual Total</div>
-          <div class="total-value {{if ge .BalanceMensual 0.0}}positivo{{else}}negativo{{end}}">
-            S/ {{printf "%.2f" .BalanceMensual}}
-          </div>
-        </div>
-
-        <div class="balance-total-card">
-          <div class="total-label">Balance Anual Total</div>
-          <div class="total-value {{if ge .BalanceAnual 0.0}}positivo{{else}}negativo{{end}}">
-            S/ {{printf "%.2f" .BalanceAnual}}
-          </div>
-        </div>
       </div>
     </div>
 

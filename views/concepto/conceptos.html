@@ -78,7 +78,7 @@
     <div class="sidebar-right {{if .ModoEdicion}}active{{end}}" id="formConcepto">
       <h3 id="tituloForm">{{if .ModoEdicion}}Editar{{else}}Crear{{end}} Concepto</h3>
 
-      <!-- ✅ Muestra errores de validación -->
+      <!-- Muestra errores de validación -->
       {{if .ValidationErrors}}
       <div class="error-box">
         <ul>
@@ -115,7 +115,7 @@
           value="{{.FormData.Nombre}}">
       </div>
       {{end}}
-
+       <!-- CAMPO ICONO -->
       <div class="form-group">
         <label>Ícono *</label>
         <div id="iconosGrid" class="iconos-grid">
@@ -131,7 +131,7 @@
           {{end}}
         </div>
       </div>
-
+       <!-- CAMPO COLOR -->
       <div class="form-group">
         <label>Color *</label>
         <div class="color-picker">
@@ -157,8 +157,6 @@
         </div>
       </div>
 
-      <!-- SOLO MOSTRAR CONFIGURACIÓN PERSONAL SI NO ES MODO EDICIÓN -->
-      <!-- SOLO MOSTRAR CONFIGURACIÓN PERSONAL SI NO ES MODO EDICIÓN -->
       {{if not .ModoEdicion}}
       <div class="section-title">Configuración Personal</div>
 

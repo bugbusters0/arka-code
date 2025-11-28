@@ -13,29 +13,64 @@ type ConceptoValidator struct {
 
 var ConceptoValidatorInstance = &ConceptoValidator{}
 
+// FNValidator_Copncepto
+// Validate procesa y valida los datos de un formulario HTTP para la creación de un nuevo concepto.
+// Propósito: Ejecutar las validaciones básicas (usando ValidatorBase) y luego las validaciones específicas
+//
+//	(tipo, ícono, longitud de nombre, configuración de usuario y personalización) de la entidad Concepto.
+//
+// Parámetros:
+// - r: *http.Request que contiene los datos del formulario (r.FormValue).
+// Retorno: Un objeto `ValidationResult` con el estado, errores y datos limpios.
+// Flujo:
+// 1. **Validación Base:** Inicializa `ValidatorBase` con campos comunes (`nombre`, `color`) y ejecuta su validación básica de campos vacíos.
+// 2. **Validación Específica:** Llama a `validateConceptoFields` para el resto de las reglas de negocio.
+// 3. **Resultado:** Retorna el resultado consolidado.
+// Uso: Se invoca en el controlador `Crear` antes de intentar crear un concepto.
 func (v *ConceptoValidator) Validate(r *http.Request) ValidationResult {
+	// Inicializa el ValidatorBase con los campos que maneja (nombre, color).
 	validator := &ValidatorBase{
 		Nombre: strings.TrimSpace(r.FormValue("nombre")),
 		Color:  strings.TrimSpace(r.FormValue("color")),
 	}
 
+	// Mapa de campos comunes a validar (pasados a la lógica base).
 	fieldsToValidate := map[string]string{
 		"nombre": validator.Nombre,
 		"color":  validator.Color,
 	}
 
+	// Ejecuta la validación de campos vacíos del ValidatorBase.
 	result := validator.ValidateFields(fieldsToValidate)
 
 	// ✅ Validaciones específicas para concepto
+	// Llama a la función auxiliar para aplicar las reglas de validación específicas de la entidad Concepto.
 	v.validateConceptoFields(r, &result)
 
+	// Retorna el resultado final después de todas las validaciones.
 	return result
 }
 
-// validateConceptoFields valida campos específicos de concepto
+// FNValidator_ConceptoFields
+// validateConceptoFields valida campos específicos de concepto, incluyendo longitud de nombre, tipo, ícono,
+// y la configuración de personalización, actualizando el ValidationResult pasado por puntero.
+// Propósito: Aplicar reglas de negocio detalladas no cubiertas por la validación base.
+// Parámetros:
+// - r: *http.Request que contiene los datos del formulario.
+// - result: *ValidationResult (puntero) para acumular errores y almacenar datos limpios.
+// Retorno: Ninguno, actualiza el objeto `result` directamente.
+// Flujo:
+// 1. **Validar Tipo:** Verifica que `tipo` sea 'gasto' o 'ingreso' y lo almacena.
+// 2. **Validar Ícono:** Verifica no vacío, convierte a entero positivo y lo almacena.
+// 3. **Validar Nombre:** Verifica la longitud máxima (40 caracteres) para la base de datos.
+// 4. **Validar Configuración:** Verifica que el booleano `configuracion_usuario` sea válido y lo almacena.
+// 5. **Validación de Personalización:** Llama a una función auxiliar para validar campos opcionales de límites/planeación.
+// 6. **Actualizar Éxito:** Si se encontraron errores, establece `result.Success = false`.
+// Uso: Invocada por `Validate` del `ConceptoValidator`.
 func (v *ConceptoValidator) validateConceptoFields(r *http.Request, result *ValidationResult) {
+	// ----------------------------------------------------------------------
 	// Validar tipo (gasto/ingreso)
-
+	// ----------------------------------------------------------------------
 	tipo := strings.TrimSpace(r.FormValue("tipo"))
 	if tipo == "" {
 		result.Errors["tipo"] = "El tipo de concepto es requerido"
@@ -47,41 +82,56 @@ func (v *ConceptoValidator) validateConceptoFields(r *http.Request, result *Vali
 		result.CleanData["tipo"] = tipo
 	}
 
+	// ----------------------------------------------------------------------
 	// Validar id_icono
+	// ----------------------------------------------------------------------
 	idIcono := strings.TrimSpace(r.FormValue("id_icono"))
 	if idIcono == "" {
 		result.Errors["id_icono"] = "Debe seleccionar un ícono"
 		result.Success = false
 	} else {
+		// Intenta convertir el string a entero.
 		iconoID, err := strconv.Atoi(idIcono)
 		if err != nil || iconoID <= 0 {
+			// Si falla la conversión o el ID no es positivo.
 			result.Errors["id_icono"] = "El ícono seleccionado no es válido"
 			result.Success = false
 		} else {
+			// Almacena el ID del ícono como entero.
 			result.CleanData["id_icono"] = iconoID
 		}
 	}
 
+	// ----------------------------------------------------------------------
 	// Validar nombre (longitud específica para BD)
+	// ----------------------------------------------------------------------
 	nombre := strings.TrimSpace(r.FormValue("nombre"))
+	// Comprueba la longitud máxima de 40 caracteres, requerida por la base de datos.
 	if len(nombre) > 40 {
 		result.Errors["nombre"] = "El nombre no puede tener más de 40 caracteres"
 		result.Success = false
 	}
 
-	// Validar configuracion_usuario
+	// ----------------------------------------------------------------------
+	// Validar configuracion_usuario (booleano)
+	// ----------------------------------------------------------------------
 	configUsuario := strings.TrimSpace(r.FormValue("configuracion_usuario"))
 	if configUsuario != "true" && configUsuario != "false" {
+		// Solo acepta las representaciones string de un booleano.
 		result.Errors["configuracion_usuario"] = "Configuración de usuario inválida"
 		result.Success = false
 	} else {
+		// Almacena el valor como booleano en CleanData.
 		result.CleanData["configuracion_usuario"] = configUsuario == "true"
 	}
 
 	// ✅ Validar campos de personalización (opcionales)
+	// Llama a otra función auxiliar para validar límites y planeaciones.
 	v.validatePersonalizacion(r, result)
 
 	// Si hay errores, actualizar el estado
+	// Esta verificación es redundante si los bloques anteriores ya establecen Success=false,
+	// pero asegura que Success sea false si se agregaron errores en validatePersonalizacion.
 	if len(result.Errors) > 0 {
 		result.Success = false
 	}

@@ -15,13 +15,11 @@ var MovimientoModelInstance = &MovimientoModel{}
 /*****************************/
 /*       FnBD_Mov_Create    */
 /***************************/
-// @Title Create
-// @Description Inserta un nuevo movimiento en la base de datos a través de un Stored Procedure.
-// @Accept  application/json
-// @Param   movimiento  body  entities.Movimiento  true  "Objeto Movimiento a crear"
-// @Success 200 {object} error  null  "Movimiento creado exitosamente"
-// @Failure 500 {object} error  "Error al ejecutar el Stored Procedure o al escanear resultados"
-// @Router /movimiento [post]
+// Inserta un nuevo movimiento en la base de datos a través de un Stored Procedure.
+// Parametros:   movimiento  body  entities.Movimiento  true  "Objeto Movimiento a crear"
+// Success: 200 {object} error  null  "Movimiento creado exitosamente"
+// Failure: 500 {object} error  "Error al ejecutar el Stored Procedure o al escanear resultados"
+// Router: /movimiento [post]
 func (m *MovimientoModel) Create(movimiento *entities.Movimiento) error {
 	// Definición del Stored Procedure a llamar para crear un movimiento.
 	query := `CALL sp_create_movimiento(?, ?, ?, ?, ?, ?)`

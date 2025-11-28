@@ -14,41 +14,78 @@ type ConceptoModel struct{}
 
 var ConceptoModelInstance = &ConceptoModel{}
 
-// FNBD-Index
-// Create crea un nuevo concepto en la base de datos
+// FNBD_Concepto_Crear
+// CreateTransactional crea un concepto y sus personalizaciones dentro de una transacción única en la BD.
 // Parámetros:
-// - concepto: Estructura con los datos del concepto a crear
-// Retorno: Error si la creación falla
+// - concepto: Estructura con datos del concepto a crear.
+// - datosPersonalizacion: Mapa con la configuración base de personalización.
+// Retorno: Error si la transacción falla.
 // Flujo:
-// - Inserta nuevo registro en tabla concepto
-// - Campos requeridos: nombreConcepto, correoFamilia, tipo, nombreUsuario
-// - Campos opcionales: icono, color
-// - Registra número de filas afectadas para verificación
-// Uso: Creación de nuevos conceptos de gastos/ingresos
-func (m *ConceptoModel) Create(concepto *entities.Concepto) error {
-	query := `CALL sp_create_concepto(?, ?, ?, ?, ?, ?)`
+// - Llama al SP transaccional que ejecuta CREATE y CREATE_PERSONALIZACIONES.
+// - La BD maneja el COMMIT/ROLLBACK de ambas operaciones.
+// Uso: Creación atómica de conceptos.
+func (m *ConceptoModel) Create(concepto *entities.Concepto, datosPersonalizacion map[string]interface{}) error {
+	// Ajustamos los punteros a valores nulos o el valor base para los SPs.
+	var icono, color *string
+	if concepto.Icono != nil {
+		icono = concepto.Icono
+	}
+	if concepto.Color != nil {
+		color = concepto.Color
+	}
 
-	var rowsAffected int64
-	var idConcepto int64
+	// Preparación de valores nulos y types para el SP (similar a tu lógica en CreatePersonalizacionesForAllUsuarios)
+	var limiteGasto, montoPlanificado interface{} = nil, nil
+	if limite, ok := datosPersonalizacion["limite_monto"].(float64); ok && limite > 0 {
+		limiteGasto = limite
+	}
+	if desembolso, ok := datosPersonalizacion["desembolso_planejado"].(float64); ok && desembolso > 0 {
+		montoPlanificado = desembolso
+	}
 
-	err := database.DB.QueryRow(query,
+	var diaDesembolsoPlanejado, diaPeriodoLimite interface{} = nil, nil
+	if diaDesembolso, ok := datosPersonalizacion["dia_desembolso_planejado"].(int8); ok && diaDesembolso > 0 {
+		diaDesembolsoPlanejado = diaDesembolso
+	}
+	if diaLimiteTipo, ok := datosPersonalizacion["dia_limite_tipo"].(int8); ok && diaLimiteTipo > 0 {
+		diaPeriodoLimite = diaLimiteTipo
+	}
+
+	var tipoPeriodoPlanificado, tipoPeriodoLimite interface{} = nil, nil
+	if periodo, ok := datosPersonalizacion["periodo_tipo"].(string); ok && periodo != "" {
+		tipoPeriodoPlanificado = periodo
+	}
+	if limiteTipo, ok := datosPersonalizacion["limite_tipo"].(string); ok && limiteTipo != "" {
+		tipoPeriodoLimite = limiteTipo
+	}
+
+	query := `CALL sp_create_concepto_transaccional(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+
+	// Ejecutamos el SP transaccional
+	_, err := database.DB.Exec(query,
+		// Parámetros de Concepto
 		concepto.NombreConcepto,
 		concepto.CorreoFamilia,
 		concepto.Tipo,
-		concepto.Icono,
-		concepto.Color,
-		concepto.NombreUsuario).Scan(&rowsAffected, &idConcepto)
+		icono,
+		color,
+		concepto.NombreUsuario,
+
+		// Parámetros de Personalización
+		limiteGasto,
+		montoPlanificado,
+		tipoPeriodoPlanificado,
+		tipoPeriodoLimite,
+		diaDesembolsoPlanejado,
+		diaPeriodoLimite)
 
 	if err != nil {
-		log.Printf("❌ Error al ejecutar sp_create_concepto: %v", err)
+		// MySQL devolverá el error '45000' si se activa el ROLLBACK
+		log.Printf("❌ Error al ejecutar transacción de creación de concepto: %v", err)
 		return err
 	}
 
-	log.Printf("✅ Concepto creado - ID: %d, Filas afectadas: %d", idConcepto, rowsAffected)
-
-	// Opcional: asignar el ID generado al objeto concepto
-	// concepto.ID = int(idConcepto)
-
+	log.Printf("✅ Concepto '%s' y personalizaciones creadas de forma atómica.", concepto.NombreConcepto)
 	return nil
 }
 

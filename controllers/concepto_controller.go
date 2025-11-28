@@ -94,28 +94,30 @@ func (c *ConceptoController) Index(w http.ResponseWriter, r *http.Request) {
 	utils.RenderTemplate(w, "dashboard", "concepto/conceptos", data)
 }
 
-// FNConcepto-Crear
-// Crear maneja la creación de un nuevo concepto en el sistema
+// FNCtrl_Concepto_Crear
+// Crear maneja la creación de un nuevo concepto en el sistema (ATÓMICA).
 // Parámetros:
-// - w: ResponseWriter para enviar respuesta HTTP
-// - r: Request HTTP con datos del formulario
+// - w: http.ResponseWriter para enviar respuesta HTTP.
+// - r: *http.Request HTTP con datos del formulario.
 // Flujo:
-// 1. Verifica método POST y autenticación
-// 2. Parsea y valida datos del formulario
-// 3. Verifica que el concepto no exista
-// 4. Crea el concepto en la base de datos
-// 5. Crea personalizaciones para todos los usuarios de la familia
-// 6. Redirige con mensaje de éxito o error
-// Uso: Creación de nuevos conceptos desde formulario
+// 1. Verifica método POST y autenticación.
+// 2. Parsea y valida datos del formulario.
+// 3. Verifica que el concepto no exista.
+// 4. Llama a la única función del modelo que maneja la transacción.
+// 5. Redirige con mensaje de éxito o error.
+// Uso: Creación atómica de nuevos conceptos desde formulario.
 func (c *ConceptoController) Crear(w http.ResponseWriter, r *http.Request) {
-	log.Printf("🚀 ConceptoController.Crear llamado - Método: %s", r.Method)
+	// Registra el inicio de la función y el método HTTP utilizado.
+	log.Printf("ConceptoController.Crear llamado - Método: %s", r.Method)
 
+	// 1. Verificación del Método HTTP
 	if r.Method != http.MethodPost {
 		log.Printf("❌ Método no permitido: %s, redirigiendo", r.Method)
 		http.Redirect(w, r, "/conceptos", http.StatusSeeOther)
 		return
 	}
 
+	// 2. Verificación de Sesión
 	sessionData, ok := utils.GetSessionData(r)
 	if !ok {
 		log.Printf("❌ No hay sesión en Crear")
@@ -125,32 +127,26 @@ func (c *ConceptoController) Crear(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("👤 Usuario creando concepto: %s", sessionData.NombreUsuario)
 
-	// Parsear el formulario
+	// 3. Parsear el Formulario
 	if err := r.ParseForm(); err != nil {
 		log.Printf("❌ Error parseando formulario: %v", err)
 		http.Redirect(w, r, "/conceptos?error=error_parseando_formulario", http.StatusSeeOther)
 		return
 	}
 
-	// Log todos los datos del formulario
-	log.Printf("📝 FORMULARIO RECIBIDO:")
-	for key, values := range r.Form {
-		log.Printf("   %s: %v", key, values)
-	}
-
-	// Validar datos del formulario
+	// 4. Validar datos del formulario
 	validation := validators.ConceptoValidatorInstance.Validate(r)
 	log.Printf("🔍 RESULTADO VALIDACIÓN - Éxito: %v, Errores: %v", validation.Success, validation.Errors)
 
 	if !validation.Success {
-		log.Printf("❌ Validación fallida, recargando página con errores")
+		log.Printf("Validación fallida, recargando página con errores")
 		c.recargarPaginaConErrores(w, r, sessionData, validation.Errors, validation.CleanData)
 		return
 	}
 
-	log.Printf("✅ Validación exitosa, datos limpios: %v", validation.CleanData)
+	log.Printf("Validación exitosa, datos limpios: %v", validation.CleanData)
 
-	// Verificar si el concepto ya existe
+	// 5. Verificar si el concepto ya existe
 	nombreConcepto := validation.CleanData["nombre"].(string)
 	correoFamilia := sessionData.CorreoFamilia
 
@@ -158,35 +154,32 @@ func (c *ConceptoController) Crear(w http.ResponseWriter, r *http.Request) {
 
 	existe, err := models.ConceptoModelInstance.Exists(nombreConcepto, correoFamilia)
 	if err != nil {
-		log.Printf("❌ Error verificando existencia: %v", err)
+		log.Printf("Error verificando existencia: %v", err)
 		c.recargarPaginaConErrores(w, r, sessionData,
 			map[string]string{"general": "Error al verificar el concepto"}, validation.CleanData)
 		return
 	}
 
 	if existe {
-		log.Printf("❌ Concepto ya existe: %s", nombreConcepto)
+		log.Printf("Concepto ya existe: %s", nombreConcepto)
 		c.recargarPaginaConErrores(w, r, sessionData,
 			map[string]string{"nombre": "Ya existe un concepto con este nombre"}, validation.CleanData)
 		return
 	}
 
-	log.Printf("✅ Concepto no existe, procediendo a crear")
+	log.Printf("Concepto no existe, procediendo a crear de forma atómica")
 
-	// Crear el concepto
-	tipoInt := int8(0) // 0 = gasto por defecto
+	// 6. Preparar las entidades Concepto y Personalización
+	tipoInt := int8(0)
 	if validation.CleanData["tipo"] == "ingreso" {
 		tipoInt = 1
 	}
 
-	// Obtener el ícono seleccionado
 	idIcono := validation.CleanData["id_icono"].(int)
 	iconoSeleccionado := c.getIconoPorID(idIcono)
-	log.Printf("🎨 Ícono seleccionado: %s", iconoSeleccionado)
-
-	// Crear variables para los pointers
 	colorStr := validation.CleanData["color"].(string)
 
+	// Construye la entidad Concepto
 	concepto := &entities.Concepto{
 		NombreConcepto: nombreConcepto,
 		CorreoFamilia:  correoFamilia,
@@ -196,23 +189,7 @@ func (c *ConceptoController) Crear(w http.ResponseWriter, r *http.Request) {
 		NombreUsuario:  sessionData.NombreUsuario,
 	}
 
-	log.Printf("💾 Intentando crear concepto en BD: %+v", concepto)
-
-	// Crear concepto en la base de datos
-	err = models.ConceptoModelInstance.Create(concepto)
-	if err != nil {
-		log.Printf("❌ ERROR creando concepto en BD: %v", err)
-		c.recargarPaginaConErrores(w, r, sessionData,
-			map[string]string{"general": "Error al crear el concepto: " + err.Error()}, validation.CleanData)
-		return
-	}
-
-	log.Printf("✅ CONCEPTO CREADO EXITOSAMENTE EN BD")
-
-	// Crear personalizaciones para todos los usuarios de la familia
-	log.Printf("🔄 Creando personalizaciones para todos los usuarios")
-
-	// Preparar datos de personalización con valores por defecto
+	// Inicializa y rellena los datos de personalización que requiere la función atómica
 	datosPersonalizacion := map[string]interface{}{
 		"limite_monto":            0.0,
 		"desembolso_planejado":    0.0,
@@ -222,7 +199,6 @@ func (c *ConceptoController) Crear(w http.ResponseWriter, r *http.Request) {
 		"notificacion":            false,
 	}
 
-	// Sobrescribir con datos del formulario si existen
 	if desembolso, ok := validation.CleanData["desembolso_planejado"].(float64); ok {
 		datosPersonalizacion["desembolso_planejado"] = desembolso
 	}
@@ -242,33 +218,26 @@ func (c *ConceptoController) Crear(w http.ResponseWriter, r *http.Request) {
 		datosPersonalizacion["dia_limite_tipo"] = diaLimiteTipo
 	}
 
-	log.Printf("📊 Datos de personalización: %+v", datosPersonalizacion)
+	// 7. CREACIÓN ATÓMICA EN LA BASE DE DATOS (Concepto + Personalizaciones)
+	log.Printf("💾 Iniciando transacción atómica Concepto + Personalizaciones.")
 
-	err = models.ConceptoModelInstance.CreatePersonalizacionesForAllUsuarios(
-		nombreConcepto,
-		correoFamilia,
-		datosPersonalizacion,
-	)
+	// Llama a la única función del modelo con ambos parámetros.
+	// Si esta función retorna un error, la base de datos garantizó el ROLLBACK total.
+	err = models.ConceptoModelInstance.Create(concepto, datosPersonalizacion)
+
 	if err != nil {
-		log.Printf("⚠️  Error creando algunas personalizaciones: %v", err)
-		// No fallamos la creación del concepto aunque falle alguna personalización
-	} else {
-		log.Printf("✅ Personalizaciones creadas exitosamente")
+		// Si hay error, se asume que la transacción falló y se revirtió.
+		log.Printf("❌ ERROR en transacción de creación de concepto: %v", err)
+		c.recargarPaginaConErrores(w, r, sessionData,
+			map[string]string{"general": "Error transaccional al crear concepto o personalizaciones: " + err.Error()}, validation.CleanData)
+		return
 	}
 
-	// Verificar que se crearon las personalizaciones
-	personalizaciones, err := models.ConceptoModelInstance.GetPersonalizacionesByConcepto(nombreConcepto, correoFamilia)
-	if err != nil {
-		log.Printf("⚠️  Error verificando personalizaciones: %v", err)
-	} else {
-		log.Printf("🔍 Personalizaciones creadas para concepto '%s': %d", nombreConcepto, len(personalizaciones))
-		for _, p := range personalizaciones {
-			log.Printf("   👤 %s - Límite: %.2f - Desembolso: %.2f",
-				p["nombreUsuario"], p["limiteGasto"], p["montoPlanificado"])
-		}
-	}
+	log.Printf("✅ CONCEPTO Y PERSONALIZACIONES CREADOS ATÓMICAMENTE con éxito.")
 
+	// 8. Redirección de Éxito
 	log.Printf("🎉 REDIRIGIENDO A LISTA DE CONCEPTOS")
+	// Redirige al listado, pasando el mensaje de éxito y el tipo de concepto creado como query params.
 	http.Redirect(w, r, "/conceptos?success=concepto_creado&tipo="+validation.CleanData["tipo"].(string), http.StatusSeeOther)
 }
 

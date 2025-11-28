@@ -43,6 +43,88 @@ END$$
 
 DELIMITER ;
 
+
+DELIMITER $$
+
+-- Procedure: sp_create_concepto_transaccional
+-- Descripción: Crea un concepto y sus personalizaciones para todos los usuarios de la familia de forma atómica.
+-- Tipo de operación: Escritura (Transaccional)
+-- Tablas involucradas: concepto, personalizacionconcepto
+-- Dependencias: Llama a la lógica de inserción masiva de personalizaciones.
+
+DROP PROCEDURE IF EXISTS sp_create_concepto_transaccional$$
+
+CREATE PROCEDURE sp_create_concepto_transaccional(
+    -- Parámetros del Concepto
+    IN p_nombreConcepto VARCHAR(255),
+    IN p_correoFamilia VARCHAR(255),
+    IN p_tipo TINYINT,
+    IN p_icono VARCHAR(100),
+    IN p_color VARCHAR(50),
+    IN p_nombreUsuario VARCHAR(255),
+    
+    -- Parámetros de Personalización
+    IN p_limiteGasto DECIMAL(10,2),
+    IN p_montoPlanificado DECIMAL(10,2),
+    IN p_tipoPeriodoPlanificado VARCHAR(15),
+    IN p_tipoPeriodoLimite VARCHAR(15),
+    IN p_diaDesembolsoPlanejado TINYINT,
+    IN p_diaPeriodoLimite TINYINT
+)
+BEGIN
+    -- Declarar variables para almacenar el resultado del SP de personalización
+    DECLARE v_usuariosTotal INT DEFAULT 0;
+    DECLARE v_usuariosCreados INT DEFAULT 0;
+    DECLARE v_usuariosError INT DEFAULT 0;
+    
+    -- Manejador de errores para forzar ROLLBACK si ocurre cualquier SQLEXCEPTION
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        -- Si ocurre un error, revertimos todas las operaciones.
+        ROLLBACK;
+        -- Re-lanza un error estándar para que Go pueda capturarlo
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Transacción fallida: Error al crear concepto o personalizaciones.';
+    END;
+
+    START TRANSACTION;
+    
+    -- 1. CREAR EL CONCEPTO
+    INSERT INTO concepto (nombreConcepto, correoFamilia, tipo, icono, color, nombreUsuario)
+    VALUES (p_nombreConcepto, p_correoFamilia, p_tipo, p_icono, p_color, p_nombreUsuario);
+    
+    -- Si la inserción del concepto falló por alguna razón (aunque el handler lo atraparía), se detiene aquí.
+
+    -- 2. CREAR LAS PERSONALIZACIONES MASIVAS
+    -- Se llama al SP existente, pero DENTRO de esta transacción.
+    CALL sp_create_personalizaciones_all_usuarios(
+        p_nombreConcepto,
+        p_correoFamilia,
+        p_limiteGasto,
+        p_montoPlanificado,
+        p_tipoPeriodoPlanificado,
+        p_tipoPeriodoLimite,
+        p_diaDesembolsoPlanejado,
+        p_diaPeriodoLimite
+    );
+    
+    -- Se asume que el SP de personalizaciones devolverá los conteos al finalizar.
+    -- (Nota: Depende de cómo esté configurado para devolver los datos al SP llamante,
+    -- pero para simplificar, usaremos el mismo retorno en el SP.)
+    
+    -- Se asume que si el SP de personalizaciones no genera un error fatal, la inserción
+    -- del concepto es válida. Si tu SP de personalizaciones retorna errores lógicos (v_usuariosError > 0), 
+    -- puedes manejarlo aquí con un IF y forzar un ROLLBACK o COMMIT según tu regla de negocio.
+    
+    -- Si llegamos aquí sin que se active el EXIT HANDLER, hacemos COMMIT.
+    COMMIT;
+    
+    -- Retorno opcional de éxito
+    SELECT 'success' AS status;
+
+END$$
+DELIMITER ;
+
+
 DELIMITER $$
 
 -- Procedure: sp_find_conceptos_by_familia
